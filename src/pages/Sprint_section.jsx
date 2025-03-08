@@ -24,13 +24,6 @@ const SprintsPage = () => {
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Sprints</h1>
         <div className="flex items-center space-x-2">
-          <button className="flex items-center px-3 py-1 text-sm border rounded bg-white">
-            <div className="mr-1">
-              <Search size={16} />
-            </div>
-            Search
-          </button>
-          <div className="h-6 border-r border-gray-300 mx-1"></div>
           <button className="flex items-center px-3 py-1 text-sm bg-white">
             <Integrate size={16} className="mr-1" /> Integrate
           </button>
