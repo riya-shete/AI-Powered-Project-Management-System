@@ -35,16 +35,7 @@ const Sprintmain = () => {
   
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const [newTask, setNewTask] = useState({
-    name: '',
-    responsible: '',
-    role: '',
-    status: '',
-    priority: 'Low',
-  });
   
-  const [showAddForm, setShowAddForm] = useState(false);
-
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'High': return 'bg-orange-100 text-orange-700';
@@ -85,37 +76,7 @@ const Sprintmain = () => {
     setShowAddForm(false);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewTask(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddTask = () => {
-    // Generate a random ID for the new task
-    const newId = Math.floor(Math.random() * 10000000).toString();
-    
-    // Get current date in DD MMM YYYY format
-    const today = new Date();
-    const options = { day: '2-digit', month: 'short', year: 'numeric' };
-    const formattedDate = today.toLocaleDateString('en-GB', options).replace(/ /g, ' ');
-    
-    const taskToAdd = {
-      ...newTask,
-      id: newId,
-      added: formattedDate
-    };
-    
-    setTasks(prev => [taskToAdd, ...prev]);
-    setNewTask({
-      name: '',
-      responsible: '',
-      role: '',
-      status: '',
-      priority: 'Low',
-    });
-    setShowAddForm(false);
-  };
-
+  
   return (
     <div className="flex-1 overflow-auto bg-white">
       <div className="p-6">
