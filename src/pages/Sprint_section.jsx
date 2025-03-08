@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus } from 'lucide-react';
+import { User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Search } from 'lucide-react';
 
 const SprintsPage = () => {
   const [tasks, setTasks] = useState([
@@ -10,6 +10,16 @@ const SprintsPage = () => {
     { id: '1464135', name: 'Feature 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
   ]);
 
+  const [newTask, setNewTask] = useState({
+    name: '',
+    responsible: '',
+    role: '',
+    status: '',
+    priority: 'Low',
+  });
+  
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'High': return 'bg-orange-100 text-orange-700';
@@ -17,6 +27,37 @@ const SprintsPage = () => {
       case 'Low': return 'bg-green-100 text-green-700';
       default: return 'bg-gray-100 text-gray-700';
     }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewTask(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddTask = () => {
+    // Generate a random ID for the new task
+    const newId = Math.floor(Math.random() * 10000000).toString();
+    
+    // Get current date in DD MMM YYYY format
+    const today = new Date();
+    const options = { day: '2-digit', month: 'short', year: 'numeric' };
+    const formattedDate = today.toLocaleDateString('en-GB', options).replace(/ /g, ' ');
+    
+    const taskToAdd = {
+      ...newTask,
+      id: newId,
+      added: formattedDate
+    };
+    
+    setTasks(prev => [taskToAdd, ...prev]);
+    setNewTask({
+      name: '',
+      responsible: '',
+      role: '',
+      status: '',
+      priority: 'Low',
+    });
+    setShowAddForm(false);
   };
 
   return (
@@ -48,7 +89,10 @@ const SprintsPage = () => {
       </div>
 
       <div className="flex mb-4 space-x-2">
-        <button className="px-3 py-1 text-sm bg-gray-500 text-white rounded flex items-center">
+        <button 
+          className="px-3 py-1 text-sm bg-gray-500 text-white rounded flex items-center"
+          onClick={() => setShowAddForm(true)}
+        >
           New Item <Plus size={14} className="ml-1" />
         </button>
         <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
@@ -67,6 +111,94 @@ const SprintsPage = () => {
           <EyeOff size={14} className="mr-1" /> Hide
         </button>
       </div>
+
+      {showAddForm && (
+        <div className="mb-4 bg-gray-50 p-4 rounded border">
+          <h3 className="text-lg font-medium mb-3">Add New Task</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Task Name</label>
+              <input
+                type="text"
+                name="name"
+                value={newTask.name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded"
+                placeholder="Feature name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Responsible</label>
+              <input
+                type="text"
+                name="responsible"
+                value={newTask.responsible}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded"
+                placeholder="Name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Role</label>
+              <select
+                name="role"
+                value={newTask.role}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded"
+              >
+                <option value="">Select Role</option>
+                <option value="Dev">Dev</option>
+                <option value="Design">Design</option>
+                <option value="Product">Product</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                name="status"
+                value={newTask.status}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded"
+              >
+                <option value="">Select Status</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Waiting for review">Waiting for review</option>
+                <option value="Stuck">Stuck</option>
+                <option value="Done">Done</option>
+                <option value="Ready to start">Ready to start</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Priority</label>
+              <select
+                name="priority"
+                value={newTask.priority}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end space-x-2">
+            <button
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+              onClick={() => setShowAddForm(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={handleAddTask}
+              disabled={!newTask.name || !newTask.responsible || !newTask.role || !newTask.status}
+            >
+              Add Task
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border-collapse">
@@ -113,7 +245,10 @@ const SprintsPage = () => {
       </div>
       
       <div className="fixed bottom-4 right-4">
-        <button className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center">
+        <button 
+          className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center"
+          onClick={() => setShowAddForm(true)}
+        >
           <Plus size={24} />
         </button>
       </div>
