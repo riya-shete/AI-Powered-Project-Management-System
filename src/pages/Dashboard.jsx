@@ -1,317 +1,166 @@
-import React from 'react';
-import {
-  Bell,
-  MessageSquare,
-  UserPlus,
-  Layers,
-  Search,
-  HelpCircle,
-  Grid,
-  Home,
-  Star,
-  FileText,
-  Clock,
-  Bug,
+import React, { useState } from 'react';
+import Navbar from '../components/navbar';
+import Sidebar from '../components/sidebar';
 
-} from 'lucide-react';
-
-const Dashboard = ()=> {
+// Main App Component
+const Dashboard = () => {
   return (
-    <div className="flex flex-col h-screen">
-      {/* Top Navbar */}
-      <nav className="flex items-center justify-between bg-[#E8F9FF] px-4 py-2 border-b">
-      {/* Left side: Brand + Settings button */}
-      <div className="flex items-center space-x-3">
-        {/* Green circle logo */}
-        <div className="w-6 h-6 rounded-full bg-blue-500" />
-
-        {/* Brand text */}
-        <span className="font-bold text-gray-700">PMS</span>
-        <span className="text-blue-600">dev</span>
-
-        {/* Settings button with green border */}
-        <button className="ml-4 border border-blue-600 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition">
-          Settings
-        </button>
+    <div className="flex flex-col h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <MainContent />
       </div>
+    </div>
+  );
+};
 
-      {/* Right side: Icons & avatar */}
-      <div className="flex items-center space-x-4">
-        {/* “Q” icon or Quick Search */}
-        <button className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-gray-800 shadow-sm">
-         <UserPlus size={20} />
-        </button>
+// Main Content Component
+const MainContent = () => {
+  const boardCards = [
+    { id: 1, title: 'Retrospectives', path: 'monday dev > My Team > My Team' },
+    { id: 2, title: 'PMS', path: 'monday dev > My Team > My Team' },
+    { id: 3, title: 'Bugs Queue', path: 'monday dev > My Team > My Team' },
+    { id: 4, title: 'Epics', path: 'monday dev > My Team > My Team' }
+  ];
 
-        {/* Chat bubble icon */}
-        <button className="text-gray-600 hover:text-gray-800">
-          <MessageSquare size={20} />
-        </button>
-
-        {/* Bell icon with red notification dot */}
-        <button className="relative text-gray-600 hover:text-gray-800">
-          <Bell size={20} />
-          {/* Red dot for notification */}
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
-
-        {/* Help icon */}
-        <button className="text-gray-600 hover:text-gray-800">
-          <HelpCircle size={20} />
-        </button>
-
-        {/* Ellipsis or more menu */}
-        <button className="text-gray-600 hover:text-gray-800">
-          ...
-        </button>
-
-        {/* User avatar (initials “M”) */}
-        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-          M
+  return (
+    <div className="flex-1 overflow-auto p-10 bg-gray-50">
+        <div className="px-6 py-4 bg-white rounded-lg shadow-sm border border-gray-100">
+          <h1 className="text-2xl font-semibold text-gray-800 mb-1">Good morning, Yari!</h1>
+          <p className="text-gray-600 text-lg">Quickly access your recent boards, Inbox and workspaces</p>
         </div>
-      </div>
-    </nav>
 
-      {/* Below the navbar, use flex to position sidebar and main content */}
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-64 bg-[#E8F9FF] border-r">
-          
-
-          {/* Sidebar Navigation */}
-          <nav className="p-2">
-            <div className="p-2 flex items-center hover:bg-blue-200 rounded">
-              <Home size={18} className="mr-3 text-gray-600" />
-              <span>Home</span>
-            </div>
-            <div className="p-2 flex justify-between items-center hover:bg-blue-200 rounded">
-              <div className="flex items-center">
-                <Layers size={18} className="mr-3 text-gray-600" />
-                <span>Tools</span>
+      <div className="grid grid-cols-4 gap-8">
+        <div className="col-span-3">
+          <div className="mb-10">
+            <div className="flex items-center mb-6">
+              <div className="bg-blue-50 rounded-md p-1.5 mr-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-              <span className="text-gray-500">&gt;</span>
+              <h2 className="text-xl font-semibold text-gray-800">Recently visited</h2>
             </div>
-
-            {/* Favorites Section */}
-            <div className="p-2 flex justify-between items-center hover:bg-blue-200 rounded mt-2">
-              <div className="flex items-center">
-                <Star size={18} className="mr-3 text-gray-600" />
-                <span>Favorites</span>
-              </div>
-              <span className="text-gray-500">v</span>
-            </div>
-
-            {/* Workspaces Section */}
-            <div className="p-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Layers size={18} className="mr-3 text-gray-600" />
-                  <span>Workspaces</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2">...</span>
-                  <Search size={16} className="text-gray-600" />
-                </div>
-              </div>
-
-              <div className="mt-2 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="w-6 h-6 rounded bg-blue-500 text-white flex items-center justify-center mr-2">
-                    M
-                  </div>
-                  <span>My Team</span>
-                </div>
-                <span className="text-gray-500">v</span>
-              </div>
-
-              {/* Team Items */}
-              <div className="ml-6 mt-2 space-y-2">
-                {[
-                  "PMS",
-                  "Sprints",
-                  "Epics",
-                  "Bugs Queue",
-                  "Retrospectives",
-                  "Getting Started"
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center hover:bg-blue-200 p-1 rounded"
-                  >
-                    {item === "PMS" && (
-                      <FileText size={16} className="mr-3 text-gray-600" />
-                    )}
-                    {item === "Sprints" && (
-                      <Clock size={16} className="mr-3 text-gray-600" />
-                    )}
-                    {item === "Epics" && (
-                      <Layers size={16} className="mr-3 text-gray-600" />
-                    )}
-                    {item === "Bugs Queue" && (
-                      <Bug size={16} className="mr-3 text-gray-600" />
-                    )}
-                    {item === "Retrospectives" && (
-                      <Clock size={16} className="mr-3 text-gray-600" />
-                    )}
-                    {item === "Getting Started" && (
-                      <FileText size={16} className="mr-3 text-gray-600" />
-                    )}
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 bg-white p-6 overflow-y-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-light text-gray-800">Good morning, Yari!</h1>
-            <p className="text-gray-600">
-              Quickly access your recent boards, Inbox and workspaces
-            </p>
-          </div>
-
-          {/* Recently Visited */}
-          <div className="mb-6">
-            <div className="flex items-center mb-4">
-              <span className="text-lg font-medium">Recently visited</span>
-              <span className="ml-2 text-gray-500">v</span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { title: "PMS", color: "#B5D5FF" },
-                { title: "Retrospectives", color: "#10B981" },
-                { title: "Getting Started", color: "#2C5AA0" }
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden border"
+            <div className="grid grid-cols-2 gap-6">
+              {boardCards.map(card => (
+                <div 
+                  key={card.id} 
+                  className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg hover:translate-y-[-4px] border border-gray-100 group"
                 >
-                  {/* Placeholder content area */}
-                  <div className="h-32 bg-gray-100 p-4">
-                    <div className="space-y-2">
-                      {[1, 2, 3].map((_, i) => (
-                        <div key={i} className="flex items-center">
-                          <div className="w-24 h-2 bg-gray-300 rounded mr-4" />
-                          <div className="w-16 h-2 bg-blue-200 rounded" />
-                          <div
-                            className="ml-auto w-12 h-6 rounded"
-                            style={{ backgroundColor: item.color }}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white">
+                    <img src="https://t3.ftcdn.net/jpg/11/98/05/12/240_F_1198051294_PcJZQpDHWLrbduFqsdxdGTqBQCxBVskZ.jpg" alt="Board thumbnail" className="w-full rounded-lg shadow-sm" />
                   </div>
-                  {/* Footer */}
-                  <div className="p-3 flex justify-between items-center">
-                    <div className="flex items-center">
-                      <FileText size={16} className="mr-2 text-gray-600" />
-                      <span>{item.title}</span>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 rounded-lg p-2 mr-3 group-hover:bg-blue-200 transition-colors duration-300">
+                          <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </div>
+                        <span className="font-medium text-lg text-gray-800 group-hover:text-blue-700 transition-colors duration-300">{card.title}</span>
+                      </div>
+                      <button className="text-gray-400 hover:text-yellow-500 transition-colors duration-200 p-1.5 hover:bg-yellow-50 rounded-full">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                      </button>
                     </div>
-                    <Star size={16} className="text-gray-400" />
+                    <div className="flex items-center text-xs text-gray-500 mt-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-md mr-2 flex items-center justify-center text-white shadow-sm">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                      </div>
+                      <span className="group-hover:text-blue-600 transition-colors duration-300">{card.path}</span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Additional card with varied colors */}
-            <div className="mt-4">
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden border">
-                <div className="h-32 bg-gray-100 p-4">
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((_, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className="w-24 h-2 bg-gray-300 rounded mr-4" />
-                        <div className="w-16 h-2 bg-blue-200 rounded" />
-                        <div
-                          className="ml-auto w-12 h-6 rounded"
-                          style={{
-                            backgroundColor:
-                              i === 0
-                                ? "#B5D5FF"
-                                : i === 1
-                                ? "#FBBF24"
-                                : "#EF4444"
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-3 flex justify-between items-center">
-                  <div className="flex items-center">
-                    <FileText size={16} className="mr-2 text-gray-600" />
-                    <span>Sprints</span>
-                  </div>
-                  <Star size={16} className="text-gray-400" />
-                </div>
-              </div>
+            <div className="mt-8 text-center">
+              <button className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200 bg-blue-50 hover:bg-blue-100 px-6 py-2 rounded-lg">
+                Show all boards
+              </button>
             </div>
           </div>
 
-          {/* Templates Section */}
-          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border">
-            <div className="flex">
-              <div className="flex-1 pr-4">
-                <h2 className="text-lg mb-4">
-                  Boost your workflow in minutes with ready-made templates
-                </h2>
-                <button className="border border-blue-600 text-blue-600 px-4 py-2 rounded-md">
-                  Explore templates
-                </button>
-              </div>
-              <div className="w-64 h-32 bg-gray-100 rounded-md p-2">
-                {/* Placeholder template visualization */}
-                <div className="space-y-2">
-                  <div className="h-4 bg-blue-100 rounded" />
-                  <div className="flex">
-                    <div className="w-1/2 pr-1">
-                      <div className="h-16 bg-green-100 rounded" />
-                    </div>
-                    <div className="w-1/2 pl-1 space-y-2">
-                      <div className="h-4 bg-blue-200 rounded" />
-                      <div className="h-4 bg-gray-200 rounded" />
-                      <div className="h-4 bg-gray-100 rounded" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Learn & Get Inspired */}
           <div>
-            <h2 className="text-lg mb-4">Learn & get inspired</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg p-4 flex items-center shadow-sm border">
-                <div className="w-12 h-12 rounded-md bg-blue-600 text-white flex items-center justify-center mr-4">
-                  <Layers size={24} />
-                </div>
-                <div>
-                  <h3 className="font-medium">Getting started</h3>
-                  <p className="text-sm text-gray-600">
-                    Learn how monday.com works
-                  </p>
-                </div>
+            <div className="flex items-center mb-6">
+              <div className="bg-green-50 rounded-md p-1.5 mr-2">
+                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-              <div className="bg-white rounded-lg p-4 flex items-center shadow-sm border">
-                <div className="w-12 h-12 rounded-md bg-blue-500 text-white flex items-center justify-center mr-4">
-                  <HelpCircle size={24} />
-                </div>
-                <div>
-                  <h3 className="font-medium">Help center</h3>
-                  <p className="text-sm text-gray-600">Learn and get support</p>
+              <h2 className="text-xl font-semibold text-gray-800">Update feed (Inbox)</h2>
+              <div className="ml-3 bg-green-500 text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-sm">0</div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <div className="text-gray-400 mb-2">
+                    <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-lg">Your inbox is empty</p>
                 </div>
               </div>
             </div>
           </div>
-        </main>
+        </div>
+
+        <div className="col-span-1">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8 hover:shadow-md transition-all duration-300 border border-gray-100">
+            <div className="relative">
+              <img src="https://t4.ftcdn.net/jpg/10/33/40/07/240_F_1033400724_qNU00YqAKeDXH0hKHrxkNWrThjgLJSSw.jpg" alt="Templates preview" className="w-full" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+            </div>
+            <div className="p-5">
+              <h3 className="font-semibold text-gray-800 mb-3">Boost your workflow with templates</h3>
+              <button className="w-full py-2.5 border border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium">
+                Explore templates
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-5 px-1">Learn & get inspired</h3>
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden p-4 mb-4 flex items-center hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-blue-200">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2.5 mr-4 shadow-sm">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-800">Getting started</h4>
+                <p className="text-sm text-gray-500">Learn how monday.com works</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden p-4 flex items-center hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 hover:border-blue-200">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2.5 mr-4 shadow-sm">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-800">Help center</h4>
+                <p className="text-sm text-gray-500">Learn and get support</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-6 right-6">
+        <button className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:scale-105">
+          Help
+        </button>
       </div>
     </div>
   );
-}
+};
 
-export default Dashboard
+export default Dashboard;
