@@ -4,6 +4,7 @@ import Sidebar from '../components/sidebar';
 
 
 
+// RetrospectiveComponent with your table and functionality
 const RetrospectiveComponent = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -104,7 +105,7 @@ const Retrospectivemain = () => {
 
   // Function to add a new row
   const addNewRow = () => {
-    const newId = rows.length > 0 ? Math.max(...rows.map(row => row.id)) + 1 : 1;
+    const newId = rows.length > 0 ? Math.max(...rows.map((row) => row.id)) + 1 : 1;
     const newRow = {
       id: newId,
       selected: false,
@@ -162,24 +163,44 @@ const Retrospectivemain = () => {
   };
 
   return (
-    <div className="w-full bg-white">
-      {/* Header with Retrospectives and dropdown */}
+    <div className="w-full bg-white p-4 overflow-y-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold text-gray-800">Retrospectives</h1>
           <button className="text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
         </div>
       </div>
 
-      {/* Main Table with options */}
+      {/* Table Options */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-gray-700">Main Table</span>
         <button className="text-gray-500">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="1"></circle>
             <circle cx="19" cy="12" r="1"></circle>
             <circle cx="5" cy="12" r="1"></circle>
@@ -190,18 +211,38 @@ const Retrospectivemain = () => {
 
       {/* Action Buttons */}
       <div className="flex gap-2 mb-6">
-        <button 
+        <button
           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
           onClick={addNewRow}
         >
           <span>New feedback</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </button>
         
         <button className="flex items-center gap-1 px-3 py-2 text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -209,21 +250,51 @@ const Retrospectivemain = () => {
         </button>
         
         <button className="flex items-center gap-1 px-3 py-2 text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M18 8L22 12L18 16M6 16L2 12L6 8"></path>
           </svg>
           <span>Sort</span>
         </button>
         
         <button className="flex items-center gap-1 px-3 py-2 text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
           </svg>
           <span>Filter</span>
         </button>
         
         <button className="flex items-center gap-1 px-3 py-2 text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
@@ -236,17 +307,24 @@ const Retrospectivemain = () => {
         <table className="w-full border-collapse">
           <thead>
             <tr className="text-left border-b border-gray-200">
-              {columns.map(column => (
+              {columns.map((column) => (
                 <th key={column.id} className="p-3 font-medium text-gray-600">
                   {column.type === 'checkbox' ? (
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded text-blue-500" 
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded text-blue-500"
                       onChange={() => {
-                        const allSelected = rows.every(row => row.selected);
-                        setRows(rows.map(row => ({ ...row, selected: !allSelected })));
+                        const allSelected = rows.every((row) => row.selected);
+                        setRows(
+                          rows.map((row) => ({
+                            ...row,
+                            selected: !allSelected
+                          }))
+                        );
                       }}
-                      checked={rows.length > 0 && rows.every(row => row.selected)}
+                      checked={
+                        rows.length > 0 && rows.every((row) => row.selected)
+                      }
                     />
                   ) : (
                     column.label
@@ -256,11 +334,14 @@ const Retrospectivemain = () => {
             </tr>
           </thead>
           <tbody>
-            {rows.map(row => (
-              <tr key={row.id} className="border-b border-gray-200 hover:bg-blue-50">
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className="border-b border-gray-200 hover:bg-blue-50"
+              >
                 <td className="p-3">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="w-4 h-4 rounded text-blue-500"
                     checked={row.selected}
                     onChange={() => handleCheckboxChange(row.id, 'selected')}
@@ -346,8 +427,8 @@ const Retrospectivemain = () => {
                   )}
                 </td>
                 <td className="p-3">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="w-4 h-4 rounded text-blue-500"
                     checked={row.vote}
                     onChange={() => handleCheckboxChange(row.id, 'vote')}
@@ -375,4 +456,17 @@ const Retrospectivemain = () => {
   );
 };
 
-export default RetrospectiveComponent;
+// Parent component wrapping the content similar to your Bugs_queue_section structure
+const DashboardPage = () => {
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <RetrospectiveComponent />
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;

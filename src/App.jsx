@@ -5,6 +5,8 @@ import SprintsPage from './pages/Sprint_section'
 import Task_dashboard from './pages/Task_dashboard'
 import Bugs_queue_section from './pages/Bugs_queue_section'
 import RetrospectiveComponent from './pages/Retrospective'
+import NotificationsDemo from './components/notitication'
+import Feed from './components/update_feed'
 import './index.css';
 
 
@@ -17,6 +19,9 @@ function App() {
           <Route path="/taskdashboard" element={<Task_dashboard/>} />
           <Route path="/bugsqueue" element={<Bugs_queue_section/>} />
           <Route path="/retrospective" element={<RetrospectiveComponent/>} />
+          <Route path="/notification" element={<NotificationsDemo/>}/>
+          <Route path="/feed" element = {<Feed/>}/>
+
           </Routes>
           </Router>
           
