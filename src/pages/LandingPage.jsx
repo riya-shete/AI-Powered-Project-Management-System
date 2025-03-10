@@ -10,6 +10,7 @@ import heroAnimation from "../assets/hero.json";
 import aboutAnimation from "../assets/about.json"; 
 import aboutAnimation2 from "../assets/about1.json";
 import aboutAnimation3 from "../assets/about2.json";  
+import main1 from "../assets/aboutani.json";  
 import { useNavigate } from "react-router-dom";
 
 
@@ -242,7 +243,7 @@ export default function LandingPage() {
                 <div className="w-full">
                   {/* Increased animation size */}
                   <Lottie 
-                    animationData={aboutAnimation2} 
+                    animationData={aboutAni} 
                     className="w-full h-94 md:h-80 mx-auto" 
                     loop={true}
                   />
