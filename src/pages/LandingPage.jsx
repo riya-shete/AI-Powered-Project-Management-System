@@ -11,6 +11,7 @@ import aboutAnimation from "../assets/about.json";
 import aboutAnimation2 from "../assets/effect.json"; 
 import { useNavigate } from "react-router-dom";
 import { FaMapMarkerAlt, FaPhone } from "react-icons/fa";
+import SignIn from "./SignIn";
 
 export default function LandingPage() {
   const navigate = useNavigate();

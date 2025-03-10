@@ -16,7 +16,7 @@ export default function ForgotPassword() {
         
         {/* Back Button */}
         <button 
-          onClick={() => navigate("/signin")} 
+          onClick={() => navigate("/SignIn")} 
           className="text-gray-600 hover:text-gray-900 flex items-center space-x-2 mb-6 transition"
         >
           <FaArrowLeft className="text-lg" /> <span>Back to Login</span>
