@@ -58,7 +58,7 @@ export default function LandingPage() {
       
       {/* Navbar */}
       <motion.nav 
-        className="fixed w-full flex justify-between items-center px-8 py-4 bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-lg z-10"
+        className="fixed w-full flex justify-between items-center px-5 py-2 bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-lg z-10"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
@@ -68,7 +68,7 @@ export default function LandingPage() {
           <motion.img 
             src={logo} 
             alt="PMS Logo" 
-            className="h-12 w-auto" 
+            className="h-10 w-auto" 
             whileHover={{ rotate: 10, scale: 1.05 }}
           />
           <h1 className="text-2xl font-bold tracking-wide">PMS</h1>
@@ -108,7 +108,7 @@ export default function LandingPage() {
           </motion.a>
           
           <motion.button
-            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white px-5 py-2 rounded-full font-bold shadow-md transition-all duration-300"
+            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white px-2 py-0.5 rounded-full font-bold shadow-md transition-all duration-300"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/Login")}
@@ -118,7 +118,7 @@ export default function LandingPage() {
           </motion.button>
 
           <motion.button
-            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white px-5 py-2 rounded-full font-bold shadow-md transition-all duration-300"
+            className="flex items-center space-x-1 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white px-2 py-0.5 rounded-full font-bold shadow-md transition-all duration-300"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/SignIn")}
@@ -146,7 +146,7 @@ export default function LandingPage() {
         {/* Left Side - Hero Text */}
         <div className="md:w-1/2 space-y-8 text-center md:text-left mb-12 md:mb-0">
           <motion.h2 
-            className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-700 to-purple-600 text-transparent bg-clip-text leading-tight"
+            className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 text-transparent bg-clip-text leading-tight"
             variants={fadeInUp}
           >
             Elevate Your Project Management

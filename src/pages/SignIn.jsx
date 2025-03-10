@@ -32,8 +32,8 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 relative p-6">
-      <div className="absolute top-0 left-0 w-full h-64 bg-indigo-600 opacity-10 z-0"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-50 to-blue-100 text-gray-900 relative p-6">
+      <div className="absolute top-0 left-0 w-full h-64 bg-blue-600 opacity-10 z-0"></div>
       
       <div className="relative flex flex-col items-center bg-white rounded-xl shadow-xl p-8 w-full max-w-md z-10">
         {/* Back Button */}
@@ -45,12 +45,12 @@ export default function SignIn() {
         </button>
         
         {/* Logo or Brand */}
-        <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full flex items-center justify-center mb-6">
           <FaUser className="text-white text-2xl" />
         </div>
         
         {/* Form Heading */}
-        <h2 className="text-3xl font-bold mb-2 text-indigo-700">Create Account</h2>
+        <h2 className="text-3xl font-bold mb-2 text-blue-700">Create Account</h2>
         <p className="text-gray-600 mb-8 text-center">
           Join us today and get access to all features
         </p>
@@ -61,14 +61,14 @@ export default function SignIn() {
           <div className="flex w-full mb-6 bg-gray-100 rounded-lg p-1">
             <button 
               type="button"
-              className={`flex-1 py-2 rounded-lg font-medium transition-all duration-200 ${contactMethod === "email" ? "bg-white shadow-md text-indigo-600" : "text-gray-600"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition-all duration-200 ${contactMethod === "email" ? "bg-white shadow-md text-blue-600" : "text-gray-600"}`}
               onClick={() => setContactMethod("email")}
             >
               Email
             </button>
             <button 
               type="button"
-              className={`flex-1 py-2 rounded-lg font-medium transition-all duration-200 ${contactMethod === "mobile" ? "bg-white shadow-md text-indigo-600" : "text-gray-600"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition-all duration-200 ${contactMethod === "mobile" ? "bg-white shadow-md text-blue-600" : "text-gray-600"}`}
               onClick={() => setContactMethod("mobile")}
             >
               Mobile
@@ -91,7 +91,7 @@ export default function SignIn() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               ) : (
@@ -101,7 +101,7 @@ export default function SignIn() {
                   value={formData.mobile}
                   onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               )}
@@ -123,7 +123,7 @@ export default function SignIn() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
               <button
@@ -155,7 +155,7 @@ export default function SignIn() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
               <button
@@ -174,7 +174,7 @@ export default function SignIn() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 rounded-lg font-medium transition-colors duration-300"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white py-3 rounded-lg font-medium transition-colors duration-300"
           >
             Create Account
           </button>
@@ -193,7 +193,7 @@ export default function SignIn() {
           <button
             type="button"
             onClick={() => navigate("/Login")}
-            className="text-indigo-600 font-medium hover:underline"
+            className="text-blue-600 font-medium hover:underline"
           >
             Log in
           </button>
