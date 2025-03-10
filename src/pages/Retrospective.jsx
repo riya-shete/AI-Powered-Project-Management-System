@@ -456,17 +456,6 @@ const Retrospectivemain = () => {
   );
 };
 
-// Parent component wrapping the content similar to your Bugs_queue_section structure
-const DashboardPage = () => {
-  return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <RetrospectiveComponent />
-      </div>
-    </div>
-  );
-};
 
-export default DashboardPage;
+
+export default RetrospectiveComponent;
