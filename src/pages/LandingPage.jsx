@@ -174,7 +174,7 @@ export default function LandingPage() {
           variants={fadeInUp}
         >
           <Lottie 
-            animationData={heroAnimation} 
+            animationData={aboutAnimation3} 
             className="w-full max-w-[500px] md:max-w-[600px]" 
           />
         </motion.div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
                 <div className="w-full">
                   {/* Increased animation size */}
                   <Lottie 
-                    animationData={aboutAnimation3} 
+                    animationData={aboutAnimation} 
                     className="w-full h-64 md:h-80 mx-auto" 
                     loop={true}
                   />
