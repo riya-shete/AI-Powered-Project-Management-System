@@ -11,6 +11,7 @@ import RetrospectiveComponent from './pages/Retrospective'
 import NotificationsDemo from './components/notitication'
 import Feed from './components/update_feed'
 import './index.css';
+import Login from './pages/Login';
 import SignIn from './pages/SignIn';
 import ForgotPassword from "./pages/ForgotPassword";
 import PurposeSelection from "./pages/PurposeSelection";
@@ -24,6 +25,7 @@ function App() {
         <Router>
           <Routes>
           <Route path="/" element={<LandingPage/>} />
+          <Route path="/Login" element={<Login/>} />
           <Route path="/SignIn" element={<SignIn/>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/purpose-selection" element={<PurposeSelection />} />
