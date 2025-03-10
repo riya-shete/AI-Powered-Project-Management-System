@@ -214,7 +214,7 @@ export default function LandingPage() {
                 <div className="w-full">
                   {/* Increased animation size */}
                   <Lottie 
-                    animationData={aboutAnimation} 
+                    animationData={main1} 
                     className="w-full h-64 md:h-80 mx-auto" 
                     loop={true}
                   />
@@ -243,7 +243,7 @@ export default function LandingPage() {
                 <div className="w-full">
                   {/* Increased animation size */}
                   <Lottie 
-                    animationData={aboutAni} 
+                    animationData={aboutAnimation2} 
                     className="w-full h-94 md:h-80 mx-auto" 
                     loop={true}
                   />
