@@ -59,22 +59,24 @@ const Bugs_queue_section = () => {
   
     const renderPagination = () => {
       return (
-        <div className="flex items-center justify-center mt-4 space-x-2">
-          <button className="p-1 border rounded">
-            <ChevronLeft size={16} />
-          </button>
-          <button className={`px-2 py-1 rounded ${currentPage === 1 ? 'bg-gray-200' : ''}`}>1</button>
-          <button className={`px-2 py-1 rounded ${currentPage === 2 ? 'bg-gray-200' : ''}`}>2</button>
-          <button className={`px-2 py-1 rounded ${currentPage === 3 ? 'bg-gray-200' : ''}`}>3</button>
-          <button className={`px-2 py-1 rounded ${currentPage === 4 ? 'bg-gray-200' : ''}`}>4</button>
-          <span>...</span>
-          <button className={`px-2 py-1 rounded ${currentPage === 8 ? 'bg-gray-200' : ''}`}>8</button>
-          <button className={`px-2 py-1 rounded ${currentPage === 9 ? 'bg-gray-200' : ''}`}>9</button>
-          <button className={`px-2 py-1 rounded ${currentPage === 10 ? 'bg-gray-200' : ''}`}>10</button>
-          <button className="p-1 border rounded">
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        <footer className="fixed bottom-0 left-0 w-full bg-white shadow-md py-3">
+            <div className="flex items-center justify-center mt-4 space-x-2">
+              <button className="p-1 border rounded">
+                <ChevronLeft size={16} />
+              </button>
+              <button className={`px-2 py-1 rounded ${currentPage === 1 ? 'bg-gray-200' : ''}`}>1</button>
+              <button className={`px-2 py-1 rounded ${currentPage === 2 ? 'bg-gray-200' : ''}`}>2</button>
+              <button className={`px-2 py-1 rounded ${currentPage === 3 ? 'bg-gray-200' : ''}`}>3</button>
+              <button className={`px-2 py-1 rounded ${currentPage === 4 ? 'bg-gray-200' : ''}`}>4</button>
+              <span>...</span>
+              <button className={`px-2 py-1 rounded ${currentPage === 8 ? 'bg-gray-200' : ''}`}>8</button>
+              <button className={`px-2 py-1 rounded ${currentPage === 9 ? 'bg-gray-200' : ''}`}>9</button>
+              <button className={`px-2 py-1 rounded ${currentPage === 10 ? 'bg-gray-200' : ''}`}>10</button>
+              <button className="p-1 border rounded">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </footer>
       );
     };
     
