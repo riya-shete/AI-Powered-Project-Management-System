@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo} from 'react';
 import { ChevronLeft, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
+
 
 
 const Bugs_queue_section = () => {
@@ -43,13 +44,34 @@ const Bugs_queue_section = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = 10;
   
-    // Filter states
+        // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProject, setSelectedProject] = useState('ronin fintech');
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedAssignee, setSelectedAssignee] = useState('');
-  
+
+    // Filter states
+    const filteredIssues = useMemo(() => {
+      return issues.filter(issue => {
+        // Search filter (key and summary)
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const keyMatch = issue.key.toLowerCase().includes(query);
+          const summaryMatch = issue.summary.toLowerCase().includes(query);
+          if (!keyMatch && !summaryMatch) return false;
+        }
+        
+        // Other filters (project, type, status, assignee)
+        if (selectedProject && issue.project && issue.project !== selectedProject) return false;
+        if (selectedType && issue.type !== selectedType) return false;
+        if (selectedStatus && issue.status !== selectedStatus) return false;
+        if (selectedAssignee && issue.assignee !== selectedAssignee) return false;
+        
+        return true;
+      });
+    }, [issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee]);
+    
     // View mode state
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detailed'
   
@@ -224,7 +246,7 @@ const Bugs_queue_section = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {issues.map((issue) => (
+                  {filteredIssues.map((issue) => (
                     <tr key={issue.id} className="border-t border-gray-200 hover:bg-gray-50">
                       <td className="p-3">
                         <Lock size={16} className="text-gray-700" />
