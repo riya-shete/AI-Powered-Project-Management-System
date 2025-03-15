@@ -201,26 +201,57 @@ const Bugs_queue_section = () => {
               <Search size={14} className="absolute left-2 top-2 text-gray-400" />
             </div>
             <div className="relative">
-              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
+              <button 
+                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                onClick={() => {
+                  // Simple example - in a real app, you might show a dropdown menu instead
+                  const newProject = selectedProject === 'ronin fintec' ? 'other project' : 'ronin fintec';
+                  setSelectedProject(newProject);
+                }}
+              >
                 <span>Project : {selectedProject}</span>
                 <ChevronDown size={14} />
               </button>
             </div>
+            
             <div className="relative">
-              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
-                <span>Type</span>
+              <button 
+                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                onClick={() => {
+                  // Toggle between empty (all types) and 'bug' type
+                  const newType = selectedType === '' ? 'bug' : '';
+                  setSelectedType(newType);
+                }}
+              >
+                <span>Type {selectedType ? `: ${selectedType}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
             </div>
+
+            {/* Status Dropdown */}
             <div className="relative">
-              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
-                <span>Status</span>
+              <button 
+                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                onClick={() => {
+                  // Toggle between empty (all statuses) and 'To DO' status
+                  const newStatus = selectedStatus === '' ? 'To DO' : '';
+                  setSelectedStatus(newStatus);
+                }}
+              >
+                <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
             </div>
+
             <div className="relative">
-              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
-                <span>Assignee</span>
+              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+              onClick={()=> {
+                //oogle between assignee
+                const newAssignee = selectedAssignee === '' ? 'Ronin' : '';
+                setSelectedAssignee(newAssignee);
+              }}
+            >
+                <span>Assignee {selectedAssignee ? `: ${selectedAssignee}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
             </div>
