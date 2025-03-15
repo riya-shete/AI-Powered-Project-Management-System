@@ -57,6 +57,35 @@ const Bugs_queue_section = () => {
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
 
+    //reach useEffect hook to close dropdowns
+    //  this useEffect hook to close dropdowns when clicking outside
+      useEffect(() => {
+        function handleClickOutside(event) {
+          
+          if(
+            !document.getElementById('project-dropdown')?.contains(event.target) &&
+            !document.getElementById('type-dropdown')?.contains(event.target) &&
+            !document.getElementById('status-dropdown')?.contains(event.target) &&
+            !document.getElementById('assignee-dropdown')?.contains(event.target)
+          ){
+            // Close all dropdowns when clicking outside
+            setProjectDropdownOpen(false);
+            setTypeDropdownOpen(false);
+            setStatusDropdownOpen(false);
+            setAssigneeDropdownOpen(false);
+          }
+        }
+
+        // Add event listener only if any dropdown is open
+        if (projectDropdownOpen || typeDropdownOpen || statusDropdownOpen || assigneeDropdownOpen) {
+          document.addEventListener('mousedown', handleClickOutside);
+          return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+          };
+        }
+      }, [projectDropdownOpen, typeDropdownOpen, statusDropdownOpen, assigneeDropdownOpen]);
+
+      
     // Filter states
     const filteredIssues = useMemo(() => {
       return issues.filter(issue => {
@@ -68,15 +97,15 @@ const Bugs_queue_section = () => {
           if (!keyMatch && !summaryMatch) return false;
         }
         
-        // // Other filters (project, type, status, assignee)
-        // if (selectedProject && issue.project && issue.project !== selectedProject) return false;
-        // if (selectedType && issue.type !== selectedType) return false;
-        // if (selectedStatus && issue.status !== selectedStatus) return false;
-        // if (selectedAssignee && issue.assignee !== selectedAssignee) return false;
+        // Other filters (project, type, status, assignee)
+        if (selectedProject && issue.project && issue.project !== selectedProject) return false;
+        if (selectedType && issue.type !== selectedType) return false;
+        if (selectedStatus && issue.status !== selectedStatus) return false;
+        if (selectedAssignee && issue.assignee !== selectedAssignee) return false;
         
         return true;
       });
-    }, [issues, searchQuery]); //[issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee]
+    }, [issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee]); 
     
     // View mode state
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detailed'
@@ -208,7 +237,7 @@ const Bugs_queue_section = () => {
             </div>
 
           {/* dropdowns */}
-            <div className="relative">
+            <div className="relative" id="project-dropdown">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
@@ -242,7 +271,7 @@ const Bugs_queue_section = () => {
               )}
             </div>
             
-            <div className="relative">
+            <div className="relative" id="type-dropdown">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
@@ -263,7 +292,7 @@ const Bugs_queue_section = () => {
             </div>
 
             {/* Status Dropdown */}
-            <div className="relative">
+            <div className="relative" id="status-dropdown">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
@@ -283,7 +312,7 @@ const Bugs_queue_section = () => {
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative" id="assignee-dropdown">
               <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
               onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
             >
