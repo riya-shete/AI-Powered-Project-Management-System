@@ -1,4 +1,4 @@
-import React, { useState, useMemo} from 'react';
+import React, { useState, useMemo, useEffect} from 'react';
 import { ChevronLeft, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
@@ -44,12 +44,18 @@ const Bugs_queue_section = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = 10;
   
-        // Filter states
+    // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProject, setSelectedProject] = useState('ronin fintech');
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [selectedAssignee, setSelectedAssignee] = useState('');
+
+    //creating dropdowns
+    const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+    const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
 
     // Filter states
     const filteredIssues = useMemo(() => {
@@ -62,15 +68,15 @@ const Bugs_queue_section = () => {
           if (!keyMatch && !summaryMatch) return false;
         }
         
-        // Other filters (project, type, status, assignee)
-        if (selectedProject && issue.project && issue.project !== selectedProject) return false;
-        if (selectedType && issue.type !== selectedType) return false;
-        if (selectedStatus && issue.status !== selectedStatus) return false;
-        if (selectedAssignee && issue.assignee !== selectedAssignee) return false;
+        // // Other filters (project, type, status, assignee)
+        // if (selectedProject && issue.project && issue.project !== selectedProject) return false;
+        // if (selectedType && issue.type !== selectedType) return false;
+        // if (selectedStatus && issue.status !== selectedStatus) return false;
+        // if (selectedAssignee && issue.assignee !== selectedAssignee) return false;
         
         return true;
       });
-    }, [issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee]);
+    }, [issues, searchQuery]); //[issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee]
     
     // View mode state
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detailed'
@@ -200,60 +206,98 @@ const Bugs_queue_section = () => {
               />
               <Search size={14} className="absolute left-2 top-2 text-gray-400" />
             </div>
+
+          {/* dropdowns */}
             <div className="relative">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => {
-                  // Simple example - in a real app, you might show a dropdown menu instead
-                  const newProject = selectedProject === 'ronin fintec' ? 'other project' : 'ronin fintec';
-                  setSelectedProject(newProject);
-                }}
+                onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
               >
                 <span>Project : {selectedProject}</span>
                 <ChevronDown size={14} />
               </button>
+              {projectDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                  <ul>
+                    <li
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        setSelectedProject('ronin fintech');
+                        setProjectDropdownOpen(false);
+                      }}
+                    >
+                      ronin fintech
+                    </li>
+                    <li
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        setSelectedProject('other project');
+                        setProjectDropdownOpen(false);
+                      }}
+                    >
+                      other project
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
             
             <div className="relative">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => {
-                  // Toggle between empty (all types) and 'bug' type
-                  const newType = selectedType === '' ? 'bug' : '';
-                  setSelectedType(newType);
-                }}
+                onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
               >
                 <span>Type {selectedType ? `: ${selectedType}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
+              {typeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                  <ul>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType(''); setTypeDropdownOpen(false); }}>All Types</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('bug'); setTypeDropdownOpen(false); }}>Bug</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('task'); setTypeDropdownOpen(false); }}>Task</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('feature'); setTypeDropdownOpen(false); }}>Feature</li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Status Dropdown */}
             <div className="relative">
               <button 
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => {
-                  // Toggle between empty (all statuses) and 'To DO' status
-                  const newStatus = selectedStatus === '' ? 'To DO' : '';
-                  setSelectedStatus(newStatus);
-                }}
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
               >
                 <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
+              {statusDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                  <ul>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>All Statuses</li>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>To DO</li>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>In Progress</li>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>Done</li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="relative">
               <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-              onClick={()=> {
-                //oogle between assignee
-                const newAssignee = selectedAssignee === '' ? 'Ronin' : '';
-                setSelectedAssignee(newAssignee);
-              }}
+              onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
             >
                 <span>Assignee {selectedAssignee ? `: ${selectedAssignee}` : ''}</span>
                 <ChevronDown size={14} />
               </button>
+              {assigneeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                  <ul>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee(''); setAssigneeDropdownOpen(false); }}>All Assignees</li>
+                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('Ronin'); setAssigneeDropdownOpen(false); }}>Ronin</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
   
