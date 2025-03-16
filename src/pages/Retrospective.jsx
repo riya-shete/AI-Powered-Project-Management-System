@@ -49,7 +49,7 @@ const Retrospectivemain = () => {
       id: 2,
       selected: false,
       feedback: 'Focus on path',
-      responsible: 'Shiraj P.',
+      responsible: 'Shriraj P.',
       type: 'Improve',
       repeating: false,
       vote: false,
