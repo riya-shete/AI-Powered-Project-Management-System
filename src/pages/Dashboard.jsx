@@ -18,10 +18,10 @@ const Dashboard = () => {
 // Main Content Component
 const MainContent = () => {
   const boardCards = [
-    { id: 1, title: 'Retrospectives', path: 'monday dev > My Team > My Team' },
-    { id: 2, title: 'PMS', path: 'monday dev > My Team > My Team' },
-    { id: 3, title: 'Bugs Queue', path: 'monday dev > My Team > My Team' },
-    { id: 4, title: 'Epics', path: 'monday dev > My Team > My Team' }
+    { id: 1, title: 'Retrospectives', path: 'PMS dev > My Team > My Team' },
+    { id: 2, title: 'PMS', path: 'PMS dev > My Team > My Team' },
+    { id: 3, title: 'Bugs Queue', path: 'PMS dev > My Team > My Team' },
+    { id: 4, title: 'Sprints', path: 'PMS dev > My Team > My Team' }
   ];
 
   return (
@@ -68,7 +68,7 @@ const MainContent = () => {
                       </button>
                     </div>
                     <div className="flex items-center text-xs text-gray-500 mt-2">
-                      <div className="w-5 h-5 bg-green-500 rounded-md mr-2 flex items-center justify-center text-white shadow-sm">
+                      <div className="w-5 h-5 bg-blue-500 rounded-md mr-2 flex items-center justify-center text-white shadow-sm">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                         </svg>
@@ -88,13 +88,13 @@ const MainContent = () => {
 
           <div>
             <div className="flex items-center mb-6">
-              <div className="bg-green-50 rounded-md p-1.5 mr-2">
-                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-blue-50 rounded-md p-1.5 mr-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-800">Update feed (Inbox)</h2>
-              <div className="ml-3 bg-green-500 text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-sm">0</div>
+              <div className="ml-3 bg-blue-500 text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center shadow-sm">0</div>
             </div>
             
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">

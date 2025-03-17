@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react"; 
 
 const Sidebar = () => {
   const [expandedSection, setExpandedSection] = useState('My Team');
@@ -149,11 +150,25 @@ const Sidebar = () => {
         </div>
       </div>
       
+
+
+      
       <div className="mt-auto p-4 border-t border-gray-200">
-        <img src="/api/placeholder/240/100" alt="Illustration" className="w-full rounded-lg shadow-sm" />
+        <button 
+        onClick={() => handleNavigation('/Login')}
+        className="w-full flex items-center justify-center gap-2 rounded-lg shadow-sm bg-blue-500 text-white py-2 px-4 hover:bg-red-600 transition font-medium"
+        >
+        <LogOut className="w-5 h-5" />
+        <span>log out</span>
+        </button>
       </div>
     </div>
   );
 };
+
+
+
+
+
 
 export default Sidebar;
