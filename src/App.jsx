@@ -19,7 +19,7 @@ import TeamInvite from "./pages/TeamInvite";
 import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
-
+import WorkspaceName from "./pages/WorkspaceName";
 function App() {
     return (
         <Router>
@@ -40,6 +40,7 @@ function App() {
           <Route path="/retrospective" element={<RetrospectiveComponent/>} />
           <Route path="/notification" element={<NotificationsDemo/>}/>
           <Route path="/feed" element = {<Feed/>}/>
+          <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
 
           </Routes>
           </Router>

@@ -49,7 +49,7 @@ const Retrospectivemain = () => {
       id: 2,
       selected: false,
       feedback: 'Focus on path',
-      responsible: 'Shiraj P.',
+      responsible: 'Shriraj P.',
       type: 'Improve',
       repeating: false,
       vote: false,
@@ -163,32 +163,20 @@ const Retrospectivemain = () => {
   };
 
   return (
-    <div className="w-full bg-white p-4 overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-gray-800">Retrospectives</h1>
-          <button className="text-gray-500">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
+    <div className="flex-1 overflow-auto w-full h-full">
+      <div className="p-4 bg-white">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
+          <h1 className="text-2xl text-gray-700 font-bold">Retrospectives</h1>
         </div>
       </div>
+    </div>
 
       {/* Table Options */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-gray-700">Main Table</span>
+      <div className="flex items-center justify-between w-full mb-4">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-700 font-medium">Main Table</span>
         <button className="text-gray-500">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -208,7 +196,7 @@ const Retrospectivemain = () => {
         </button>
         <span className="ml-2 text-gray-400">+</span>
       </div>
-
+    </div>
       {/* Action Buttons */}
       <div className="flex gap-2 mb-6">
         <button
