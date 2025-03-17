@@ -123,12 +123,12 @@ const Sprintmain = () => {
   };
   
   return (
-    <div className="flex-1 overflow-auto bg-white relative">
-      <div className="p-6">
+    <div className="flex-1 overflow-auto w-full h-full">
+      <div className="p-4 bg-white">
         <header className="flex justify-between items-center mb-6">
           <div>
             <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
-            <h1 className="text-2xl font-bold">Sprints</h1>
+            <h1 className="text-2xl text-gray-700 font-bold">Sprints</h1>
           </div>
           <div className="flex items-center space-x-2">
             <button className="ml-2">

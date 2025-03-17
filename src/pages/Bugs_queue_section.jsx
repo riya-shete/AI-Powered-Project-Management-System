@@ -110,8 +110,9 @@ const Bugs_queue_section = () => {
     // View mode state
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detailed'
   
-    const handlePageChange = (page) => {
-      setCurrentPage(page);
+    const handleViewModeChange = (mode) => {
+      setViewMode(mode);
+      console.log("View Mode Changed:", mode); // Debugging output
     };
   
     const renderPagination = () => {
@@ -188,35 +189,35 @@ const Bugs_queue_section = () => {
               >
                 New Issue
               </button>
-              <div className="relative">
+              {/* <div className="relative">
                 <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
                   <span>Export issues</span>
                   <ChevronDown size={14} />
                 </button>
-              </div>
-              <div className="relative">
+              </div> */}
+              {/* <div className="relative">
                 <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
                   <span>show all issues</span>
                   <ChevronDown size={14} />
                 </button>
-              </div>
+              </div> */}
               <div className="flex border border-gray-300 rounded bg-white">
                 <button 
                   className={`px-3 py-1 text-sm ${viewMode === 'list' ? 'bg-gray-200' : 'bg-white'}`}
-                  onClick={() => setViewMode('list')}
+                  onClick={() => handleViewModeChange('list')}
                 >
                   List view
                 </button>
                 <button 
                   className={`px-3 py-1 text-sm ${viewMode === 'detailed' ? 'bg-gray-200' : 'bg-white'}`}
-                  onClick={() => setViewMode('detailed')}
+                  onClick={() => handleViewModeChange('detailed')}
                 >
                   Detailed view
                 </button>
               </div>
-              <button className="p-1 border border-gray-300 rounded bg-white">
+              {/* <button className="p-1 border border-gray-300 rounded bg-white">
                 <MoreHorizontal size={16} />
-              </button>
+              </button> */}
             </div>
           </div>
   
