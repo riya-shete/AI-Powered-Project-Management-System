@@ -9,7 +9,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="flex items-center justify-between w-full px-6 py-3 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+    <nav className="flex items-center justify-between w-full px-6 py-3 bg-blue-500 border-b border-gray-200 shadow-sm sticky top-0 z-10">
       <div className="flex items-center">
         <div 
           className="flex items-center mr-8 space-x-2 cursor-pointer"
@@ -23,15 +23,15 @@ const Navbar = () => {
             />
           </div>
           <div>
-            <span className="font-bold text-gray-800 text-lg">PMS</span>
-            <span className="text-blue-500 font-medium ml-1">dev</span>
+            <span className="font-bold text-white text-lg">PMS</span>
+            <span className="text-blue-100 font-medium ml-1">dev</span>
           </div>
         </div>
       </div>
       
       <div className="flex items-center space-x-5">
         <button 
-          className="text-gray-500 hover:text-blue-600 transition-colors duration-200 relative group"
+          className="text-white hover:text-blue-100 transition-colors duration-200 relative group"
           onClick={() => handleNavigation('/notification')}
         >
           <span className="sr-only">Notifications</span>
@@ -47,7 +47,7 @@ const Navbar = () => {
         </button>
         
         <button 
-          className="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+          className="text-white hover:text-blue-100 transition-colors duration-200"
           onClick={() => handleNavigation('/inbox')}
         >
           <span className="sr-only">Inbox</span>
@@ -62,7 +62,7 @@ const Navbar = () => {
         </button>
         
         <button 
-          className="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+          className="text-white hover:text-blue-100 transition-colors duration-200"
           onClick={() => handleNavigation('/feed')}
         >
           <span className="sr-only">Update Feed</span>
@@ -77,7 +77,7 @@ const Navbar = () => {
         </button>
         
         <button 
-          className="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+          className="text-white hover:text-blue-100 transition-colors duration-200"
           onClick={() => handleNavigation('/search')}
         >
           <span className="sr-only">Search</span>
@@ -92,7 +92,7 @@ const Navbar = () => {
         </button>
         
         <button 
-          className="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+          className="text-white hover:text-blue-100 transition-colors duration-200"
           onClick={() => handleNavigation('/help')}
         >
           <span className="sr-only">Help</span>
@@ -106,18 +106,18 @@ const Navbar = () => {
           </svg>
         </button>
         
-        <div className="border-l border-gray-300 h-8 mx-2"></div>
+        <div className="border-l border-blue-400 h-8 mx-2"></div>
         
         <button 
-          className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200"
+          className="flex items-center space-x-2 p-1 rounded-full hover:bg-blue-400 transition-colors duration-200"
           onClick={() => handleNavigation('/profile')}
         >
           <img 
             src="https://t4.ftcdn.net/jpg/09/61/69/71/240_F_961697155_J7ZlI6T87DqEtLIRZoXkdMAMs87VyfAu.jpg" 
             alt="Profile" 
-            className="w-8 h-8 rounded-full border-2 border-blue-400" 
+            className="w-8 h-8 rounded-full border-2 border-white" 
           />
-          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path 
               strokeLinecap="round" 
               strokeLinejoin="round" 

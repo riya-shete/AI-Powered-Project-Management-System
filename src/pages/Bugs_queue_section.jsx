@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect} from 'react';
-import { ChevronLeft, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
@@ -20,11 +20,11 @@ const Bugs_queue_section = () => {
   const IssuesPage = () => {
     // Sample data based on the image
     const [issues, setIssues] = useState([
-      { id: 1, key: 'Key', summary: 'Wallet not responding', assignee: 'Ronin', reporter: 'Anand', status: 'To DO', resolution: 'Not Resolved', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'Ronin', reporter: 'Anand', status: 'To DO', resolution: 'Not Resolved', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 3, key: 'Key', summary: 'Wallet not responding', assignee: 'Ronin', reporter: 'Anand', status: 'To DO', resolution: 'Not Resolved', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 4, key: 'Key', summary: 'Wallet not responding', assignee: 'Ronin', reporter: 'Anand', status: 'To DO', resolution: 'Not Resolved', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 5, key: 'Key', summary: 'Wallet not responding', assignee: 'Ronin', reporter: 'Anand', status: 'To DO', resolution: 'Not Resolved', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 1, key: 'Key', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 3, key: 'Key', summary: 'Wallet not responding', assignee: 'diya', reporter: 'ranalk', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 4, key: 'Key', summary: 'Wallet not responding', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 5, key: 'Key', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
     ]);
     // Modal state declarations
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -110,8 +110,9 @@ const Bugs_queue_section = () => {
     // View mode state
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detailed'
   
-    const handlePageChange = (page) => {
-      setCurrentPage(page);
+    const handleViewModeChange = (mode) => {
+      setViewMode(mode);
+      console.log("View Mode Changed:", mode); // Debugging output
     };
   
     const renderPagination = () => {
@@ -174,12 +175,12 @@ const Bugs_queue_section = () => {
 
     return (
       <div className="flex-1 overflow-auto w-full h-full">
-        <div className="p-4 bg-gray-100">
+        <div className="p-4 bg-white">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <div>
               <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
-              <h1 className="text-2xl font-bold">Bugs Queue</h1>
+              <h1 className="text-2xl text-gray-700 font-bold">Bugs Queue</h1>
             </div>
             <div className="flex items-center space-x-2">
               <button 
@@ -188,35 +189,35 @@ const Bugs_queue_section = () => {
               >
                 New Issue
               </button>
-              <div className="relative">
+              {/* <div className="relative">
                 <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
                   <span>Export issues</span>
                   <ChevronDown size={14} />
                 </button>
-              </div>
-              <div className="relative">
+              </div> */}
+              {/* <div className="relative">
                 <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
                   <span>show all issues</span>
                   <ChevronDown size={14} />
                 </button>
-              </div>
+              </div> */}
               <div className="flex border border-gray-300 rounded bg-white">
                 <button 
                   className={`px-3 py-1 text-sm ${viewMode === 'list' ? 'bg-gray-200' : 'bg-white'}`}
-                  onClick={() => setViewMode('list')}
+                  onClick={() => handleViewModeChange('list')}
                 >
                   List view
                 </button>
                 <button 
                   className={`px-3 py-1 text-sm ${viewMode === 'detailed' ? 'bg-gray-200' : 'bg-white'}`}
-                  onClick={() => setViewMode('detailed')}
+                  onClick={() => handleViewModeChange('detailed')}
                 >
                   Detailed view
                 </button>
               </div>
-              <button className="p-1 border border-gray-300 rounded bg-white">
+              {/* <button className="p-1 border border-gray-300 rounded bg-white">
                 <MoreHorizontal size={16} />
-              </button>
+              </button> */}
             </div>
           </div>
   
@@ -313,11 +314,12 @@ const Bugs_queue_section = () => {
             </div>
 
             <div className="relative" id="assignee-dropdown">
-              <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+              <button className="px-2 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
               onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
             >
+                <User size={14}/>              
                 <span>Assignee {selectedAssignee ? `: ${selectedAssignee}` : ''}</span>
-                <ChevronDown size={14} />
+                < ChevronDown size={14} />
               </button>
               {assigneeDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
@@ -331,27 +333,26 @@ const Bugs_queue_section = () => {
           </div>
   
           {/* Issues Table */}
-          <div className="bg-white border border-gray-300 rounded overflow-hidden">
+          <div className="bg-white border overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-full bg-white border-collapse">
                 <thead>
                   <tr className="bg-gray-50 text-left text-sm">
-                    <th className="p-3 font-medium">Type</th>
-                    <th className="p-3 font-medium">Key</th>
-                    <th className="p-3 font-medium">Summary</th>
-                    <th className="p-3 font-medium">Assignee</th>
-                    <th className="p-3 font-medium">Reporter</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Resolution</th>
-                    <th className="p-3 font-medium">Created Date</th>
-                    <th className="p-3 font-medium">Updated Date</th>
-                    <th className="p-3 font-medium">Due Date</th>
-                    <th className="p-3 font-medium">Actions</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Type</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Key</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Summary</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Assignee</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Reporter</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Status</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Created Date</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Updated Date</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Due Date</th>
+                    <th className="p-3 text-sm font-medium text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredIssues.map((issue) => (
-                    <tr key={issue.id} className="border-t border-gray-200 hover:bg-gray-50">
+                    <tr key={issue.id} className="border-t border-gray-200 hover:bg-blue-50">
                       <td className="p-3">
                         <Lock size={16} className="text-gray-700" />
                       </td>
@@ -365,12 +366,11 @@ const Bugs_queue_section = () => {
                       </td>
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">A</div>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.reporter.charAt(0)}</div>
                           <span>{issue.reporter}</span>
                         </div>
                       </td>
                       <td className="p-3 text-sm">{issue.status}</td>
-                      <td className="p-3 text-sm">{issue.resolution}</td>
                       <td className="p-3 text-sm">{issue.createdDate}</td>
                       <td className="p-3 text-sm">{issue.updatedDate}</td>
                       <td className="p-3 text-sm">{issue.dueDate}</td>

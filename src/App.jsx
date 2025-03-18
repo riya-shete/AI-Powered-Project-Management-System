@@ -21,6 +21,7 @@ import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
 import Profile from './components/profile';
 
+import WorkspaceName from "./pages/WorkspaceName";
 function App() {
     return (
         <Router>
@@ -42,6 +43,7 @@ function App() {
           <Route path="/notification" element={<NotificationsDemo/>}/>
           <Route path="/feed" element = {<Feed/>}/>
           <Route path="/profile" element = {<Profile/>}/>
+          <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
 
           </Routes>
           </Router>

@@ -18,13 +18,13 @@ const Task_dashboard = () => {
 const PMSDashboardSprints = () => {
   // Initial sprint data
   const initialSprintData = {
-    'Sprint 1': [
+    'Main Sprint': [
       { id: '13455134', name: 'Feature 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
       { id: '12451545', name: 'Feature 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
     ],
-    'Sprint 2': [
-      { id: '3246151', name: 'Feature 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
-    ],
+    // 'Sprint 2': [
+    //   { id: '3246151', name: 'Feature 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
+    // ],
     'Backlog': [
       { id: '64135315', name: 'Feature 4', responsible: 'Riya S.', role: 'Dev', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
     ]

@@ -114,7 +114,7 @@ export default function TeamInvite() {
             </button>
 
             <button 
-              onClick={invited ? () => navigate("/SprintTasks") : handleInvite}
+              onClick={invited ? () => navigate("/WorkspaceName") : handleInvite}
               className={`px-7 py-3 rounded-lg font-bold transition text-lg ${
                 invited 
                   ? "bg-green-600 text-white hover:bg-green-700" 
