@@ -18,11 +18,11 @@ const SprintsPage = () => {
 
 const Sprintmain = () => {
   const [tasks, setTasks] = useState([
-    { id: '13455134', name: 'Feature 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
-    { id: '12451545', name: 'Feature 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
-    { id: '3246151', name: 'Feature 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
-    { id: '64135315', name: 'Feature 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024' },
-    { id: '1464135', name: 'Feature 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
+    { id: '13455134', name: 'Sprint 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
+    { id: '12451545', name: 'Sprint 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
+    { id: '3246151', name: 'Sprint 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
+    { id: '64135315', name: 'Sprint 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024' },
+    { id: '1464135', name: 'Sprint 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
   ]);
 
   const [newTask, setNewTask] = useState({
@@ -149,7 +149,7 @@ const Sprintmain = () => {
 
         <div className="flex mb-4 space-x-2 flex-wrap">
           <button 
-            className="px-3 py-1 text-sm bg-gray-500 text-white rounded flex items-center"
+            className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
             onClick={() => {
               setEditingTask(null);
               setNewTask({
@@ -162,22 +162,25 @@ const Sprintmain = () => {
               setShowAddForm(true);
             }}
           >
-            New Item <Plus size={14} className="ml-1" />
+            New Sprint <Plus size={14} className="ml-1" />
           </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <Search size={14} className="mr-1" /> Search
           </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <User size={14} className="mr-1" /> Person
           </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <Filter size={14} className="mr-1" /> Filter
           </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <ArrowDownUp size={14} className="mr-1" /> Sort
           </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <EyeOff size={14} className="mr-1" /> Hide
+          </button>
+          <button className="px-3 py-1.5 text-sm bg-pink-500 text-white rounded flex items-center">
+            AI
           </button>
         </div>
 
@@ -216,13 +219,15 @@ const Sprintmain = () => {
                   <td className="p-3 flex items-center">
                     {task.name}
                     <button 
-                      className="ml-2 rounded-full bg-gray-200 w-6 h-6 flex items-center justify-center"
+                      className="ml-2 text-gray-500"
                       onClick={() => handleEditTask(task)}
                     >
                       <Edit size={14} />
                     </button>
                   </td>
-                  <td className="p-3 text-blue-600">{task.responsible}</td>
+                  <td className="p-3">
+                    <a href="#" className="text-blue-600">{task.responsible}</a>
+                  </td>
                   <td className="p-3">{task.role}</td>
                   <td className="p-3">{task.status}</td>
                   <td className="p-3">
@@ -239,42 +244,23 @@ const Sprintmain = () => {
         </div>
       </div>
       
-      <div className="absolute bottom-4 right-4">
-        <button 
-          className="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center"
-          onClick={() => {
-            setEditingTask(null);
-            setNewTask({
-              name: '',
-              responsible: '',
-              role: '',
-              status: '',
-              priority: 'Low',
-            });
-            setShowAddForm(true);
-          }}
-        >
-          <Plus size={24} />
-        </button>
-      </div>
-
       {/* Modal popup for adding/editing tasks */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
             <h3 className="text-lg font-medium mb-3">
-              {editingTask ? 'Edit Task' : 'Add New Task'}
+              {editingTask ? 'Edit Sprint' : 'Add New Sprint'}
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Task Name</label>
+                <label className="block text-sm font-medium mb-1">Sprint Name</label>
                 <input
                   type="text"
                   name="name"
                   value={newTask.name}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded"
-                  placeholder="Feature name"
+                  placeholder="Sprint name"
                 />
               </div>
               <div>
@@ -344,7 +330,7 @@ const Sprintmain = () => {
                 onClick={editingTask ? handleSaveEdit : handleAddTask}
                 disabled={!newTask.name || !newTask.responsible || !newTask.role || !newTask.status}
               >
-                {editingTask ? 'Save Changes' : 'Add Task'}
+                {editingTask ? 'Save Changes' : 'Add Sprint'}
               </button>
             </div>
           </div>
