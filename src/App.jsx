@@ -19,6 +19,7 @@ import TeamInvite from "./pages/TeamInvite";
 import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
+import Profile from './components/profile';
 
 function App() {
     return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/retrospective" element={<RetrospectiveComponent/>} />
           <Route path="/notification" element={<NotificationsDemo/>}/>
           <Route path="/feed" element = {<Feed/>}/>
+          <Route path="/profile" element = {<Profile/>}/>
 
           </Routes>
           </Router>
