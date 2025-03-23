@@ -3,7 +3,6 @@ import { Search, ChevronDown, List, LayoutGrid, Square, Plus, X } from 'lucide-r
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
-
 const Task_dashboard = () => {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
@@ -15,6 +14,7 @@ const Task_dashboard = () => {
       </div>
     );
   };
+
 const PMSDashboardSprints = () => {
   // Initial sprint data
   const initialSprintData = {
@@ -22,9 +22,6 @@ const PMSDashboardSprints = () => {
       { id: '13455134', name: 'Feature 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
       { id: '12451545', name: 'Feature 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
     ],
-    // 'Sprint 2': [
-    //   { id: '3246151', name: 'Feature 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
-    // ],
     'Backlog': [
       { id: '64135315', name: 'Feature 4', responsible: 'Riya S.', role: 'Dev', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
     ]
@@ -120,183 +117,176 @@ const PMSDashboardSprints = () => {
     }
   };
 
-  // Function to get sprint color
-  const getSprintColor = (sprintName) => {
-    if (sprintName.includes('Sprint')) {
-      return 'text-pink-500';
-    }
-    return 'text-blue-500';
-  };
-
   return(
-    <div className="flex-1 overflow-auto w-full h-full">
-      <div className="p-6 bg-white">
+    <div className="flex-1 overflow-auto w-full h-full bg-white">
+      <div className="p-6">
         {/* Breadcrumb and Header */}
         <div className="mb-4">
           <div className="text-sm text-gray-500 mb-2">Projects / Ronin's Project</div>
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-semibold">PMS</h1>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-                Export Issues <ChevronDown size={14} className="ml-1" />
-              </button>
-              <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-                Show all issues <ChevronDown size={14} className="ml-1" />
-              </button>
-              <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-                List view <List size={14} className="ml-1" />
-              </button>
-              <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-                Detailed View <LayoutGrid size={14} className="ml-1" />
+          <h1 className="text-2xl font-semibold">PMS</h1>
+        </div>
+
+        {/* Toolbar - Fixed to stay on one line */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-2">
+            <button className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded flex items-center">
+              <Plus size={16} className="mr-1" />
+              Add Task
+            </button>
+            
+            <div className="relative ml-2">
+              <input 
+                type="text"
+                placeholder="Search issues"
+                className="pl-3 pr-8 py-1.5 border rounded text-sm w-48"
+              />
+              <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <Search size={16} />
               </button>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+              Export Issues
+              <ChevronDown size={16} className="ml-1" />
+            </button>
+            
+            <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+              Show all issues
+              <ChevronDown size={16} className="ml-1" />
+            </button>
           </div>
         </div>
 
         {/* Filters Section */}
-        <div className="flex items-center mb-6 space-x-2">
-          <button className="px-4 py-1 text-sm text-white bg-pink-400 rounded">
+        <div className="flex items-center mb-6 space-x-2 overflow-x-auto">
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+            Project : ronin fintsec
+            <ChevronDown size={16} className="ml-1" />
+          </button>
+          
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+            Type
+            <ChevronDown size={16} className="ml-1" />
+          </button>
+          
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+            Status
+            <ChevronDown size={16} className="ml-1" />
+          </button>
+          
+          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+            Assignee
+            <ChevronDown size={16} className="ml-1" />
+          </button>
+          
+          <button className="px-3 py-1.5 text-sm bg-pink-500 text-white rounded">
             AI
-          </button>
-          <div className="relative">
-            <input 
-              type="text"
-              placeholder="Search issues"
-              className="pl-2 pr-8 py-1 border rounded text-sm w-64"
-            />
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-              <Search size={14} />
-            </div>
-          </div>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-            Project : ronin fintsec <ChevronDown size={14} className="ml-1" />
-          </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-            Type <ChevronDown size={14} className="ml-1" />
-          </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-            Status <ChevronDown size={14} className="ml-1" />
-          </button>
-          <button className="px-3 py-1 text-sm border rounded bg-white flex items-center">
-            Assignee <ChevronDown size={14} className="ml-1" />
           </button>
         </div>
         
-        {/* Add New Sprint Section */}
-        <div className="mb-6 flex">
-          <input
-            type="text"
-            value={newSprintName}
-            onChange={(e) => setNewSprintName(e.target.value)}
-            placeholder="New Sprint Name"
-            className="px-3 py-1 border rounded-l text-sm"
-          />
-          <button 
-            onClick={addNewSprint}
-            className="px-3 py-1 bg-blue-500 text-white rounded-r text-sm flex items-center"
-          >
-            Add Sprint <Plus size={14} className="ml-1" />
-          </button>
-        </div>
-
-        {/* Sprints Sections */}
-        <div className="space-y-6">
-          {Object.entries(sprintData).map(([sprintName, tasks]) => (
-            <div key={sprintName} className="sprint-section">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`flex items-center ${getSprintColor(sprintName)} font-medium`}>
-                  {sprintName} <ChevronDown size={16} className="ml-1" />
-                </div>
-                <button 
-                  onClick={() => startAddingTask(sprintName)}
-                  className="text-blue-500 flex items-center text-sm"
-                >
-                  Add Task <Plus size={14} className="ml-1" />
-                </button>
-              </div>
-              
-              <div className="bg-gray-50 rounded">
-                <div className="grid grid-cols-7 text-sm font-medium text-gray-600 p-3 border-b">
-                  <div>Tasks</div>
-                  <div>Responsible</div>
-                  <div>Role</div>
-                  <div>Status</div>
-                  <div>Priority</div>
-                  <div>Added</div>
-                  <div>Item ID</div>
-                </div>
-                
-                {/* Form for adding new task */}
-                {addingToSprint === sprintName && (
-                  <div className="grid grid-cols-7 p-3 text-sm border-b bg-blue-50">
-                    <div>
-                      <input
-                        type="text"
-                        name="name"
-                        value={newTask.name}
-                        onChange={handleTaskInputChange}
-                        placeholder="Task name"
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        name="responsible"
-                        value={newTask.responsible}
-                        onChange={handleTaskInputChange}
-                        placeholder="Responsible"
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </div>
-                    <div>
-                      <select
-                        name="role"
-                        value={newTask.role}
-                        onChange={handleTaskInputChange}
-                        className="w-full px-2 py-1 border rounded"
-                      >
-                        <option value="">Select role</option>
-                        <option value="Dev">Dev</option>
-                        <option value="Design">Design</option>
-                        <option value="Product">Product</option>
-                      </select>
-                    </div>
-                    <div>
-                      <select
-                        name="status"
-                        value={newTask.status}
-                        onChange={handleTaskInputChange}
-                        className="w-full px-2 py-1 border rounded"
-                      >
-                        <option value="">Select status</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Waiting for review">Waiting for review</option>
-                        <option value="Stuck">Stuck</option>
-                        <option value="Done">Done</option>
-                        <option value="Ready to start">Ready to start</option>
-                      </select>
-                    </div>
-                    <div>
-                      <select
-                        name="priority"
-                        value={newTask.priority}
-                        onChange={handleTaskInputChange}
-                        className="w-full px-2 py-1 border rounded"
-                      >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        disabled
-                        value={newTask.added}
-                        className="w-full px-2 py-1 border rounded bg-gray-50"
-                      />
-                    </div>
+        {/* Main Sprint Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center text-pink-500">
+              <span className="font-medium">Main Sprint</span>
+              <ChevronDown size={16} className="ml-1" />
+            </div>
+            <button 
+              onClick={() => startAddingTask('Main Sprint')}
+              className="text-blue-500 flex items-center text-sm"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Task
+            </button>
+          </div>
+          
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-sm text-gray-600">
+                <th className="p-2 border-b text-left">Tasks</th>
+                <th className="p-2 border-b text-left">Responsible</th>
+                <th className="p-2 border-b text-left">Role</th>
+                <th className="p-2 border-b text-left">Status</th>
+                <th className="p-2 border-b text-left">Priority</th>
+                <th className="p-2 border-b text-left">Added</th>
+                <th className="p-2 border-b text-left">Item ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Form for adding new task */}
+              {addingToSprint === 'Main Sprint' && (
+                <tr className="text-sm bg-blue-50">
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      name="name"
+                      value={newTask.name}
+                      onChange={handleTaskInputChange}
+                      placeholder="Task name"
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      name="responsible"
+                      value={newTask.responsible}
+                      onChange={handleTaskInputChange}
+                      placeholder="Responsible"
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="role"
+                      value={newTask.role}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="">Select role</option>
+                      <option value="Dev">Dev</option>
+                      <option value="Design">Design</option>
+                      <option value="Product">Product</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="status"
+                      value={newTask.status}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="">Select status</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Waiting for review">Waiting for review</option>
+                      <option value="Stuck">Stuck</option>
+                      <option value="Done">Done</option>
+                      <option value="Ready to start">Ready to start</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="priority"
+                      value={newTask.priority}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      disabled
+                      value={newTask.added}
+                      className="w-full px-2 py-1 border rounded bg-gray-50"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
                     <div className="flex items-center space-x-2">
                       <button 
                         onClick={addTaskToSprint}
@@ -311,38 +301,177 @@ const PMSDashboardSprints = () => {
                         Cancel
                       </button>
                     </div>
-                  </div>
-                )}
-                
-                {/* Tasks list */}
-                {tasks.map((task) => (
-                  <div key={task.id} className="grid grid-cols-7 p-3 text-sm border-b hover:bg-gray-100">
+                  </td>
+                </tr>
+              )}
+              
+              {/* Tasks list */}
+              {sprintData['Main Sprint'].map((task) => (
+                <tr key={task.id} className="hover:bg-gray-50 text-sm">
+                  <td className="p-2 border-b">
                     <div className="flex items-center">
-                      <Square size={16} className="mr-2 text-gray-400" />
+                      <input type="checkbox" className="mr-2" />
                       {task.name}
                     </div>
-                    <div className="text-blue-600">{task.responsible}</div>
-                    <div>{task.role}</div>
-                    <div>{task.status}</div>
-                    <div>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </div>
-                    <div>{task.added}</div>
-                    <div>{task.id}</div>
-                  </div>
-                ))}
-                
-                {/* Empty state if no tasks */}
-                {tasks.length === 0 && (
-                  <div className="p-6 text-center text-gray-500 italic">
-                    No tasks yet. Click "Add Task" to create one.
-                  </div>
-                )}
-              </div>
+                  </td>
+                  <td className="p-2 border-b text-blue-600">{task.responsible}</td>
+                  <td className="p-2 border-b">{task.role}</td>
+                  <td className="p-2 border-b">{task.status}</td>
+                  <td className="p-2 border-b">
+                    <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                  </td>
+                  <td className="p-2 border-b">{task.added}</td>
+                  <td className="p-2 border-b">{task.id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Backlog Section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center text-blue-500">
+              <span className="font-medium">Backlog</span>
+              <ChevronDown size={16} className="ml-1" />
             </div>
-          ))}
+            <button 
+              onClick={() => startAddingTask('Backlog')}
+              className="text-blue-500 flex items-center text-sm"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Task
+            </button>
+          </div>
+          
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-sm text-gray-600">
+                <th className="p-2 border-b text-left">Tasks</th>
+                <th className="p-2 border-b text-left">Responsible</th>
+                <th className="p-2 border-b text-left">Role</th>
+                <th className="p-2 border-b text-left">Status</th>
+                <th className="p-2 border-b text-left">Priority</th>
+                <th className="p-2 border-b text-left">Added</th>
+                <th className="p-2 border-b text-left">Item ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Form for adding new task */}
+              {addingToSprint === 'Backlog' && (
+                <tr className="text-sm bg-blue-50">
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      name="name"
+                      value={newTask.name}
+                      onChange={handleTaskInputChange}
+                      placeholder="Task name"
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      name="responsible"
+                      value={newTask.responsible}
+                      onChange={handleTaskInputChange}
+                      placeholder="Responsible"
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="role"
+                      value={newTask.role}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="">Select role</option>
+                      <option value="Dev">Dev</option>
+                      <option value="Design">Design</option>
+                      <option value="Product">Product</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="status"
+                      value={newTask.status}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="">Select status</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Waiting for review">Waiting for review</option>
+                      <option value="Stuck">Stuck</option>
+                      <option value="Done">Done</option>
+                      <option value="Ready to start">Ready to start</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <select
+                      name="priority"
+                      value={newTask.priority}
+                      onChange={handleTaskInputChange}
+                      className="w-full px-2 py-1 border rounded"
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </td>
+                  <td className="p-2 border-b">
+                    <input
+                      type="text"
+                      disabled
+                      value={newTask.added}
+                      className="w-full px-2 py-1 border rounded bg-gray-50"
+                    />
+                  </td>
+                  <td className="p-2 border-b">
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={addTaskToSprint}
+                        className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+                      >
+                        Add
+                      </button>
+                      <button 
+                        onClick={cancelAddingTask}
+                        className="px-2 py-1 bg-gray-500 text-white rounded text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              
+              {/* Tasks list */}
+              {sprintData['Backlog'].map((task) => (
+                <tr key={task.id} className="hover:bg-gray-50 text-sm">
+                  <td className="p-2 border-b">
+                    <div className="flex items-center">
+                      <input type="checkbox" className="mr-2" />
+                      {task.name}
+                    </div>
+                  </td>
+                  <td className="p-2 border-b text-blue-600">{task.responsible}</td>
+                  <td className="p-2 border-b">{task.role}</td>
+                  <td className="p-2 border-b">{task.status}</td>
+                  <td className="p-2 border-b">
+                    <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                  </td>
+                  <td className="p-2 border-b">{task.added}</td>
+                  <td className="p-2 border-b">{task.id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
