@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect} from 'react';
 import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
+import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "lucide-react";
+
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
@@ -20,10 +22,10 @@ const Bugs_queue_section = () => {
   const IssuesPage = () => {
     // Sample data based on the image
     const [issues, setIssues] = useState([
-      { id: 1, key: 'Key', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 3, key: 'Key', summary: 'Wallet not responding', assignee: 'diya', reporter: 'ranalk', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-      { id: 4, key: 'Key', summary: 'Wallet not responding', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+      { id: 1, key: 'Key', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
+      { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
+      { id: 3, key: 'Key', summary: 'Wallet not responding', assignee: 'diya', reporter: 'ranalk', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
+      { id: 4, key: 'Key', summary: 'Wallet not responding', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
       { id: 5, key: 'Key', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
     ]);
     // Modal state declarations
@@ -57,7 +59,16 @@ const Bugs_queue_section = () => {
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false);
 
-    //reach useEffect hook to close dropdowns
+    const issueTypeIcons = {
+      bug: <Bug size={16} className="text-red-500" />,         // Bug icon
+      task: <CheckSquare size={16} className="text-blue-500" />, // Task icon
+      feature: <PlusCircle size={16} className="text-green-500" />, // Feature icon
+      document: <FileText size={16} className="text-gray-500" />, // Document icon
+      wallet: <Wallet size={16} className="text-purple-500" />,  // Wallet-related issue
+      warning: <AlertTriangle size={16} className="text-yellow-500" />, // General warning
+    };
+    
+    //react useEffect hook to close dropdowns
     //  this useEffect hook to close dropdowns when clicking outside
       useEffect(() => {
         function handleClickOutside(event) {
@@ -338,7 +349,7 @@ const Bugs_queue_section = () => {
               <table className="min-w-full bg-white border-collapse">
                 <thead>
                   <tr className="bg-gray-50 text-left text-sm">
-                    <th className="p-3 text-sm font-medium text-gray-600">Type</th>
+                    <th className="p-3  text-sm font-medium text-gray-600 text-center align-middle">Type</th>
                     <th className="p-3 text-sm font-medium text-gray-600">Key</th>
                     <th className="p-3 text-sm font-medium text-gray-600">Summary</th>
                     <th className="p-3 text-sm font-medium text-gray-600">Assignee</th>
@@ -353,8 +364,11 @@ const Bugs_queue_section = () => {
                 <tbody>
                   {filteredIssues.map((issue) => (
                     <tr key={issue.id} className="border-t border-gray-200 hover:bg-blue-50">
-                      <td className="p-3">
-                        <Lock size={16} className="text-gray-700" />
+                      <td className="p-2 text-center align-middle">
+                        <div className="flex items-center justify-center h-full">
+                          {issueTypeIcons[issue.type] || <FileText size={16} className="text-gray-500" />}
+                          {/* {issue.type} this displays the type of file in string*/}
+                        </div>
                       </td>
                       <td className="p-3 text-sm">{issue.key}</td>
                       <td className="p-3 text-sm">{issue.summary}</td>
@@ -443,6 +457,9 @@ const Bugs_queue_section = () => {
                         <option value="bug">Bug</option>
                         <option value="task">Task</option>
                         <option value="feature">Feature</option>
+                        <option value="document">Document</option>
+                        <option value="wallet">Wallet</option>
+
                       </select>
                     </div>
                     
