@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect} from 'react';
-import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
@@ -115,28 +115,6 @@ const Bugs_queue_section = () => {
       console.log("View Mode Changed:", mode); // Debugging output
     };
   
-    const renderPagination = () => {
-      return (
-        <footer className="fixed bottom-0 left-0 w-full bg-white shadow-md py-3">
-            <div className="flex items-center justify-center mt-4 space-x-2">
-              <button className="p-1 border rounded">
-                <ChevronLeft size={16} />
-              </button>
-              <button className={`px-2 py-1 rounded ${currentPage === 1 ? 'bg-gray-200' : ''}`}>1</button>
-              <button className={`px-2 py-1 rounded ${currentPage === 2 ? 'bg-gray-200' : ''}`}>2</button>
-              <button className={`px-2 py-1 rounded ${currentPage === 3 ? 'bg-gray-200' : ''}`}>3</button>
-              <button className={`px-2 py-1 rounded ${currentPage === 4 ? 'bg-gray-200' : ''}`}>4</button>
-              <span>...</span>
-              <button className={`px-2 py-1 rounded ${currentPage === 8 ? 'bg-gray-200' : ''}`}>8</button>
-              <button className={`px-2 py-1 rounded ${currentPage === 9 ? 'bg-gray-200' : ''}`}>9</button>
-              <button className={`px-2 py-1 rounded ${currentPage === 10 ? 'bg-gray-200' : ''}`}>10</button>
-              <button className="p-1 border rounded">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </footer>
-      );
-    };
     
     // Handle form submission for adding new issue
     const handleAddIssue = (e) => {
@@ -177,18 +155,14 @@ const Bugs_queue_section = () => {
       <div className="flex-1 overflow-auto w-full h-full">
         <div className="p-4 bg-white">
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
+          <header className="flex justify-between items-center mb-6">
             <div>
               <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
               <h1 className="text-2xl text-gray-700 font-bold">Bugs Queue</h1>
             </div>
-            <div className="flex items-center space-x-2">
-              <button 
-                className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                onClick={() => setIsModalOpen(true)}
-              >
-                New Issue
-              </button>
+
+            <div className="flex items-center space-x-2 ">
+              
               {/* <div className="relative">
                 <button className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1">
                   <span>Export issues</span>
@@ -219,119 +193,145 @@ const Bugs_queue_section = () => {
                 <MoreHorizontal size={16} />
               </button> */}
             </div>
+          </header>
+          
+
+
+          {/* Main Table Section */}
+          <div className="flex items-center mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="font-medium">Main Table</div>
+              <button className="ml-2">
+                <MoreVertical size={16} />
+              </button>
+              <button className="ml-2">
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
-  
+
           {/* Filter Bar */}
-          <div className="flex space-x-2 mb-4">
-            <div className="bg-pink-200 rounded px-2 py-1 text-sm flex items-center space-x-1">
-              <span>AI</span>
-            </div>
-            <div className="relative flex-grow max-w-xs">
-              <input
-                type="text"
-                placeholder="Search issues"
-                className="w-full border border-gray-300 rounded px-3 py-1 pl-8 text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search size={14} className="absolute left-2 top-2 text-gray-400" />
-            </div>
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-4" >
+              <div>
+                <button 
+                  className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  New Issue <Plus size={14} className="ml-1" />
+                </button>
+              </div>
 
-          {/* dropdowns */}
-            <div className="relative" id="project-dropdown">
-              <button 
-                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-              >
-                <span>Project : {selectedProject}</span>
-                <ChevronDown size={14} />
-              </button>
-              {projectDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
-                  <ul>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedProject('ronin fintech');
-                        setProjectDropdownOpen(false);
-                      }}
-                    >
-                      ronin fintech
-                    </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedProject('other project');
-                        setProjectDropdownOpen(false);
-                      }}
-                    >
-                      other project
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-            
-            <div className="relative" id="type-dropdown">
-              <button 
-                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-              >
-                <span>Type {selectedType ? `: ${selectedType}` : ''}</span>
-                <ChevronDown size={14} />
-              </button>
-              {typeDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
-                  <ul>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType(''); setTypeDropdownOpen(false); }}>All Types</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('bug'); setTypeDropdownOpen(false); }}>Bug</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('task'); setTypeDropdownOpen(false); }}>Task</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('feature'); setTypeDropdownOpen(false); }}>Feature</li>
-                  </ul>
-                </div>
-              )}
-            </div>
+              <div className="relative flex-grow max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search issues"
+                  className="w-full border border-gray-300 rounded px-3 py-1 pl-8 text-sm"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search size={14} className="absolute left-2 top-2 text-gray-400" />
+              </div>
 
-            {/* Status Dropdown */}
-            <div className="relative" id="status-dropdown">
-              <button 
-                className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              >
-                <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
-                <ChevronDown size={14} />
-              </button>
-              {statusDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
-                  <ul>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>All Statuses</li>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>To DO</li>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>In Progress</li>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>Done</li>
-                  </ul>
-                </div>
-              )}
-            </div>
+            {/* dropdowns */}
+              <div className="relative" id="project-dropdown">
+                <button 
+                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                  onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
+                >
+                  <span>Project : {selectedProject}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {projectDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                    <ul>
+                      <li
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => {
+                          setSelectedProject('ronin fintech');
+                          setProjectDropdownOpen(false);
+                        }}
+                      >
+                        ronin fintech
+                      </li>
+                      <li
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => {
+                          setSelectedProject('other project');
+                          setProjectDropdownOpen(false);
+                        }}
+                      >
+                        other project
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+              
+              <div className="relative" id="type-dropdown">
+                <button 
+                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                  onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+                >
+                  <span>Type {selectedType ? `: ${selectedType}` : ''}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {typeDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                    <ul>
+                        <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType(''); setTypeDropdownOpen(false); }}>All Types</li>
+                        <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('bug'); setTypeDropdownOpen(false); }}>Bug</li>
+                        <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('task'); setTypeDropdownOpen(false); }}>Task</li>
+                        <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedType('feature'); setTypeDropdownOpen(false); }}>Feature</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
 
-            <div className="relative" id="assignee-dropdown">
-              <button className="px-2 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
-              onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
-            >
-                <User size={14}/>              
-                <span>Assignee {selectedAssignee ? `: ${selectedAssignee}` : ''}</span>
-                < ChevronDown size={14} />
-              </button>
-              {assigneeDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
-                  <ul>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee(''); setAssigneeDropdownOpen(false); }}>All Assignees</li>
-                    <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('Ronin'); setAssigneeDropdownOpen(false); }}>Ronin</li>
-                  </ul>
-                </div>
-              )}
+              {/* Status Dropdown */}
+              <div className="relative" id="status-dropdown">
+                <button 
+                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                >
+                  <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                    <ul>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>All Statuses</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>To DO</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>In Progress</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>Done</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative" id="assignee-dropdown">
+                <button className="px-2 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
+              >
+                  <User size={14}/>              
+                  <span>Assignee {selectedAssignee ? `: ${selectedAssignee}` : ''}</span>
+                  < ChevronDown size={14} />
+                </button>
+                {assigneeDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
+                    <ul>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee(''); setAssigneeDropdownOpen(false); }}>All Assignees</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('Ronin'); setAssigneeDropdownOpen(false); }}>Ronin</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bg-pink-500  px-3 py-2  text-white rounded flex items-center">
+                <span>AI</span>
             </div>
           </div>
-  
+          
           {/* Issues Table */}
           <div className="bg-white border overflow-hidden">
             <div className="overflow-x-auto">
@@ -403,8 +403,7 @@ const Bugs_queue_section = () => {
             </div>
           </div>
   
-          {/* Pagination */}
-          {renderPagination()}
+         
 
           {/* Issue Creation Modal */}
           {isModalOpen && (
