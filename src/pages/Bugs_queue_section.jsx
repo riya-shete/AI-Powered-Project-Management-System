@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect} from 'react';
-import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus } from 'lucide-react';
+import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
@@ -200,7 +200,7 @@ const Bugs_queue_section = () => {
           {/* Main Table Section */}
           <div className="flex items-center mb-4">
             <div className="flex items-center space-x-2">
-              <div className="font-medium">Main Table</div>
+              <div className="font-medium ">Main Table</div>
               <button className="ml-2">
                 <MoreVertical size={16} />
               </button>
@@ -383,7 +383,8 @@ const Bugs_queue_section = () => {
                               alert(`Edit issue ${issue.id}`);
                             }}
                           >
-                            Edit
+                            <Edit2 size={16} />
+                            
                           </button>
                           <button 
                             className="text-red-600 hover:underline text-xs"
@@ -392,7 +393,7 @@ const Bugs_queue_section = () => {
                               setIssues(issues.filter(item => item.id !== issue.id));
                             }}
                           >
-                            Delete
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
