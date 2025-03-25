@@ -119,33 +119,16 @@ const PMSDashboardSprints = () => {
 
   return(
     <div className="flex-1 overflow-auto w-full h-full bg-white">
-      <div className="p-6">
-        {/* Breadcrumb and Header */}
+      <div className="p-4 bg-white">
+      <header className="flex justify-between items-center mb-6"> 
+        {/*  Header */}
         <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-2">Projects / Ronin's Project</div>
-          <h1 className="text-2xl font-semibold">PMS</h1>
+          <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
+          <h1 className="text-2xl text-gray-700 font-bold">PMS</h1>
         </div>
 
         {/* Toolbar - Fixed to stay on one line */}
         <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <button className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded flex items-center">
-              <Plus size={16} className="mr-1" />
-              Add Task
-            </button>
-            
-            <div className="relative ml-2">
-              <input 
-                type="text"
-                placeholder="Search issues"
-                className="pl-3 pr-8 py-1.5 border rounded text-sm w-48"
-              />
-              <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                <Search size={16} />
-              </button>
-            </div>
-          </div>
-          
           <div className="flex items-center space-x-2">
             <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
               Export Issues
@@ -158,9 +141,25 @@ const PMSDashboardSprints = () => {
             </button>
           </div>
         </div>
+      </header>
+
 
         {/* Filters Section */}
         <div className="flex items-center mb-6 space-x-2 overflow-x-auto">
+          <button className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded flex items-center">
+            <Plus size={16} className="mr-1" />
+            Add Task
+          </button>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search issues"
+              className="pl-3 pr-8 py-1.5 border rounded text-sm w-48"
+            />
+            <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+              <Search size={16} />
+            </button>
+          </div>
           <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             Project : ronin fintsec
             <ChevronDown size={16} className="ml-1" />
