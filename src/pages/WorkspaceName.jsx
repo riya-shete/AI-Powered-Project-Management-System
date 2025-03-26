@@ -27,7 +27,7 @@ export default function WorkspaceName() {
             Name your workspace
           </h2>
           <p className="text-gray-600 text-center mb-4">
-            Give your workspace a memorable name. You can change it later.
+            Enter your workspace name. You can change it later.
           </p>
 
           {/* Workspace Name Input */}
