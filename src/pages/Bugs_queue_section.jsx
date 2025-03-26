@@ -338,11 +338,12 @@ const Bugs_queue_section = () => {
                   </div>
                 )}
               </div>
-            </div>
-            <div className="bg-pink-500  px-3 py-2  text-white rounded flex items-center">
+            
+            <div className="bg-pink-500  px-2 py-1  text-white rounded flex items-center">
                 <span>AI</span>
             </div>
-          </div>
+          </div>    
+        </div>
           
           {/* Issues Table */}
           <div className="bg-white border overflow-hidden">
