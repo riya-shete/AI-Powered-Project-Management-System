@@ -186,11 +186,6 @@ const Retrospectivesmain = () => {
             <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
             <h1 className="text-2xl text-gray-700 font-bold">Retrospectives</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            <button className="ml-2">
-              <MoreVertical size={16} />
-            </button>
-          </div>
         </header>
 
         <div className="flex items-center mb-4">
