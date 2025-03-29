@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit } from 'lucide-react';
 
 import Navbar from '../components/navbar';
@@ -37,7 +37,8 @@ const Sprintmain = () => {
   const [selectAll, setSelectAll] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [editingTask, setEditingTask] = useState(null);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'High': return 'bg-orange-100 text-orange-700';
@@ -121,6 +122,14 @@ const Sprintmain = () => {
       setSelectedTasks(prev => [...prev, taskId]);
     }
   };
+
+  // Filtered tasks based on search query
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => 
+      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.responsible.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [tasks, searchQuery]);
   
   return (
     <div className="flex-1 overflow-auto w-full h-full">
@@ -129,11 +138,6 @@ const Sprintmain = () => {
           <div>
             <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
             <h1 className="text-2xl text-gray-700 font-bold">Sprints</h1>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button className="ml-2">
-              <MoreVertical size={16} />
-            </button>
           </div>
         </header>
 
@@ -164,9 +168,16 @@ const Sprintmain = () => {
           >
             New Sprint <Plus size={14} className="ml-1" />
           </button>
-          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-            <Search size={14} className="mr-1" /> Search
-          </button>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search sprints"
+              className="px-3 py-1.5 text-sm border rounded bg-white pl-8 w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
+          </div>
           <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <User size={14} className="mr-1" /> Person
           </button>
@@ -206,7 +217,7 @@ const Sprintmain = () => {
               </tr>
             </thead>
             <tbody>
-              {tasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <tr key={task.id} className="border-t hover:bg-gray-50">
                   <td className="p-3">
                     <input 
@@ -231,7 +242,7 @@ const Sprintmain = () => {
                   <td className="p-3">{task.role}</td>
                   <td className="p-3">{task.status}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded text-xs ${getPriorityColor(task.priority)}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
                       {task.priority}
                     </span>
                   </td>

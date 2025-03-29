@@ -303,7 +303,7 @@ const Bugs_queue_section = () => {
               {/* Status Dropdown */}
               <div className="relative" id="status-dropdown">
                 <button 
-                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                  className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                   onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                 >
                   <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
@@ -322,7 +322,7 @@ const Bugs_queue_section = () => {
               </div>
 
               <div className="relative" id="assignee-dropdown">
-                <button className="px-2 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                <button className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
               >
                   <User size={14}/>              

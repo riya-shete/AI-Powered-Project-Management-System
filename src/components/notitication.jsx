@@ -1,24 +1,39 @@
 import React, { useState } from 'react';
-import { Search, MoreVertical, Heart } from 'lucide-react';
+import { Search, MoreVertical, X, BellRing } from 'lucide-react';
 
-const NotificationsPopup = ({ isOpen, onClose }) => {
+function NotificationsDemo({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('ALL');
-  
-  // Sample notification data
+
+  // Sample notification data with more details
   const notifications = [
     {
       id: 1,
       user: 'Riya Shete',
       action: 'has assigned you to item "desktop UI/UX"',
       time: 'yesterday 5:30 pm',
-      date: 'Yesterday'
+      date: 'Yesterday',
+      avatar: 'https://t4.ftcdn.net/jpg/09/61/69/75/240_F_961697523_EFd1m8P4tdcwB0TYvlQAagqKR1xHSuwk.jpg'
     },
-    // Empty slots for other notifications
-    { id: 2, empty: true, date: 'Yesterday' },
-    { id: 3, empty: true, date: 'Yesterday' },
-    { id: 4, empty: true, date: 'Yesterday' }
+    {
+      id: 2,
+      user: 'Team Project',
+      action: 'submitted a new design for review',
+      time: 'yesterday 3:45 pm',
+      date: 'Yesterday',
+      avatar: 'https://t3.ftcdn.net/jpg/13/25/15/64/240_F_1325156466_bPRvqDidjf0uquk7hXjJ7ujl9iiQhQbJ.jpg'
+    },
+    { 
+      id: 3, 
+      empty: true, 
+      date: 'Yesterday' 
+    },
+    { 
+      id: 4, 
+      empty: true, 
+      date: 'Yesterday' 
+    }
   ];
-  
+
   // Group notifications by date
   const groupedNotifications = notifications.reduce((acc, notification) => {
     const date = notification.date;
@@ -32,44 +47,52 @@ const NotificationsPopup = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {/* Blurred background overlay */}
       <div 
-        className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       ></div>
       
       {/* Notifications panel */}
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-semibold">Notifications</h2>
-          <div>
-            <button className="p-2 rounded-full hover:bg-gray-100">
-              <MoreVertical size={20} />
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-slide-in">
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <BellRing className="text-blue-600" size={24} />
+            <h2 className="text-xl font-bold text-gray-800">Notifications</h2>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => {/* Add mark all as read functionality */}}
+              className="text-sm text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
+            >
+              Mark all read
+            </button>
+            <button 
+              onClick={onClose} 
+              className="text-gray-500 hover:bg-gray-100 p-2 rounded-full transition-colors"
+            >
+              <X size={20} />
             </button>
           </div>
         </div>
         
         {/* Tabs */}
         <div className="flex border-b">
-          <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'ALL' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('ALL')}
-          >
-            ALL
-          </button>
-          <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'Mentioned' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('Mentioned')}
-          >
-            Mentioned
-          </button>
-          <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'Assigned to me' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('Assigned to me')}
-          >
-            Assigned to me
-          </button>
+          {['ALL', 'Mentioned', 'Assigned to me'].map(tab => (
+            <button
+              key={tab}
+              className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+                activeTab === tab 
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
         
         {/* Search */}
@@ -78,8 +101,8 @@ const NotificationsPopup = ({ isOpen, onClose }) => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search"
-              className="w-full pl-9 pr-3 py-2 border rounded-full text-sm"
+              placeholder="Search notifications"
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
             />
           </div>
         </div>
@@ -88,33 +111,29 @@ const NotificationsPopup = ({ isOpen, onClose }) => {
         <div className="overflow-y-auto max-h-[calc(80vh-180px)]">
           {Object.entries(groupedNotifications).map(([date, items]) => (
             <div key={date}>
-              <div className="px-4 py-2 text-sm font-medium text-gray-600">
+              <div className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-50">
                 {date}
               </div>
               
               {items.map(notification => (
                 <div 
                   key={notification.id} 
-                  className={`p-4 hover:bg-gray-50 transition-colors ${notification.empty ? 'h-16' : ''}`}
+                  className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 ${notification.empty ? 'h-16' : ''}`}
                 >
                   {!notification.empty && (
                     <div className="flex justify-between items-start">
-                      <div className="flex">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="text-sm">
-                            <span className="font-medium">{notification.user}</span> {notification.action}
-                          </div>
-                        </div>
-                      </div>
                       <div className="flex items-center">
-                        <span className="text-xs text-gray-500">{notification.time}</span>
+                        <img 
+                          src={notification.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+                          alt={`${notification.user}'s avatar`}
+                          className="w-8 h-8 rounded-full mr-3 object-cover"
+                        />
+                        <div className="text-sm">
+                          <span className="font-semibold text-gray-800">{notification.user}</span>{' '}
+                          <span className="text-gray-600">{notification.action}</span>
+                        </div>
                       </div>
+                      <span className="text-xs text-gray-500">{notification.time}</span>
                     </div>
                   )}
                 </div>
@@ -125,62 +144,6 @@ const NotificationsPopup = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
-};
-
-// Demo component that shows how to use the notification popup
-const NotificationsDemo = () => {
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(true);
-
-  const toggleNotifications = () => {
-    setIsNotificationsOpen(!isNotificationsOpen);
-  };
-
-  return (
-    <div className="bg-purple-100 min-h-screen p-4">
-      {/* Header with notification bell */}
-      <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center mb-4">
-        <div className="font-medium">PMS</div>
-        <div className="flex items-center space-x-2">
-          <button className="p-2 rounded-full bg-gray-100">
-            <Search size={16} />
-          </button>
-          <button className="p-2 rounded-full bg-gray-100">+</button>
-          <button 
-            className="p-2 rounded-full bg-gray-100"
-            onClick={toggleNotifications}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-          </button>
-          <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-        </div>
-      </div>
-
-      {/* Content that gets blurred */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Dashboard Content</h2>
-        <p>This content will be blurred when the notification popup appears.</p>
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="bg-gray-100 p-4 rounded">
-            <h3 className="font-medium">Recent Tasks</h3>
-            <p className="mt-2 text-sm text-gray-600">No recent tasks</p>
-          </div>
-          <div className="bg-gray-100 p-4 rounded">
-            <h3 className="font-medium">Team Activity</h3>
-            <p className="mt-2 text-sm text-gray-600">No recent activity</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Notification popup */}
-      <NotificationsPopup 
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
-      />
-    </div>
-  );
-};
+}
 
 export default NotificationsDemo;

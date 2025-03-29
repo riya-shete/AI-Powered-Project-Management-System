@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-
+import Documentation from './pages/Documentation';
 import LandingPage from './pages/LandingPage';
-
+import Help from './pages/Help';
 import Dashboard from './pages/Dashboard';
 import SprintsPage from './pages/Sprint_section'
 import Task_dashboard from './pages/Task_dashboard'
@@ -44,7 +44,8 @@ function App() {
           <Route path="/feed" element = {<Feed/>}/>
           <Route path="/profile" element = {<Profile/>}/>
           <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
-
+          <Route path="/Help" element = {<Help/>}/>
+          <Route path="/Documentation" element = {<Documentation/>}/>
           </Routes>
           </Router>
           
