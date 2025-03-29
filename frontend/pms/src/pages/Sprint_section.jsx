@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit } from 'lucide-react';
+import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit, Check, X } from 'lucide-react';
 
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
@@ -18,11 +18,11 @@ const SprintsPage = () => {
 
 const Sprintmain = () => {
   const [tasks, setTasks] = useState([
-    { id: '13455134', name: 'Sprint 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
-    { id: '12451545', name: 'Sprint 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
-    { id: '3246151', name: 'Sprint 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
-    { id: '64135315', name: 'Sprint 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024' },
-    { id: '1464135', name: 'Sprint 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
+    { id: '13455134', name: 'Sprint 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024', active: true },
+    { id: '12451545', name: 'Sprint 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024', active: false },
+    { id: '3246151', name: 'Sprint 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024', active: true },
+    { id: '64135315', name: 'Sprint 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024', active: false },
+    { id: '1464135', name: 'Sprint 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024', active: true },
   ]);
 
   const [newTask, setNewTask] = useState({
@@ -301,7 +301,7 @@ const Sprintmain = () => {
                 <th className="p-3 text-sm font-medium text-gray-600">Status</th>
                 <th className="p-3 text-sm font-medium text-gray-600">Priority</th>
                 <th className="p-3 text-sm font-medium text-gray-600">Added</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Item ID</th>
+                <th className="p-3 text-sm font-medium text-gray-600">Active?</th>
               </tr>
             </thead>
             <tbody>
@@ -335,7 +335,13 @@ const Sprintmain = () => {
                     </span>
                   </td>
                   <td className="p-3">{task.added}</td>
-                  <td className="p-3">{task.id}</td>
+                  <td className="p-3">
+                    {task.active ? (
+                      <Check size={16} className="text-green-500" />
+                    ) : (
+                      <X size={16} className="text-red-500" />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
