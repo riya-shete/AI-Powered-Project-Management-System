@@ -6,10 +6,25 @@ from .models import (
     Invitation, ActivityLog
 )
 
+# If you have a UserSerializer, add this method to it:
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
+
+    def create(self, validated_data):
+        # Extract the password
+        password = validated_data.pop('password')
+        
+        # Create the user without the password
+        user = User.objects.create(**validated_data)
+        
+        # Set the password properly (this handles the hashing)
+        user.set_password(password)
+        user.save()
+        
+        return user
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
