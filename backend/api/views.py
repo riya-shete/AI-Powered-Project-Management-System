@@ -21,9 +21,6 @@ from .serializers import (
     InvitationSerializer
 )
 
-# In your UserViewSet class, we need to override the create method
-# to properly hash passwords
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
