@@ -389,7 +389,15 @@ class InvitationViewSet(viewsets.ModelViewSet):
             role=invitation.role
         )
         
-
+        # Log the activity - Add this code
+        log_activity(
+            user=request.user,
+            action='join',
+            content_type='workspace',
+            object_id=invitation.workspace.id,
+            details={'invitation_id': invitation.id}
+        )
+    
         # Update invitation status
         invitation.status = 'accepted'
         invitation.save()

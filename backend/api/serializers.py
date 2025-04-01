@@ -6,12 +6,12 @@ from .models import (
     Invitation, ActivityLog
 )
 
-# If you have a UserSerializer, add this method to it:
-
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password']
 
     def create(self, validated_data):
         # Extract the password
@@ -25,6 +25,21 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         
         return user
+        
+    def update(self, instance, validated_data):
+        # Handle password updates properly
+        password = validated_data.pop('password', None)
+        
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+            
+        # If password was provided, update it
+        if password:
+            instance.set_password(password)
+            
+        instance.save()
+        return instance
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -112,7 +127,7 @@ class InvitationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Invitation
-        fields = ['id', 'workspace', 'team', 'email', 'sender', 'role', 'status', 'token', 'created_at', 'view_only']
+        fields = ['id', 'workspace', 'email', 'sender', 'role', 'status', 'token', 'created_at', 'view_only']
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

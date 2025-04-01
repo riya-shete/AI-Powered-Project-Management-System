@@ -16,4 +16,7 @@ def save_user_profile(sender, instance, **kwargs):
     """
     Signal handler to save the UserProfile when the User is saved
     """
-    instance.profile.save()
+    try:
+        instance.userprofile.save()
+    except UserProfile.DoesNotExist:
+        UserProfile.objects.create(user=instance)
