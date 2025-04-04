@@ -22,11 +22,11 @@ const Bugs_queue_section = () => {
   const IssuesPage = () => {
     // Sample data based on the image
     const [issues, setIssues] = useState([
-      { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
+      { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'In Progress', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
       { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
-      { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
+      { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
       { id: 4, key: 'file', summary: 'recheck the invoice', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
-      { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
+      { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
       { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
     ]);
     // Modal state declarations
@@ -42,7 +42,15 @@ const Bugs_queue_section = () => {
       dueDate: ''
     });
 
-  
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'To DO': return 'bg-orange-100 text-orange-700';
+        case 'In Progress': return 'bg-blue-100 text-blue-700';
+        case 'Done': return 'bg-green-100 text-green-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    };
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = 10;
@@ -339,7 +347,7 @@ const Bugs_queue_section = () => {
                 )}
               </div>
             
-            <div className="bg-pink-500  px-2 py-1  text-white rounded flex items-center">
+            <div className="bg-pink-500  px-3 py-1.5  text-white rounded flex items-center">
                 <span>AI</span>
             </div>
           </div>    
@@ -376,13 +384,14 @@ const Bugs_queue_section = () => {
                       <td className="p-3 text-sm">{issue.summary}</td>
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">R</div>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.assignee.charAt(0).toUpperCase()}</div>
                           <span>{issue.assignee}</span>
                         </div>
                       </td>
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.reporter.charAt(0)}</div>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                          {issue.reporter.charAt(0).toUpperCase()}</div>
                           <span>{issue.reporter}</span>
                         </div>
                       </td>
@@ -509,6 +518,12 @@ const Bugs_queue_section = () => {
                         <option value="In Progress">In Progress</option>
                         <option value="Done">Done</option>
                       </select>
+                       {/* Display colored status indicator based on selected value */}
+                      <div className={`absolute right-2 top-2 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(newIssue.status)}`}>
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(newIssue.status)}`}>
+                            {newIssue.status}
+                          </span>
+                        </div>
                     </div>
                     
                     <div>
