@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit } from 'lucide-react';
+import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit, Check, X } from 'lucide-react';
 
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
@@ -18,11 +18,11 @@ const SprintsPage = () => {
 
 const Sprintmain = () => {
   const [tasks, setTasks] = useState([
-    { id: '13455134', name: 'Sprint 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024' },
-    { id: '12451545', name: 'Sprint 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024' },
-    { id: '3246151', name: 'Sprint 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024' },
-    { id: '64135315', name: 'Sprint 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024' },
-    { id: '1464135', name: 'Sprint 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024' },
+    { id: '13455134', name: 'Sprint 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024', active: true },
+    { id: '12451545', name: 'Sprint 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024', active: false },
+    { id: '3246151', name: 'Sprint 3', responsible: 'Anand S.', role: 'Product', status: 'Stuck', priority: 'Medium', added: '12 Dec 2024', active: true },
+    { id: '64135315', name: 'Sprint 4', responsible: 'Riya S.', role: 'Dev', status: 'Done', priority: 'Low', added: '21 Oct 2024', active: false },
+    { id: '1464135', name: 'Sprint 5', responsible: 'Kalyani B.', role: 'Product', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024', active: true },
   ]);
 
   const [newTask, setNewTask] = useState({
@@ -38,6 +38,10 @@ const Sprintmain = () => {
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [editingTask, setEditingTask] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [personFilter, setPersonFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false);
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -123,13 +127,29 @@ const Sprintmain = () => {
     }
   };
 
-  // Filtered tasks based on search query
+  // Get unique persons and roles for dropdowns
+  const uniquePersons = [...new Set(tasks.map(task => task.responsible))];
+  const uniqueRoles = [...new Set(tasks.map(task => task.role))];
+
+  // Filtered tasks based on search query and filters
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => 
-      task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.responsible.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [tasks, searchQuery]);
+    return tasks.filter(task => {
+      const matchesSearch = searchQuery 
+        ? task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.responsible.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+
+      const matchesPerson = personFilter 
+        ? task.responsible === personFilter 
+        : true;
+
+      const matchesRole = roleFilter 
+        ? task.role === roleFilter 
+        : true;
+
+      return matchesSearch && matchesPerson && matchesRole;
+    });
+  }, [tasks, searchQuery, personFilter, roleFilter]);
   
   return (
     <div className="flex-1 overflow-auto w-full h-full">
@@ -178,12 +198,80 @@ const Sprintmain = () => {
             />
             <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
           </div>
-          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-            <User size={14} className="mr-1" /> Person
-          </button>
-          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-            <Filter size={14} className="mr-1" /> Filter
-          </button>
+          <div className="relative">
+            <button 
+              className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
+              onClick={() => {
+                setIsPersonDropdownOpen(!isPersonDropdownOpen);
+                setIsRoleDropdownOpen(false);
+              }}
+            >
+              <User size={14} className="mr-1" /> 
+              {personFilter || 'Person'}
+            </button>
+            {isPersonDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-48 bg-white border rounded shadow-lg">
+                <div 
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setPersonFilter('');
+                    setIsPersonDropdownOpen(false);
+                  }}
+                >
+                  All Persons
+                </div>
+                {uniquePersons.map(person => (
+                  <div 
+                    key={person}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setPersonFilter(person);
+                      setIsPersonDropdownOpen(false);
+                    }}
+                  >
+                    {person}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button 
+              className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
+              onClick={() => {
+                setIsRoleDropdownOpen(!isRoleDropdownOpen);
+                setIsPersonDropdownOpen(false);
+              }}
+            >
+              <Filter size={14} className="mr-1" /> 
+              {roleFilter || 'Role'}
+            </button>
+            {isRoleDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-48 bg-white border rounded shadow-lg">
+                <div 
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setRoleFilter('');
+                    setIsRoleDropdownOpen(false);
+                  }}
+                >
+                  All Roles
+                </div>
+                {uniqueRoles.map(role => (
+                  <div 
+                    key={role}
+                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setRoleFilter(role);
+                      setIsRoleDropdownOpen(false);
+                    }}
+                  >
+                    {role}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <ArrowDownUp size={14} className="mr-1" /> Sort
           </button>
@@ -213,7 +301,7 @@ const Sprintmain = () => {
                 <th className="p-3 text-sm font-medium text-gray-600">Status</th>
                 <th className="p-3 text-sm font-medium text-gray-600">Priority</th>
                 <th className="p-3 text-sm font-medium text-gray-600">Added</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Item ID</th>
+                <th className="p-3 text-sm font-medium text-gray-600">Active?</th>
               </tr>
             </thead>
             <tbody>
@@ -247,7 +335,13 @@ const Sprintmain = () => {
                     </span>
                   </td>
                   <td className="p-3">{task.added}</td>
-                  <td className="p-3">{task.id}</td>
+                  <td className="p-3">
+                    {task.active ? (
+                      <Check size={16} className="text-green-500" />
+                    ) : (
+                      <X size={16} className="text-red-500" />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
