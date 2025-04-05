@@ -416,7 +416,12 @@ const Bugs_queue_section = () => {
                           <span>{issue.reporter}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-sm">{issue.status}</td>
+                      <td className="p-3 text-sm">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(issue.status)}`}>
+                          {issue.status}
+                        </span>
+                        
+                      </td>
                       <td className="p-3 text-sm">{issue.createdDate}</td>
                       <td className="p-3 text-sm">{issue.updatedDate}</td>
                       <td className="p-3 text-sm">{issue.dueDate}</td>
