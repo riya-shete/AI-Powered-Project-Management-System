@@ -314,21 +314,42 @@ const Bugs_queue_section = () => {
                   className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                   onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                 >
-                  <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
+                  <span>Status {selectedStatus ? 
+                    <span className={`ml-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(selectedStatus)}`}>
+                      {selectedStatus}
+                    </span> : ''}
+                  </span>
                   <ChevronDown size={14} />
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
                     <ul>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>All Statuses</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>To DO</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>In Progress</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>Done</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>
+                        All Statuses
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700">To DO</span>
+                        </div>
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">In Progress</span>
+                        </div>
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">Done</span>
+                        </div>
+                      </li>
                     </ul>
                   </div>
                 )}
               </div>
-
               <div className="relative" id="assignee-dropdown">
                 <button className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
@@ -519,7 +540,7 @@ const Bugs_queue_section = () => {
                         <option value="Done">Done</option>
                       </select>
                        {/* Display colored status indicator based on selected value */}
-                      <div className={`absolute right-2 top-2 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(newIssue.status)}`}>
+                      <div className="mt-1">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(newIssue.status)}`}>
                             {newIssue.status}
                           </span>
