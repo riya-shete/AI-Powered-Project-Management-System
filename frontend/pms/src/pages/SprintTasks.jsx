@@ -18,7 +18,6 @@ export default function SprintTasks() {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      {/* Navbar */}
       <nav className="bg-blue-600 text-white py-4 px-6 flex items-center justify-between shadow-md">
         <div className="flex items-center space-x-3">
           <img src={logo} alt="PMS Logo" className="h-10 w-auto object-contain" />
@@ -36,7 +35,6 @@ export default function SprintTasks() {
             Each row represents a single task. You can add more info later.
           </p>
 
-          {/* Task Inputs */}
           <div className="space-y-3">
             {tasks.map((task, index) => (
               <input
@@ -50,7 +48,6 @@ export default function SprintTasks() {
             ))}
           </div>
 
-          {/* Add More Task Button */}
           <button
             onClick={addTask}
             className="mt-3 w-full px-5 py-2 text-blue-600 border border-blue-500 rounded-lg hover:bg-blue-100 transition text-lg"
@@ -58,7 +55,6 @@ export default function SprintTasks() {
             + Add More Tasks
           </button>
 
-          {/* Navigation Buttons */}
           <div className="flex justify-between mt-6">
             <button
               onClick={() => navigate("/WorkspaceName")}

@@ -22,11 +22,11 @@ const Bugs_queue_section = () => {
   const IssuesPage = () => {
     // Sample data based on the image
     const [issues, setIssues] = useState([
-      { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
+      { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'In Progress', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
       { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
-      { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
+      { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
       { id: 4, key: 'file', summary: 'recheck the invoice', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
-      { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
+      { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
       { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
     ]);
     // Modal state declarations
@@ -42,7 +42,15 @@ const Bugs_queue_section = () => {
       dueDate: ''
     });
 
-  
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'To DO': return 'bg-orange-100 text-orange-700';
+        case 'In Progress': return 'bg-blue-100 text-blue-700';
+        case 'Done': return 'bg-green-100 text-green-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    };
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = 10;
@@ -303,26 +311,47 @@ const Bugs_queue_section = () => {
               {/* Status Dropdown */}
               <div className="relative" id="status-dropdown">
                 <button 
-                  className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                  className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                   onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                 >
-                  <span>Status {selectedStatus ? `: ${selectedStatus}` : ''}</span>
+                  <span>Status {selectedStatus ? 
+                    <span className={`ml-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(selectedStatus)}`}>
+                      {selectedStatus}
+                    </span> : ''}
+                  </span>
                   <ChevronDown size={14} />
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 w-40">
                     <ul>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>All Statuses</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>To DO</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>In Progress</li>
-                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>Done</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus(''); setStatusDropdownOpen(false); }}>
+                        All Statuses
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('To DO'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700">To DO</span>
+                        </div>
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('In Progress'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">In Progress</span>
+                        </div>
+                      </li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                          onClick={() => { setSelectedStatus('Done'); setStatusDropdownOpen(false); }}>
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">Done</span>
+                        </div>
+                      </li>
                     </ul>
                   </div>
                 )}
               </div>
-
               <div className="relative" id="assignee-dropdown">
-                <button className="px-2 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
+                <button className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setAssigneeDropdownOpen(!assigneeDropdownOpen)}
               >
                   <User size={14}/>              
@@ -338,11 +367,12 @@ const Bugs_queue_section = () => {
                   </div>
                 )}
               </div>
-            </div>
-            <div className="bg-pink-500  px-3 py-2  text-white rounded flex items-center">
+            
+            <div className="bg-pink-500  px-3 py-1.5  text-white rounded flex items-center">
                 <span>AI</span>
             </div>
-          </div>
+          </div>    
+        </div>
           
           {/* Issues Table */}
           <div className="bg-white border overflow-hidden">
@@ -375,17 +405,23 @@ const Bugs_queue_section = () => {
                       <td className="p-3 text-sm">{issue.summary}</td>
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">R</div>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.assignee.charAt(0).toUpperCase()}</div>
                           <span>{issue.assignee}</span>
                         </div>
                       </td>
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.reporter.charAt(0)}</div>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                          {issue.reporter.charAt(0).toUpperCase()}</div>
                           <span>{issue.reporter}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-sm">{issue.status}</td>
+                      <td className="p-3 text-sm">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-normal ${getStatusColor(issue.status)}`}>
+                          {issue.status}
+                        </span>
+                        
+                      </td>
                       <td className="p-3 text-sm">{issue.createdDate}</td>
                       <td className="p-3 text-sm">{issue.updatedDate}</td>
                       <td className="p-3 text-sm">{issue.dueDate}</td>
@@ -508,6 +544,12 @@ const Bugs_queue_section = () => {
                         <option value="In Progress">In Progress</option>
                         <option value="Done">Done</option>
                       </select>
+                       {/* Display colored status indicator based on selected value */}
+                      <div className="mt-1">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(newIssue.status)}`}>
+                            {newIssue.status}
+                          </span>
+                        </div>
                     </div>
                     
                     <div>
