@@ -20,6 +20,7 @@ import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
 import Profile from './components/profile';
+import ChatbotWidget from "./components/chatbotwidget";
 
 import WorkspaceName from "./pages/WorkspaceName";
 function App() {
@@ -47,6 +48,8 @@ function App() {
           <Route path="/Help" element = {<Help/>}/>
           <Route path="/Documentation" element = {<Documentation/>}/>
           </Routes>
+            {/* Chatbot floats on every page */}
+            <ChatbotWidget />
           </Router>
           
       );
