@@ -361,7 +361,7 @@ const Retrospectivesmain = () => {
                     <a href="#" className="text-blue-600">{retrospective.responsible}</a>
                   </td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded text-xs ${getTypeColor(retrospective.type)}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(retrospective.type)}`}>
                       {retrospective.type}
                     </span>
                   </td>
