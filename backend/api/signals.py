@@ -4,19 +4,8 @@ from django.contrib.auth.models import User
 from .models import UserProfile
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+def create_or_update_user_profile(sender, instance, created, **kwargs):
     """
-    Signal handler to automatically create a UserProfile when a new User is created
+    Signal handler to create or update a UserProfile when a User is saved
     """
-    if created:
-        UserProfile.objects.create(user=instance)
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    """
-    Signal handler to save the UserProfile when the User is saved
-    """
-    try:
-        instance.userprofile.save()
-    except UserProfile.DoesNotExist:
-        UserProfile.objects.create(user=instance)
+    UserProfile.objects.get_or_create(user=instance)

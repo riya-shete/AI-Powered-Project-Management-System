@@ -7,6 +7,13 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
 import json
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from rest_framework.authtoken.views import ObtainAuthToken
 
 from .models import (
     Workspace, WorkspaceMember, Project, Sprint,
@@ -20,11 +27,16 @@ from .serializers import (
     NotificationSerializer, BookmarkSerializer, ActivityLogSerializer, 
     InvitationSerializer
 )
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -108,10 +120,8 @@ class SprintViewSet(viewsets.ModelViewSet):
         sprint = self.get_object()
         project = sprint.project
         
-        # Deactivate all other sprints in the project
         Sprint.objects.filter(project=project, active=True).update(active=False)
         
-        # Activate the current sprint
         sprint.active = True
         sprint.save()
         
@@ -171,7 +181,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         task.assigned_to = user
         task.save()
         
-        # Create notification
         Notification.objects.create(
             user=user,
             sender=request.user,
@@ -180,7 +189,6 @@ class TaskViewSet(viewsets.ModelViewSet):
             item_id=task.item_id
         )
         
-        # Log activity
         log_activity(
             user=request.user,
             action='assign',
@@ -209,7 +217,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         task.status = new_status
         task.save()
         
-        # Log activity
         log_activity(
             user=request.user,
             action='status',
@@ -260,7 +267,6 @@ class BugViewSet(viewsets.ModelViewSet):
         bug.assignee = user
         bug.save()
         
-        # Create notification
         Notification.objects.create(
             user=user,
             sender=request.user,
@@ -345,14 +351,11 @@ class InvitationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         invitation = serializer.save(sender=self.request.user)
         
-        # Send invitation email (in production, use Celery for async tasks)
         self.send_invitation_email(invitation)
         
         return invitation
     
     def send_invitation_email(self, invitation):
-        # This would be implemented to send actual emails
-        # For now, just log it
         print(f"Sending invitation to {invitation.email} for {invitation.workspace.name}")
     
     @action(detail=False, methods=['get'])
@@ -375,18 +378,15 @@ class InvitationViewSet(viewsets.ModelViewSet):
         if invitation.status != 'pending':
             return Response({"error": "This invitation has already been processed"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if email matches the current user
         if invitation.email.lower() != request.user.email.lower():
             return Response({"error": "This invitation is for a different email address"}, status=status.HTTP_403_FORBIDDEN)
         
-        # Add user to workspace
         WorkspaceMember.objects.create(
             workspace=invitation.workspace,
             user=request.user,
             role=invitation.role
         )
         
-        # Log the activity - Add this code
         log_activity(
             user=request.user,
             action='join',
@@ -395,7 +395,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
             details={'invitation_id': invitation.id}
         )
     
-        # Update invitation status
         invitation.status = 'accepted'
         invitation.save()
         
@@ -424,32 +423,26 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         workspace_id = self.request.query_params.get('workspace', None)
         project_id = self.request.query_params.get('project', None)
         
-        # Base queryset - activities in workspaces user is a member of
         queryset = ActivityLog.objects.filter(
             user__workspaces__in=self.request.user.workspaces.all()
         ).order_by('-created_at')
         
         if workspace_id:
-            # Filter activities for specific workspace
             queryset = queryset.filter(
                 user__workspaces__id=workspace_id,
                 user__workspaces__members=self.request.user
             )
         
         if project_id:
-        # Safer approach to filter by project
             project_activities = queryset.filter(
                 content_type='project',
                 object_id=project_id
             )
             
-            # Find activities with project references
-            # Parse the JSON details field properly instead of string contains
             task_activities = queryset.filter(
                 content_type__in=['task', 'bug', 'sprint']
             )
             
-            # Filter task activities where project_id matches
             related_activities = []
             for activity in task_activities:
                 try:
@@ -466,7 +459,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'])
     def mentions(self, request):
-        # Get activities where user was mentioned
         queryset = ActivityLog.objects.filter(
             action='mention',
             details__contains=f'"mentioned_user_id": {request.user.id}'
@@ -477,15 +469,12 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'])
     def bookmarks(self, request):
-        # Get user's bookmarked items
         bookmarks = Bookmark.objects.filter(user=request.user)
     
-        # Build a query to efficiently fetch related activities
         bookmark_conditions = Q()
         for bookmark in bookmarks:
             bookmark_conditions |= Q(content_type=bookmark.item_type, object_id=bookmark.item_id)
         
-        # Get activities in a single query
         if bookmark_conditions:
             activities = ActivityLog.objects.filter(bookmark_conditions).order_by('-created_at')[:50]
             serializer = self.get_serializer(activities, many=True)
@@ -511,3 +500,52 @@ def log_activity(user, action, content_type, object_id, details=None):
         details=json.dumps(details) if details else ''
     )
     return log
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    """
+    Create a new user without requiring authentication
+    """
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username
+        })
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    Custom login view that returns an authentication token
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is not None:
+        login(request, user)
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)

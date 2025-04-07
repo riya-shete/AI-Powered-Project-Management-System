@@ -417,7 +417,7 @@ const Bugs_queue_section = () => {
                         </div>
                       </td>
                       <td className="p-3 text-sm">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(issue.status)}`}>
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-normal ${getStatusColor(issue.status)}`}>
                           {issue.status}
                         </span>
                         

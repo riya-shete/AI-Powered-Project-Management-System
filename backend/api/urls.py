@@ -4,8 +4,10 @@ from .views import (
     UserViewSet, UserProfileViewSet, WorkspaceViewSet,
     ProjectViewSet, SprintViewSet, TaskViewSet, BugViewSet,
     RetrospectiveViewSet, NotificationViewSet, BookmarkViewSet,
-    InvitationViewSet, ActivityLogViewSet
+    InvitationViewSet, ActivityLogViewSet, CustomAuthToken
 )
+from . import views
+from django.views.decorators.csrf import csrf_exempt
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -24,5 +26,8 @@ router.register(r'activities', ActivityLogViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('register/', csrf_exempt(views.register_user), name='register'),
     path('auth/', include('rest_framework.urls')),
+    path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
+    path('auth/login/', views.login_view, name='api_login'),  # Add this line
 ]

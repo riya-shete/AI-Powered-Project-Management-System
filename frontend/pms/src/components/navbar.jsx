@@ -2,13 +2,17 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsDemo from "./notitication"; 
 import Feed from "./update_feed"; // Ensure this path is correct
+import ProfileSidebar from './ProfileSidebar';
 import PopupChatWindow from "./inbox"; // Imported chat component
+
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [isNotificationOpen, setNotificationOpen] = useState(false);
   const [isFeedOpen, setFeedOpen] = useState(false);
+  const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
+
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -31,12 +35,12 @@ const Navbar = () => {
   const closeFeedModal = () => {
     setFeedOpen(false);
   };
-
-  // Toggle chat popup for Inbox icon
+  const toggleProfileSidebar = () => {
+    setIsProfileSidebarOpen(!isProfileSidebarOpen);
+  };
   const toggleChat = () => {
     setChatOpen(!isChatOpen);
   };
-
   return (
     <>
       <nav className="flex items-center justify-between w-full px-6 py-3 bg-blue-500 border-b border-gray-200 shadow-sm sticky top-0 z-10">
@@ -146,7 +150,7 @@ const Navbar = () => {
           {/* Profile Button */}
           <button 
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-blue-400 transition-colors duration-200"
-            onClick={() => handleNavigation('/profile')}
+            onClick={toggleProfileSidebar} // Changed from handleNavigation to toggleProfileSidebar
           >
             <img 
               src="https://t4.ftcdn.net/jpg/09/61/69/71/240_F_961697155_J7ZlI6T87DqEtLIRZoXkdMAMs87VyfAu.jpg" 
@@ -170,8 +174,10 @@ const Navbar = () => {
 
       {/* Render Update Feed Modal */}
       <Feed isOpen={isFeedOpen} onClose={closeFeedModal} />
-
-      {/* Render Chat Popup (Inbox) */}
+      <ProfileSidebar 
+        isOpen={isProfileSidebarOpen} 
+        onClose={() => setIsProfileSidebarOpen(false)} 
+      />
       {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
     </>
   );
