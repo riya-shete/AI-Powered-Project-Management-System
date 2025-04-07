@@ -113,7 +113,7 @@ export default function LandingPage() {
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/Login")}
           >
-            <FaSignInAlt />
+            
             <span>Log In</span>
           </motion.button>
 
@@ -123,7 +123,7 @@ export default function LandingPage() {
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/SignIn")}
           >
-            <FaUser />
+            
             <span>Sign Up</span>
           </motion.button>
         </div>
