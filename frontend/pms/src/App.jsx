@@ -22,6 +22,7 @@ import TaskBoardColumns from "./pages/TaskBoardColumns";
 import Profile from './components/profile';
 import PopupChatWindow from './components/inbox'
 import ChatbotWidget from "./components/chatbotwidget";
+import ExploreTemplates from "./components/tools"
 
 import WorkspaceName from "./pages/WorkspaceName";
 function App() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/Help" element = {<Help/>}/>
           <Route path="/Documentation" element = {<Documentation/>}/>
           <Route path="/inbox" element ={<PopupChatWindow/>}/>
+          <Route path="/tools" element ={<ExploreTemplates/>}/>
           </Routes>
             {/* Chatbot floats on every page */}
             <ChatbotWidget />

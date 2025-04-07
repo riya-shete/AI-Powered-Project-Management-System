@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react"; 
+import ExploreTemplates from "./tools"
 
 const Sidebar = () => {
   const [expandedSection, setExpandedSection] = useState('My Team');
