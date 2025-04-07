@@ -20,6 +20,8 @@ import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
 import Profile from './components/profile';
+import PopupChatWindow from './components/inbox'
+import ChatbotWidget from "./components/chatbotwidget";
 
 import WorkspaceName from "./pages/WorkspaceName";
 function App() {
