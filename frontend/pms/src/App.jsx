@@ -20,6 +20,7 @@ import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
 import TaskBoardColumns from "./pages/TaskBoardColumns";
 import Profile from './components/profile';
+import PopupChatWindow from './components/inbox'
 
 import WorkspaceName from "./pages/WorkspaceName";
 function App() {
@@ -46,6 +47,7 @@ function App() {
           <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
           <Route path="/Help" element = {<Help/>}/>
           <Route path="/Documentation" element = {<Documentation/>}/>
+          <Route path="/inbox" element ={<PopupChatWindow/>}/>
           </Routes>
           </Router>
           

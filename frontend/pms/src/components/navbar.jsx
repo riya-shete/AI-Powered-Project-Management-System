@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsDemo from "./notitication"; 
 import Feed from "./update_feed"; // Ensure this path is correct
+import PopupChatWindow from "./inbox"; // Imported chat component
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [isNotificationOpen, setNotificationOpen] = useState(false);
   const [isFeedOpen, setFeedOpen] = useState(false);
+  const [isChatOpen, setChatOpen] = useState(false);
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -28,6 +30,11 @@ const Navbar = () => {
 
   const closeFeedModal = () => {
     setFeedOpen(false);
+  };
+
+  // Toggle chat popup for Inbox icon
+  const toggleChat = () => {
+    setChatOpen(!isChatOpen);
   };
 
   return (
@@ -70,12 +77,12 @@ const Navbar = () => {
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
           </button>
           
-          {/* Inbox Button */}
+          {/* Inbox Button toggles the chat popup */}
           <button 
             className="text-white hover:text-blue-100 transition-colors duration-200"
-            onClick={() => handleNavigation('/inbox')}
+            onClick={toggleChat}
           >
-            <span className="sr-only">Inbox</span>
+            <span className="sr-only">Inbox / Chat</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path 
                 strokeLinecap="round" 
@@ -163,6 +170,9 @@ const Navbar = () => {
 
       {/* Render Update Feed Modal */}
       <Feed isOpen={isFeedOpen} onClose={closeFeedModal} />
+
+      {/* Render Chat Popup (Inbox) */}
+      {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
     </>
   );
 };
