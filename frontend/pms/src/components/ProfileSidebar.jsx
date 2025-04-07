@@ -4,21 +4,19 @@ import { useNavigate } from 'react-router-dom';
 const ProfileSidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
-  
-  // Dummy user data - in a real app, you would fetch this from your state management or API
+
   const userData = {
     name: "Vivek Shinde",
     role: "Software Developer",
-    avatar: "https://t4.ftcdn.net/jpg/09/61/69/71/240_F_961697155_J7ZlI6T87DqEtLIRZoXkdMAMs87VyfAu.jpg",
+    initials: "VS",
     email: "vivek.651.2304@gmail.com",
-    location: "San Francisco, CA",
+    location: "Banglore",
     isPremium: true,
     teams: 7,
     projects: 12,
     achievements: 9
   };
 
-  // Close sidebar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isOpen) {
@@ -30,71 +28,72 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
 
-  // View full profile handler
   const handleViewFullProfile = () => {
     navigate('/profile');
     onClose();
   };
 
   return (
-    <div className={`fixed top-0 right-0 z-50 h-full transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-      <div 
-        ref={sidebarRef}
-        className="bg-white w-80 h-full shadow-lg rounded-l-lg flex flex-col overflow-hidden"
-      >
-        {/* Header */}
-        <div className="bg-gray-100 p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">My Profile</h2>
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <>
+      {/*Blur Background Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
+      )}
+      {/*End of Blur Background Overlay */}
 
-        {/* Profile Summary */}
-        <div className="p-6 flex flex-col items-center border-b">
-          <div className="relative">
-            <img 
-              src={userData.avatar} 
-              alt="Profile" 
-              className="w-20 h-20 rounded-full border-2 border-blue-500"
-            />
+      <div className={`fixed top-0 right-0 z-50 h-full pt-2 pr-9 pb-6 pl-2 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div 
+          ref={sidebarRef}
+          className="bg-white w-80 h-full shadow-xl rounded-2xl flex flex-col overflow-hidden"
+        >
+          {/* Rest of your component stays unchanged */}
+          {/* Header */}
+          <div className="bg-gray-100 p-4 flex justify-between items-center rounded-t-2xl">
+            <h2 className="text-lg font-semibold">My Profile</h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Profile Summary */}
+          <div className="p-6 flex flex-col items-center border-b">
+            <div className="relative">
+              <div className="w-28 h-28 rounded-full flex items-center justify-center border-2 border-blue-500 bg-gradient-to-r from-blue-500 to-blue-400">
+                <span className="text-white text-3xl font-bold">{userData.initials}</span>
+              </div>
+            </div>
+            <h3 className="mt-3 text-lg font-semibold">{userData.name}</h3>
+            <p className="text-gray-600">{userData.role}</p>
             {userData.isPremium && (
-              <span className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </span>
+              <span className="mt-2 bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">Premium Member</span>
             )}
           </div>
-          <h3 className="mt-3 text-lg font-semibold">{userData.name}</h3>
-          <p className="text-gray-600">{userData.role}</p>
-          {userData.isPremium && (
-            <span className="mt-2 bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">Premium Member</span>
-          )}
-        </div>
 
-        {/* Quick Stats */}
-        <div className="px-4 py-3 flex justify-between items-center border-b">
-          <div className="text-center">
-            <span className="block text-lg font-semibold">{userData.teams}</span>
-            <span className="text-sm text-gray-600">Teams</span>
+          {/* Quick Stats */}
+          <div className="px-4 py-3 flex justify-between items-center border-b">
+            <div className="text-center">
+              <span className="block text-lg font-semibold">{userData.teams}</span>
+              <span className="text-sm text-gray-600">Teams</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-lg font-semibold">{userData.projects}</span>
+              <span className="text-sm text-gray-600">Projects</span>
+            </div>
+            <div className="text-center">
+              <span className="block text-lg font-semibold">{userData.achievements}</span>
+              <span className="text-sm text-gray-600">Achievements</span>
+            </div>
           </div>
-          <div className="text-center">
-            <span className="block text-lg font-semibold">{userData.projects}</span>
-            <span className="text-sm text-gray-600">Projects</span>
-          </div>
-          <div className="text-center">
-            <span className="block text-lg font-semibold">{userData.achievements}</span>
-            <span className="text-sm text-gray-600">Achievements</span>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
+              {/* Quick Actions */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
             <h4 className="text-sm font-medium text-gray-500 mb-3">ACCOUNT</h4>
@@ -136,17 +135,18 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Footer with View Full Profile button */}
-        <div className="p-4 border-t">
-          <button 
-            onClick={handleViewFullProfile}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            View Full Profile
-          </button>
+          {/* Footer */}
+          <div className="p-4 border-t">
+            <button 
+              onClick={handleViewFullProfile}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            >
+              View Full Profile
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
