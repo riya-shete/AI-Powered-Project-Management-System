@@ -1,8 +1,29 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // Import for navigation
+import { X } from 'lucide-react'; 
+
 
 const Profile = () => {
+   // Added navigation functionality
+   const navigate = useNavigate();
+  
+   // Added close/back button handler with fallback
+   const handleClose = () => {
+     if (window.history.length > 1) {
+       navigate(-1); // Go back to previous page
+     } else {
+       navigate('/home'); // Fallback to home if no history
+     }
+   };
   return (
     <div className="bg-gray-100 min-h-screen">
+      <button 
+        onClick={handleClose}
+        className="absolute top-4 right-4 z-10 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition"
+        aria-label="Close profile"
+      >
+        <X size={24} className="text-gray-700" />
+      </button>
       <div className="container mx-auto px-4 py-10">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -85,15 +106,15 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Phone Number</p>
-                  <p className="text-gray-800 font-medium">+1 (123) 456-7890</p>
+                  <p className="text-gray-800 font-medium">+91 7558517889</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Location</p>
-                  <p className="text-gray-800 font-medium">San Francisco, CA</p>
+                  <p className="text-gray-800 font-medium">Banglore</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Date of Birth</p>
-                  <p className="text-gray-800 font-medium">April 15, 1992</p>
+                  <p className="text-gray-800 font-medium">April 23, 1992</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Joined</p>
