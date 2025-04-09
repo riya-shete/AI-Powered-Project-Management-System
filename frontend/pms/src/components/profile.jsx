@@ -1,20 +1,55 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom'; // Import for navigation
-import { X } from 'lucide-react'; 
-
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 
 const Profile = () => {
-   // Added navigation functionality
-   const navigate = useNavigate();
+  const navigate = useNavigate();
   
-   // Added close/back button handler with fallback
-   const handleClose = () => {
-     if (window.history.length > 1) {
-       navigate(-1); // Go back to previous page
-     } else {
-       navigate('/home'); // Fallback to home if no history
-     }
-   };
+  const handleClose = () => {
+    if (window.history.length > 1) {
+      navigate(-1); // Go back to previous page
+    } else {
+      navigate('/home'); // Fallback to home if no history
+    }
+  };
+
+  const initialPersonalInfo = {
+    fullName: "Vivek Shinde",
+    email: "vivek.651.2304@gmail.com",
+    phoneNumber: "+91 7558517889",
+    location: "Banglore",
+    dateOfBirth: "April 23, 1992",
+    joined: "March 2023"
+  };
+
+  const [personalInfo, setPersonalInfo] = useState(initialPersonalInfo);
+  const [tempInfo, setTempInfo] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setTempInfo(prevInfo => ({
+      ...prevInfo,
+      [name]: value
+    }));
+  };
+
+  const startEditing = () => {
+    setTempInfo({...personalInfo});
+    setIsEditing(true);
+  };
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    setPersonalInfo(tempInfo);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setTempInfo({});
+    setIsEditing(false);
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <button 
@@ -42,7 +77,7 @@ const Profile = () => {
                 <div className="w-32 h-32 rounded-full flex items-center justify-center mb-4 bg-gradient-to-r from-blue-500 to-blue-400">
                   <span className="text-white text-5xl font-bold">VS</span>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">Vivek Shinde</h2>
+                <h2 className="text-2xl font-bold text-gray-800">{personalInfo.fullName}</h2>
                 <p className="text-gray-500 mb-2">Software Developer</p>
                 <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                   Premium Member
@@ -90,37 +125,125 @@ const Profile = () => {
             <div className="bg-white rounded-2xl p-8 mb-6 shadow-md hover:shadow-lg transition">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-800">Personal Information</h3>
-                <button className="text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
-                  <i className="fas fa-pen"></i> Edit
-                </button>
+                {!isEditing ? (
+                  <button 
+                    onClick={startEditing} 
+                    className="text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1"
+                  >
+                    <i className="fas fa-pen"></i> Edit
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleCancel}
+                      className="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1"
+                    >
+                      <i className="fas fa-times"></i> Cancel
+                    </button>
+                    <button 
+                      onClick={handleSubmit}
+                      className="text-green-500 hover:text-green-700 font-medium flex items-center gap-1"
+                    >
+                      <i className="fas fa-check"></i> Save
+                    </button>
+                  </div>
+                )}
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Full Name</p>
-                  <p className="text-gray-800 font-medium">Vivek Shinde</p>
+              {isEditing ? (
+                <form onSubmit={handleSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Full Name</label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={tempInfo.fullName}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={tempInfo.email}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Phone Number</label>
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={tempInfo.phoneNumber}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Location</label>
+                      <input
+                        type="text"
+                        name="location"
+                        value={tempInfo.location}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Date of Birth</label>
+                      <input
+                        type="text"
+                        name="dateOfBirth"
+                        value={tempInfo.dateOfBirth}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 text-sm mb-1 block">Joined</label>
+                      <input
+                        type="text"
+                        name="joined"
+                        value={tempInfo.joined}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Full Name</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.fullName}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Email Address</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Phone Number</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.phoneNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Location</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Date of Birth</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.dateOfBirth}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Joined</p>
+                    <p className="text-gray-800 font-medium">{personalInfo.joined}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Email Address</p>
-                  <p className="text-gray-800 font-medium">vivek.651.2304@gmail.com</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Phone Number</p>
-                  <p className="text-gray-800 font-medium">+91 7558517889</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Location</p>
-                  <p className="text-gray-800 font-medium">Banglore</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Date of Birth</p>
-                  <p className="text-gray-800 font-medium">April 23, 1992</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Joined</p>
-                  <p className="text-gray-800 font-medium">March 2023</p>
-                </div>
-              </div>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
