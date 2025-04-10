@@ -17,7 +17,6 @@ const Task_dashboard = () => {
 
 const PMSDashboardSprints = () => {
   // Initial sprint data
-  // Initial sprint data
 const initialSprintData = {
   'Sprint 1': [
     { id: '13455134', name: 'Task 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024', storyPoints: 5 },
@@ -32,7 +31,7 @@ const initialSprintData = {
 };
     const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName ,index}) => {
       const getBgColor = () => {
-        return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        return index % 2 === 0 ? 'bg-white' : 'bg-gray-100';
       };
     const getPriorityColor = (priority) => {
       switch (priority) {
@@ -235,6 +234,11 @@ const initialSprintData = {
   const [sprintData, setSprintData] = useState(initialSprintData);
   const [taskTables, setTaskTables] = useState([]);
   const [customTableTasks, setCustomTableTasks] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPerson, setSelectedPerson] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [currentView, setCurrentView] = useState('All Sprints');
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false);
   const [newTableInfo, setNewTableInfo] = useState({
@@ -341,6 +345,84 @@ const initialSprintData = {
       [name]: value
     }));
   };
+  // Function to get all unique owners from all tasks
+const getAllOwners = () => {
+  const owners = new Set();
+  
+  // Get owners from sprint data
+  Object.values(sprintData).forEach(tasks => {
+    tasks.forEach(task => {
+      if (task.responsible) owners.add(task.responsible);
+    });
+  });
+  
+  // Get owners from custom tables
+  Object.values(customTableTasks).forEach(tasks => {
+    tasks.forEach(task => {
+      if (task.responsible) owners.add(task.responsible);
+    });
+  });
+  
+  return Array.from(owners);
+};
+
+// Function to get all unique statuses
+const getAllStatuses = () => {
+  const statuses = new Set();
+  
+  // Get statuses from sprint data
+  Object.values(sprintData).forEach(tasks => {
+    tasks.forEach(task => {
+      if (task.status) statuses.add(task.status);
+    });
+  });
+  
+  // Get statuses from custom tables
+  Object.values(customTableTasks).forEach(tasks => {
+    tasks.forEach(task => {
+      if (task.status) statuses.add(task.status);
+    });
+  });
+  
+  return Array.from(statuses);
+};
+
+// Function to filter tasks based on search and filters
+const filterTasks = (tasks) => {
+  return tasks.filter(task => {
+    // Search term filter - search across all attributes
+    const matchesSearch = searchTerm === '' || 
+      (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.id && task.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.responsible && task.responsible.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.storyPoints && task.storyPoints.toString().includes(searchTerm));
+    
+    // Person filter
+    const matchesPerson = selectedPerson === '' || 
+      task.responsible === selectedPerson;
+    
+    // Status filter
+    const matchesStatus = selectedStatus === '' || 
+      task.status === selectedStatus;
+    
+    return matchesSearch && matchesPerson && matchesStatus;
+  });
+};
+
+// Function to check if a sprint has any matching tasks
+const sprintHasMatchingTasks = (sprintName) => {
+  const tasks = sprintData[sprintName] || [];
+  return filterTasks(tasks).length > 0;
+};
+
+// Function to check if a custom table has any matching tasks
+const tableHasMatchingTasks = (tableName) => {
+  const tasks = customTableTasks[tableName] || [];
+  return filterTasks(tasks).length > 0;
+};
 
   // Function to get priority color
   const getPriorityColor = (priority) => {
@@ -390,37 +472,122 @@ const initialSprintData = {
         </div>
       </header>
 
-      {/* Filter/Action Buttons Row */}
-      <div className="flex mb-4 space-x-2 flex-wrap">
-        <button 
-          className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
-          onClick={openAddTableModal}
-        >
-          New task <Plus size={14} className="ml-1" />
-        </button>
 
-        
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search issues"
-            className="px-3 py-1.5 text-sm border rounded bg-white pl-8 w-64"
-          />
-          <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
+  {/* Filter/Action Buttons Row */}
+  <div className="flex mb-4 space-x-2 flex-wrap">
+    <button 
+      className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
+      onClick={openAddTableModal}
+    >
+      New task <Plus size={14} className="ml-1" />
+    </button>
+
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Search issues"
+        className="px-3 py-1.5 text-sm border rounded bg-white pl-8 w-64"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
+    </div>
+    
+    {/* Person dropdown */}
+    <div className="relative">
+      <button 
+        className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
+        onClick={() => setIsPersonDropdownOpen(!isPersonDropdownOpen)}
+      >
+        {selectedPerson || "Person"} <ChevronDown size={16} className="ml-1" />
+      </button>
+      
+      {isPersonDropdownOpen && (
+        <div className="absolute z-10 mt-1 w-48 bg-white border rounded-md shadow-lg">
+          <div 
+            className="p-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              setSelectedPerson('');
+              setIsPersonDropdownOpen(false);
+            }}
+          >
+            All Persons
+          </div>
+          {getAllOwners().map(owner => (
+            <div 
+              key={owner}
+              className="p-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                setSelectedPerson(owner);
+                setIsPersonDropdownOpen(false);
+              }}
+            >
+              {owner}
+            </div>
+          ))}
         </div>
-        
-        {/* More filter buttons */}
-        <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-          Person <ChevronDown size={16} className="ml-1" />
-        </button>
-        
-        <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-          Filter <ChevronDown size={16} className="ml-1" />
-        </button>
-        
-        <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-          Sort <ChevronDown size={16} className="ml-1" />
-        </button>
+      )}
+    </div>
+  
+  {/* Filter (Status) dropdown */}
+  <div className="relative">
+    <button 
+      className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
+      onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+    >
+      {selectedStatus || "Filter"} <ChevronDown size={16} className="ml-1" />
+    </button>
+    
+    {isFilterDropdownOpen && (
+      <div className="absolute z-10 mt-1 w-48 bg-white border rounded-md shadow-lg">
+        <div 
+          className="p-2 hover:bg-gray-100 cursor-pointer"
+          onClick={() => {
+            setSelectedStatus('');
+            setIsFilterDropdownOpen(false);
+          }}
+        >
+          All Statuses
+        </div>
+        {getAllStatuses().map(status => (
+          <div 
+            key={status}
+            className="p-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              setSelectedStatus(status);
+              setIsFilterDropdownOpen(false);
+            }}
+          >
+            {status}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+  
+  <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+    Sort <ChevronDown size={16} className="ml-1" />
+  </button>
+  
+  <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
+    Hide <ChevronDown size={16} className="ml-1" />
+  </button>
+  
+  {/* Clear filters button - only show when filters are active */}
+  {(searchTerm || selectedPerson || selectedStatus) && (
+    <button 
+      className="px-3 py-1.5 text-sm border rounded bg-red-50 text-red-600 flex items-center"
+      onClick={() => {
+        setSearchTerm('');
+        setSelectedPerson('');
+        setSelectedStatus('');
+      }}
+    >
+      Clear Filters <X size={14} className="ml-1" />
+    </button>
+  )}
+</div>  
+
         
         <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
           Hide <ChevronDown size={16} className="ml-1" />
@@ -455,26 +622,41 @@ const initialSprintData = {
         </button>
       </div>
       
-  {/* Sprint Tables */}
-  {(currentView === 'All Sprints' || currentView === 'Active') && (
-    Object.keys(sprintData)
-      .filter(sprintName => sprintName !== 'Backlog')
-      .map((sprintName, index) => (
-        <SprintTable 
-          key={sprintName}
-          title={sprintName} 
-          tasks={sprintData[sprintName]} 
-          isExpanded={sprintVisibility[sprintName] !== false}
-          toggleExpand={() => toggleSprintVisibility(sprintName)}
-          addTask={startAddingTask}
-          sprintName={sprintName}
-          index={index}
-        />
-      ))
-  )}
+{/* Sprint Tables */}
+{(currentView === 'All Sprints' || currentView === 'Active') && (
+  Object.keys(sprintData)
+    .filter(sprintName => sprintName !== 'Backlog')
+    .filter(sprintName => {
+      // Only show sprints with matching tasks when filtering
+      if (searchTerm || selectedPerson || selectedStatus) {
+        return sprintHasMatchingTasks(sprintName);
+      }
+      return true;
+    })
+    .map((sprintName, index) => (
+      <SprintTable 
+        key={sprintName}
+        title={sprintName} 
+        tasks={filterTasks(sprintData[sprintName])} 
+        isExpanded={sprintVisibility[sprintName] !== false}
+        toggleExpand={() => toggleSprintVisibility(sprintName)}
+        addTask={startAddingTask}
+        sprintName={sprintName}
+        index={index}
+      />
+    ))
+)}
 
-  {/* Custom Task Tables - render above Backlog */}
-  {taskTables.map((table, tableIndex) => (
+{/* Custom Task Tables - render above Backlog */}
+{taskTables
+  .filter(table => {
+    // Only show tables with matching tasks when filtering
+    if (searchTerm || selectedPerson || selectedStatus) {
+      return tableHasMatchingTasks(table.name);
+    }
+    return true;
+  })
+  .map((table, tableIndex) => (
     <TaskTable
       key={table.id}
       name={table.name}
@@ -482,22 +664,24 @@ const initialSprintData = {
       endDate={table.endDate}
       description={table.description}
       index={tableIndex + Object.keys(sprintData).filter(name => name !== 'Backlog').length}
-      tasks={customTableTasks[table.name] || []}
+      tasks={filterTasks(customTableTasks[table.name] || [])}
     />
-  ))}
+  ))
+}
 
-  {/* Backlog Table - Always at the end */}
-  {(currentView === 'All Sprints' || currentView === 'Backlog') && (
-    <SprintTable 
-      title="Backlog" 
-      tasks={sprintData['Backlog']} 
-      isExpanded={sprintVisibility['Backlog'] !== false}
-      toggleExpand={() => toggleSprintVisibility('Backlog')}
-      addTask={startAddingTask}
-      sprintName="Backlog"
-      index={Object.keys(sprintData).length + taskTables.length - 1}
-    />
-  )}
+{/* Backlog Table - Always at the end */}
+{(currentView === 'All Sprints' || currentView === 'Backlog') && 
+  (!searchTerm && !selectedPerson && !selectedStatus || sprintHasMatchingTasks('Backlog')) && (
+  <SprintTable 
+    title="Backlog" 
+    tasks={filterTasks(sprintData['Backlog'])} 
+    isExpanded={sprintVisibility['Backlog'] !== false}
+    toggleExpand={() => toggleSprintVisibility('Backlog')}
+    addTask={startAddingTask}
+    sprintName="Backlog"
+    index={Object.keys(sprintData).length + taskTables.length - 1}
+  />
+)}
 
       {/* Add task form overlay - this appears when adding a task */}
       {addingToSprint && (
@@ -692,7 +876,7 @@ const initialSprintData = {
 )}
 
     </div>
-  </div>
+  
 );
 
 };
