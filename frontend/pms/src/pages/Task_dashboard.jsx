@@ -119,10 +119,124 @@ const initialSprintData = {
       </div>
     );
   };
+  const TaskTable = ({ name, startDate, endDate, description, index, tasks = [] }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+    
+    const getPriorityColor = (priority) => {
+      switch (priority) {
+        case 'High': return 'bg-orange-100 text-orange-700';
+        case 'Medium': return 'bg-gray-100 text-gray-700';
+        case 'Low': return 'bg-green-100 text-green-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    };
+    
+    // Format dates to display in a nice format
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    };
+    
+    const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    
+    return (
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <div 
+            className="flex items-center cursor-pointer" 
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <span className="font-medium text-blue-500">{name}</span>
+            <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
+          </div>
+          <div className="flex items-center">
+            <span className="text-xs text-gray-500 mr-3">{dateRange}</span>
+            <button 
+              onClick={() => startAddingTask(name)}
+              className="text-blue-500 flex items-center text-sm"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Task
+            </button>
+          </div>
+        </div>
+        
+        {isExpanded && (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-sm text-gray-600">
+                <th className="p-2 border-b text-left">
+                  <input type="checkbox" className="mr-2" />
+                  Tasks
+                </th>
+                <th className="p-2 border-b text-left">Owner</th>
+                <th className="p-2 border-b text-left">Status</th>
+                <th className="p-2 border-b text-left">Priority</th>
+                <th className="p-2 border-b text-left">Type</th>
+                <th className="p-2 border-b text-left">Task ID</th>
+                <th className="p-2 border-b text-left">Estimated SP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.length > 0 ? (
+                tasks.map((task) => (
+                  <tr key={task.id} className="hover:bg-gray-50 text-sm">
+                    <td className="p-2 border-b">
+                      <div className="flex items-center">
+                        <input type="checkbox" className="mr-2" />
+                        {task.name}
+                      </div>
+                    </td>
+                    <td className="p-2 border-b text-blue-600">{task.responsible}</td>
+                    <td className="p-2 border-b">{task.status}</td>
+                    <td className="p-2 border-b">
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td className="p-2 border-b">{task.role || "Missing"}</td>
+                    <td className="p-2 border-b">{task.id}</td>
+                    <td className="p-2 border-b">{task.storyPoints || "-"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="text-sm">
+                  <td colSpan="7" className="p-2 border-b text-center text-gray-500">
+                    No tasks added yet
+                  </td>
+                </tr>
+              )}
+              {/* Add task row */}
+              <tr className="text-sm">
+                <td colSpan="7" className="p-2 border-b">
+                  <button 
+                    onClick={() => startAddingTask(name)}
+                    className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
+                  >
+                    + Add task
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  };
+
 
   const [sprintData, setSprintData] = useState(initialSprintData);
-  
+  const [taskTables, setTaskTables] = useState([]);
+  const [customTableTasks, setCustomTableTasks] = useState({});
   const [currentView, setCurrentView] = useState('Main Sprint');
+  const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false);
+  const [newTableInfo, setNewTableInfo] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    description: ''
+  });
   const [sprintVisibility, setSprintVisibility] = useState({
     'Sprint 1': true,
     'sprint 2': true,
@@ -169,8 +283,8 @@ const initialSprintData = {
   };
 
   // Function to start adding a task to a specific sprint
-  const startAddingTask = (sprintName) => {
-    setAddingToSprint(sprintName);
+  const startAddingTask = (tableName) => {
+    setAddingToSprint(tableName);
   };
 
   // Function to cancel adding a task
@@ -195,10 +309,20 @@ const initialSprintData = {
       id: generateId()
     };
     
-    setSprintData(prevData => ({
-      ...prevData,
-      [addingToSprint]: [...prevData[addingToSprint], taskToAdd]
-    }));
+    // Check if we're adding to a predefined sprint or custom table
+    if (Object.keys(sprintData).includes(addingToSprint)) {
+      // Adding to sprint
+      setSprintData(prevData => ({
+        ...prevData,
+        [addingToSprint]: [...prevData[addingToSprint], taskToAdd]
+      }));
+    } else {
+      // Adding to custom table
+      setCustomTableTasks(prevData => ({
+        ...prevData,
+        [addingToSprint]: [...(prevData[addingToSprint] || []), taskToAdd]
+      }));
+    }
     
     cancelAddingTask();
   };
@@ -221,6 +345,33 @@ const initialSprintData = {
       default: return 'bg-gray-100 text-gray-700';
     }
   };
+  const openAddTableModal = () => {
+    setIsAddTableModalOpen(true);
+  };
+  
+  const closeAddTableModal = () => {
+    setIsAddTableModalOpen(false);
+    setNewTableInfo({
+      name: '',
+      date: '',
+      description: ''
+    });
+  };
+  
+  const handleTableInfoChange = (e) => {
+    const { name, value } = e.target;
+    setNewTableInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const addNewTable = () => {
+    if (!newTableInfo.name) return;
+    
+    setTaskTables(prev => [...prev, { ...newTableInfo, id: generateId() }]);
+    closeAddTableModal();
+  };
 
   return(
     <div className="flex-1 overflow-auto w-full h-full">
@@ -237,9 +388,11 @@ const initialSprintData = {
       <div className="flex mb-4 space-x-2 flex-wrap">
         <button 
           className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
+          onClick={openAddTableModal}
         >
           New task <Plus size={14} className="ml-1" />
         </button>
+
         
         <div className="relative">
           <input
@@ -444,6 +597,98 @@ const initialSprintData = {
           </div>
         </div>
       )}
+      {/* Add Table Modal */}
+{isAddTableModalOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div className="bg-white rounded-md shadow-lg p-4 w-full max-w-lg">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Create New Task Table</h3>
+        <button onClick={closeAddTableModal} className="text-gray-400 hover:text-gray-600">
+          <X size={20} />
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Table Name</label>
+          <input
+            type="text"
+            name="name"
+            value={newTableInfo.name}
+            onChange={handleTableInfoChange}
+            placeholder="Enter table name"
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+          <input
+            type="date"
+            name="startDate"
+            value={newTableInfo.startDate}
+            onChange={handleTableInfoChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+    <input
+      type="date"
+      name="endDate"
+      value={newTableInfo.endDate}
+      onChange={handleTableInfoChange}
+      className="w-full px-3 py-2 border rounded-md"
+    />
+  </div>
+</div>
+        
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            name="description"
+            value={newTableInfo.description}
+            onChange={handleTableInfoChange}
+            placeholder="Enter table description"
+            className="w-full px-3 py-2 border rounded-md"
+            rows="3"
+          ></textarea>
+        </div>
+        
+        <div className="flex justify-end space-x-2 pt-4">
+          <button 
+            onClick={closeAddTableModal}
+            className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={addNewTable}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Create Table
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Render all task tables */}
+<div className="mt-8">
+  {taskTables.map((table, index) => (
+    <TaskTable
+      key={table.id}
+      name={table.name}
+      startDate={table.startDate}
+      endDate={table.endDate}
+      description={table.description}
+      index={index}
+      tasks={customTableTasks[table.name] || []}
+    />
+  ))}
+</div>
     </div>
   </div>
 );
