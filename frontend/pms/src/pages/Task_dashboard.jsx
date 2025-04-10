@@ -30,7 +30,10 @@ const initialSprintData = {
     { id: '64135315', name: 'Task 4', responsible: 'Riya S.', role: 'Dev', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024', storyPoints: 8 },
   ]
 };
-    const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName }) => {
+    const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName ,index}) => {
+      const getBgColor = () => {
+        return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+      };
     const getPriorityColor = (priority) => {
       switch (priority) {
         case 'High': return 'bg-orange-100 text-orange-700';
@@ -41,7 +44,7 @@ const initialSprintData = {
     };
     
     return (
-      <div className="mb-8">
+      <div className={`mb-8 ${getBgColor()} p-4 rounded-lg shadow-sm border border-gray-100`}>
         <div className="flex items-center justify-between mb-2">
           <div 
             className="flex items-center cursor-pointer" 
@@ -53,7 +56,7 @@ const initialSprintData = {
           <div className="flex items-center">
             <span className="text-xs text-gray-500 mr-3">
               {sprintName === 'Sprint 1' && 'Feb 17 - Mar 2'}
-              {sprintName === 'sprint 2' && 'Mar 1 - 15'}
+              {sprintName === 'sprint 2' && 'Mar 1 - April15'}
             </span>
             <button 
               onClick={() => addTask(sprintName)}
@@ -121,6 +124,9 @@ const initialSprintData = {
   };
   const TaskTable = ({ name, startDate, endDate, description, index, tasks = [] }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const getBgColor = () => {
+      return index % 2 === 0 ? 'bg-blue-50' : 'bg-indigo-50';
+    };
     
     const getPriorityColor = (priority) => {
       switch (priority) {
@@ -141,7 +147,7 @@ const initialSprintData = {
     const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
     
     return (
-      <div className="mb-8">
+      <div className={`mb-8 ${getBgColor()} p-4 rounded-lg shadow-sm border border-gray-100`}>
         <div className="flex items-center justify-between mb-2">
           <div 
             className="flex items-center cursor-pointer" 
@@ -229,7 +235,7 @@ const initialSprintData = {
   const [sprintData, setSprintData] = useState(initialSprintData);
   const [taskTables, setTaskTables] = useState([]);
   const [customTableTasks, setCustomTableTasks] = useState({});
-  const [currentView, setCurrentView] = useState('Main Sprint');
+  const [currentView, setCurrentView] = useState('All Sprints');
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false);
   const [newTableInfo, setNewTableInfo] = useState({
     name: '',
@@ -449,39 +455,49 @@ const initialSprintData = {
         </button>
       </div>
       
-      {/* Sprint Tables */}
-      {(currentView === 'All Sprints' || currentView === 'Active') && (
+  {/* Sprint Tables */}
+  {(currentView === 'All Sprints' || currentView === 'Active') && (
+    Object.keys(sprintData)
+      .filter(sprintName => sprintName !== 'Backlog')
+      .map((sprintName, index) => (
         <SprintTable 
-          title="Sprint 1" 
-          tasks={sprintData['Sprint 1']} 
-          isExpanded={sprintVisibility['Sprint 1']}
-          toggleExpand={() => toggleSprintVisibility('Sprint 1')}
+          key={sprintName}
+          title={sprintName} 
+          tasks={sprintData[sprintName]} 
+          isExpanded={sprintVisibility[sprintName] !== false}
+          toggleExpand={() => toggleSprintVisibility(sprintName)}
           addTask={startAddingTask}
-          sprintName="Sprint 1"
+          sprintName={sprintName}
+          index={index}
         />
-      )}
-      
-      {(currentView === 'All Sprints' || currentView === 'Active') && (
-        <SprintTable 
-          title="sprint 2" 
-          tasks={sprintData['sprint 2']} 
-          isExpanded={sprintVisibility['sprint 2']}
-          toggleExpand={() => toggleSprintVisibility('sprint 2')}
-          addTask={startAddingTask}
-          sprintName="sprint 2"
-        />
-      )}
-      
-      {(currentView === 'All Sprints' || currentView === 'Backlog') && (
-        <SprintTable 
-          title="Backlog" 
-          tasks={sprintData['Backlog']} 
-          isExpanded={sprintVisibility['Backlog']}
-          toggleExpand={() => toggleSprintVisibility('Backlog')}
-          addTask={startAddingTask}
-          sprintName="Backlog"
-        />
-      )}
+      ))
+  )}
+
+  {/* Custom Task Tables - render above Backlog */}
+  {taskTables.map((table, tableIndex) => (
+    <TaskTable
+      key={table.id}
+      name={table.name}
+      startDate={table.startDate}
+      endDate={table.endDate}
+      description={table.description}
+      index={tableIndex + Object.keys(sprintData).filter(name => name !== 'Backlog').length}
+      tasks={customTableTasks[table.name] || []}
+    />
+  ))}
+
+  {/* Backlog Table - Always at the end */}
+  {(currentView === 'All Sprints' || currentView === 'Backlog') && (
+    <SprintTable 
+      title="Backlog" 
+      tasks={sprintData['Backlog']} 
+      isExpanded={sprintVisibility['Backlog'] !== false}
+      toggleExpand={() => toggleSprintVisibility('Backlog')}
+      addTask={startAddingTask}
+      sprintName="Backlog"
+      index={Object.keys(sprintData).length + taskTables.length - 1}
+    />
+  )}
 
       {/* Add task form overlay - this appears when adding a task */}
       {addingToSprint && (
@@ -675,20 +691,6 @@ const initialSprintData = {
   </div>
 )}
 
-{/* Render all task tables */}
-<div className="mt-8">
-  {taskTables.map((table, index) => (
-    <TaskTable
-      key={table.id}
-      name={table.name}
-      startDate={table.startDate}
-      endDate={table.endDate}
-      description={table.description}
-      index={index}
-      tasks={customTableTasks[table.name] || []}
-    />
-  ))}
-</div>
     </div>
   </div>
 );
