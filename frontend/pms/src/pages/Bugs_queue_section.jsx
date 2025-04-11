@@ -363,6 +363,9 @@ const Bugs_queue_section = () => {
                     <ul>
                       <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee(''); setAssigneeDropdownOpen(false); }}>All Assignees</li>
                       <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('Ronin'); setAssigneeDropdownOpen(false); }}>Ronin</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('puspak'); setAssigneeDropdownOpen(false); }}>puspak</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('diya'); setAssigneeDropdownOpen(false); }}>diya</li>
+                      <li className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => { setSelectedAssignee('rachna'); setAssigneeDropdownOpen(false); }}>rachna</li>
                     </ul>
                   </div>
                 )}
