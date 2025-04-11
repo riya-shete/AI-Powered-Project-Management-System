@@ -30,8 +30,10 @@ const initialSprintData = {
   ]
 };
     const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName ,index}) => {
+      const [isSelected, setIsSelected] = useState(false);
       const getBgColor = () => {
-        return index % 2 === 0 ? 'bg-white' : 'bg-gray-100';
+        //if (isSelected) return 'bg-blue-50';
+        return 'bg-gray-200 bg-opacity-90';
       };
     const getPriorityColor = (priority) => {
       switch (priority) {
@@ -43,34 +45,39 @@ const initialSprintData = {
     };
     
     return (
-      <div className={`mb-8 ${getBgColor()} p-4 rounded-lg shadow-sm border border-gray-100`}>
-        <div className="flex items-center justify-between mb-2">
-          <div 
-            className="flex items-center cursor-pointer" 
-            onClick={toggleExpand}
-          >
-            <span className="font-medium text-blue-500">{title}</span>
-            <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
-          </div>
-          <div className="flex items-center">
-            <span className="text-xs text-gray-500 mr-3">
-              {sprintName === 'Sprint 1' && 'Feb 17 - Mar 2'}
-              {sprintName === 'sprint 2' && 'Mar 1 - April15'}
-            </span>
-            <button 
-              onClick={() => addTask(sprintName)}
-              className="text-blue-500 flex items-center text-sm"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Task
-            </button>
-          </div>
-        </div>
+      <div 
+  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-sm border border-gray-200/90 transition-all duration-200 ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
+  onMouseEnter={() => setIsSelected(true)}
+  onMouseLeave={() => setIsSelected(false)}
+>
+<div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
+  <div 
+    className="flex items-center cursor-pointer" 
+    onClick={toggleExpand}
+  >
+    <span className="font-medium text-blue-600">{title}</span>
+    <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
+  </div>
+  <div className="flex items-center">
+    <span className="text-xs text-gray-600 mr-3">
+      {sprintName === 'Sprint 1' && 'Feb 17 - Mar 2'}
+      {sprintName === 'sprint 2' && 'Mar 1 - April15'}
+    </span>
+    <button 
+      onClick={() => addTask(sprintName)}
+      className="text-blue-600 flex items-center text-sm hover:text-blue-800"
+    >
+      <Plus size={16} className="mr-1" />
+      Add Task
+    </button>
+  </div>
+</div>
         
         {isExpanded && (
+           <div className="p-4">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-sm text-gray-600">
+              <tr className="bg-zinc-300 bg-opacity-50 text-sm text-gray-600 ">
                 <th className="p-2 border-b text-left">
                   <input type="checkbox" className="mr-2" />
                   Tasks
@@ -85,7 +92,7 @@ const initialSprintData = {
             </thead>
             <tbody>
               {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-50 text-sm">
+                <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
                   <td className="p-2 border-b">
                     <div className="flex items-center">
                       <input type="checkbox" className="mr-2" />
@@ -117,14 +124,17 @@ const initialSprintData = {
               </tr>
             </tbody>
           </table>
+          </div>
         )}
       </div>
     );
   };
   const TaskTable = ({ name, startDate, endDate, description, index, tasks = [] }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isSelected, setIsSelected] = useState(false);
     const getBgColor = () => {
-      return index % 2 === 0 ? 'bg-blue-50' : 'bg-indigo-50';
+      //if (isSelected) return 'bg-blue-50';
+      return 'bg-gray-200 bg-opacity-90';
     };
     
     const getPriorityColor = (priority) => {
@@ -146,32 +156,37 @@ const initialSprintData = {
     const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
     
     return (
-      <div className={`mb-8 ${getBgColor()} p-4 rounded-lg shadow-sm border border-gray-100`}>
-        <div className="flex items-center justify-between mb-2">
-          <div 
-            className="flex items-center cursor-pointer" 
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <span className="font-medium text-blue-500">{name}</span>
-            <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
-          </div>
-          <div className="flex items-center">
-            <span className="text-xs text-gray-500 mr-3">{dateRange}</span>
-            <button 
-              onClick={() => startAddingTask(name)}
-              className="text-blue-500 flex items-center text-sm"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Task
-            </button>
-          </div>
-        </div>
+      <div 
+  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-sm border border-gray-200/90 transition-all duration-200 ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
+  onMouseEnter={() => setIsSelected(true)}
+  onMouseLeave={() => setIsSelected(false)}
+>
+      
+<div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
+  <div 
+    className="flex items-center cursor-pointer" 
+    onClick={() => setIsExpanded(!isExpanded)}
+  >
+    <span className="font-medium text-blue-600">{name}</span>
+    <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
+  </div>
+  <div className="flex items-center">
+    <span className="text-xs text-gray-600 mr-3">{dateRange}</span>
+    <button 
+      onClick={() => startAddingTask(name)}
+      className="text-blue-600 flex items-center text-sm hover:text-blue-800"
+    >
+      <Plus size={16} className="mr-1" />
+      Add Task
+    </button>
+  </div>
+</div>
         
         {isExpanded && (
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-sm text-gray-600">
-                <th className="p-2 border-b text-left">
+              <tr className="bg-zinc-300 bg-opacity-50 text-sm text-gray-600 "> 
+                <th className="p-2 border-b text-left ">
                   <input type="checkbox" className="mr-2" />
                   Tasks
                 </th>
@@ -186,7 +201,7 @@ const initialSprintData = {
             <tbody>
               {tasks.length > 0 ? (
                 tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50 text-sm">
+                  <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
                     <td className="p-2 border-b">
                       <div className="flex items-center">
                         <input type="checkbox" className="mr-2" />
