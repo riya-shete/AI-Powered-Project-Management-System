@@ -33,7 +33,7 @@ const initialSprintData = {
       const [isSelected, setIsSelected] = useState(false);
       const getBgColor = () => {
         //if (isSelected) return 'bg-blue-50';
-        return 'bg-gray-200 bg-opacity-90';
+        return 'bg-gray-100 bg-opacity-90';
       };
     const getPriorityColor = (priority) => {
       switch (priority) {
@@ -46,9 +46,7 @@ const initialSprintData = {
     
     return (
       <div 
-  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-sm border border-gray-200/90 transition-all duration-200 ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
-  onMouseEnter={() => setIsSelected(true)}
-  onMouseLeave={() => setIsSelected(false)}
+  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}  onMouseLeave={() => setIsSelected(false)}
 >
 <div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
   <div 
@@ -56,8 +54,7 @@ const initialSprintData = {
     onClick={toggleExpand}
   >
     <span className="font-medium text-blue-600">{title}</span>
-    <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
-  </div>
+    <ChevronDown size={16} className={`ml-1 transition-transform duration-300 ease-in-out ${isExpanded ? '' : 'transform rotate-180'}`} />  </div>
   <div className="flex items-center">
     <span className="text-xs text-gray-600 mr-3">
       {sprintName === 'Sprint 1' && 'Feb 17 - Mar 2'}
@@ -73,60 +70,59 @@ const initialSprintData = {
   </div>
 </div>
         
-        {isExpanded && (
-           <div className="p-4">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-zinc-300 bg-opacity-50 text-sm text-gray-600 ">
-                <th className="p-2 border-b text-left">
-                  <input type="checkbox" className="mr-2" />
-                  Tasks
-                </th>
-                <th className="p-2 border-b text-left">Owner</th>
-                <th className="p-2 border-b text-left">Status</th>
-                <th className="p-2 border-b text-left">Priority</th>
-                <th className="p-2 border-b text-left">Type</th>
-                <th className="p-2 border-b text-left">Task ID</th>
-                <th className="p-2 border-b text-left">Estimated SP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
-                  <td className="p-2 border-b">
-                    <div className="flex items-center">
-                      <input type="checkbox" className="mr-2" />
-                      {task.name}
-                    </div>
-                  </td>
-                  <td className="p-2 border-b text-blue-600">{task.responsible}</td>
-                  <td className="p-2 border-b">{task.status}</td>
-                  <td className="p-2 border-b">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="p-2 border-b">{task.role || "Missing"}</td>
-                  <td className="p-2 border-b">{task.id}</td>
-                  <td className="p-2 border-b">{task.storyPoints || "-"}</td>
-                </tr>
-              ))}
-              {/* Add task row */}
-              <tr className="text-sm">
-                <td colSpan="7" className="p-2 border-b">
-                  <button 
-                    onClick={() => addTask(sprintName)}
-                    className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
-                  >
-                    + Add task
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
-        )}
-      </div>
+<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>  <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600 ">
+          <th className="p-2 border-b text-left">
+            <input type="checkbox" className="mr-2" />
+            Tasks
+          </th>
+          <th className="p-2 border-b text-left">Owner</th>
+          <th className="p-2 border-b text-left">Status</th>
+          <th className="p-2 border-b text-left">Priority</th>
+          <th className="p-2 border-b text-left">Type</th>
+          <th className="p-2 border-b text-left">Task ID</th>
+          <th className="p-2 border-b text-left">Estimated SP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((task) => (
+          <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
+            <td className="p-2 border-b">
+              <div className="flex items-center">
+                <input type="checkbox" className="mr-2" />
+                {task.name}
+              </div>
+            </td>
+            <td className="p-2 border-b text-blue-600">{task.responsible}</td>
+            <td className="p-2 border-b">{task.status}</td>
+            <td className="p-2 border-b">
+              <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                {task.priority}
+              </span>
+            </td>
+            <td className="p-2 border-b">{task.role || "Missing"}</td>
+            <td className="p-2 border-b">{task.id}</td>
+            <td className="p-2 border-b">{task.storyPoints || "-"}</td>
+          </tr>
+        ))}
+        {/* Add task row */}
+        <tr className="text-sm">
+          <td colSpan="7" className="p-2 border-b">
+            <button 
+              onClick={() => addTask(sprintName)}
+              className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
+            >
+              + Add task
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
     );
   };
   const TaskTable = ({ name, startDate, endDate, description, index, tasks = [] }) => {
@@ -134,7 +130,7 @@ const initialSprintData = {
     const [isSelected, setIsSelected] = useState(false);
     const getBgColor = () => {
       //if (isSelected) return 'bg-blue-50';
-      return 'bg-gray-200 bg-opacity-90';
+      return 'bg-gray-100 bg-opacity-90';
     };
     
     const getPriorityColor = (priority) => {
@@ -157,7 +153,7 @@ const initialSprintData = {
     
     return (
       <div 
-  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-sm border border-gray-200/90 transition-all duration-200 ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
+  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
   onMouseEnter={() => setIsSelected(true)}
   onMouseLeave={() => setIsSelected(false)}
 >
@@ -168,8 +164,7 @@ const initialSprintData = {
     onClick={() => setIsExpanded(!isExpanded)}
   >
     <span className="font-medium text-blue-600">{name}</span>
-    <ChevronDown size={16} className={`ml-1 transition-transform ${isExpanded ? '' : 'transform rotate-180'}`} />
-  </div>
+    <ChevronDown size={16} className={`ml-1 transition-transform duration-300 ease-in-out ${isExpanded ? '' : 'transform rotate-180'}`} />  </div>
   <div className="flex items-center">
     <span className="text-xs text-gray-600 mr-3">{dateRange}</span>
     <button 
@@ -182,66 +177,59 @@ const initialSprintData = {
   </div>
 </div>
         
-        {isExpanded && (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-zinc-300 bg-opacity-50 text-sm text-gray-600 "> 
-                <th className="p-2 border-b text-left ">
-                  <input type="checkbox" className="mr-2" />
-                  Tasks
-                </th>
-                <th className="p-2 border-b text-left">Owner</th>
-                <th className="p-2 border-b text-left">Status</th>
-                <th className="p-2 border-b text-left">Priority</th>
-                <th className="p-2 border-b text-left">Type</th>
-                <th className="p-2 border-b text-left">Task ID</th>
-                <th className="p-2 border-b text-left">Estimated SP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.length > 0 ? (
-                tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
-                    <td className="p-2 border-b">
-                      <div className="flex items-center">
-                        <input type="checkbox" className="mr-2" />
-                        {task.name}
-                      </div>
-                    </td>
-                    <td className="p-2 border-b text-blue-600">{task.responsible}</td>
-                    <td className="p-2 border-b">{task.status}</td>
-                    <td className="p-2 border-b">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="p-2 border-b">{task.role || "Missing"}</td>
-                    <td className="p-2 border-b">{task.id}</td>
-                    <td className="p-2 border-b">{task.storyPoints || "-"}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr className="text-sm">
-                  <td colSpan="7" className="p-2 border-b text-center text-gray-500">
-                    No tasks added yet
-                  </td>
-                </tr>
-              )}
-              {/* Add task row */}
-              <tr className="text-sm">
-                <td colSpan="7" className="p-2 border-b">
-                  <button 
-                    onClick={() => startAddingTask(name)}
-                    className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
-                  >
-                    + Add task
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        )}
-      </div>
+<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>  <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600 ">
+          <th className="p-2 border-b text-left">
+            <input type="checkbox" className="mr-2" />
+            Tasks
+          </th>
+          <th className="p-2 border-b text-left">Owner</th>
+          <th className="p-2 border-b text-left">Status</th>
+          <th className="p-2 border-b text-left">Priority</th>
+          <th className="p-2 border-b text-left">Type</th>
+          <th className="p-2 border-b text-left">Task ID</th>
+          <th className="p-2 border-b text-left">Estimated SP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((task) => (
+          <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
+            <td className="p-2 border-b">
+              <div className="flex items-center">
+                <input type="checkbox" className="mr-2" />
+                {task.name}
+              </div>
+            </td>
+            <td className="p-2 border-b text-blue-600">{task.responsible}</td>
+            <td className="p-2 border-b">{task.status}</td>
+            <td className="p-2 border-b">
+              <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                {task.priority}
+              </span>
+            </td>
+            <td className="p-2 border-b">{task.role || "Missing"}</td>
+            <td className="p-2 border-b">{task.id}</td>
+            <td className="p-2 border-b">{task.storyPoints || "-"}</td>
+          </tr>
+        ))}
+        {/* Add task row */}
+        <tr className="text-sm">
+          <td colSpan="7" className="p-2 border-b">
+            <button 
+              onClick={() => addTask(sprintName)}
+              className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
+            >
+              + Add task
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
     );
   };
 
@@ -604,9 +592,6 @@ const tableHasMatchingTasks = (tableName) => {
 </div>  
 
         
-        <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-          Hide <ChevronDown size={16} className="ml-1" />
-        </button>
       </div>
       
       {/* Navigation tabs for views */}
