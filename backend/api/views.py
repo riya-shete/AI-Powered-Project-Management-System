@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -11,9 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from rest_framework.response import Response
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import NotFound
 
 from .models import (
     Workspace, WorkspaceMember, Project, Sprint,
@@ -28,15 +25,34 @@ from .serializers import (
     InvitationSerializer
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from .mixins import HeaderIDMixin
+from .utils import log_activity, create_notification, update_user_activity
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
     def get_permissions(self):
         if self.action == 'create':
             return [AllowAny()]
+        elif self.action == 'destroy':
+            return [IsAuthenticated()]
         return [IsAuthenticated()]
+    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_object(self):
+        if hasattr(self.request, 'object_id'):
+            try:
+                obj = self.get_queryset().get(pk=self.request.object_id)
+                self.check_object_permissions(self.request, obj)
+                return obj
+            except User.DoesNotExist:
+                raise NotFound(f"No User matches the given query with ID {self.request.object_id}.")
+        return super().get_object()
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -57,20 +73,31 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         return Response([])
 
-class UserProfileViewSet(viewsets.ModelViewSet):
+class UserProfileViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
     
     @action(detail=False, methods=['get'])
     def my_profile(self, request):
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
-        profile.last_active = timezone.now()
-        profile.save()
+        profile = update_user_activity(request.user)
         serializer = self.get_serializer(profile)
         return Response(serializer.data)
 
-class WorkspaceViewSet(viewsets.ModelViewSet):
+    def update(self, request, *args, **kwargs):
+        print(f"UserProfileViewSet.update: Handling PUT request with kwargs={kwargs}")
+        return super().update(request, *args, **kwargs)
+        
+    # Override put method for list endpoint to handle X-Object-ID header
+    def put(self, request, *args, **kwargs):
+        print(f"UserProfileViewSet.put: Handling PUT request to list endpoint")
+        if hasattr(request, 'object_id') and request.object_id:
+            self.kwargs['pk'] = request.object_id
+            return self.update(request, *args, **kwargs)
+        return Response({"detail": "Object ID is required in X-Object-ID header"}, 
+                       status=status.HTTP_400_BAD_REQUEST)
+
+class WorkspaceViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
     serializer_class = WorkspaceSerializer
     permission_classes = [IsAuthenticated]
@@ -82,13 +109,19 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
         workspace = serializer.save(owner=self.request.user)
         WorkspaceMember.objects.create(workspace=workspace, user=self.request.user, role='owner')
 
-class ProjectViewSet(viewsets.ModelViewSet):
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ProjectViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        workspace_id = self.request.query_params.get('workspace', None)
+        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace', None)
+        
         if workspace_id:
             return Project.objects.filter(workspace_id=workspace_id, workspace__members=self.request.user)
         return Project.objects.filter(workspace__members=self.request.user)
@@ -96,13 +129,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
-class SprintViewSet(viewsets.ModelViewSet):
+class SprintViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Sprint.objects.all()
     serializer_class = SprintSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        project_id = self.request.query_params.get('project', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
         active = self.request.query_params.get('active', None)
         
         queryset = Sprint.objects.filter(project__workspace__members=self.request.user)
@@ -128,7 +161,7 @@ class SprintViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(sprint)
         return Response(serializer.data)
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -136,10 +169,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Task.objects.filter(project__workspace__members=self.request.user)
         
-        project_id = self.request.query_params.get('project', None)
-        sprint_id = self.request.query_params.get('sprint', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        sprint_id = self.request.META.get('HTTP_X_SPRINT_ID') or self.request.query_params.get('sprint', None)
         status_param = self.request.query_params.get('status', None)
-        
+
         if project_id:
             queryset = queryset.filter(project_id=project_id)
         
@@ -147,8 +180,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(sprint_id=sprint_id)
         
         if status_param:
-            queryset = queryset.filter(status=status_param)
-            
+            queryset = queryset.filter(status=status_param)  
         return queryset
     
     def perform_create(self, serializer):
@@ -178,10 +210,15 @@ class TaskViewSet(viewsets.ModelViewSet):
             return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         user = get_object_or_404(User, id=user_id)
+        
+        if not user.workspaces.filter(id=task.project.workspace.id).exists():
+            return Response({"error": "User is not a member of this workspace"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
         task.assigned_to = user
         task.save()
         
-        Notification.objects.create(
+        create_notification(
             user=user,
             sender=request.user,
             message=f"{request.user.username} has assigned you to task '{task.name}'",
@@ -230,10 +267,19 @@ class TaskViewSet(viewsets.ModelViewSet):
             }
         )
         
+        if task.assigned_to and task.assigned_to != request.user:
+            create_notification(
+                user=task.assigned_to,
+                sender=request.user,
+                message=f"Task '{task.name}' status changed from {old_status} to {new_status}",
+                item_type='task',
+                item_id=task.item_id
+            )
+        
         serializer = self.get_serializer(task)
         return Response(serializer.data)
 
-class BugViewSet(viewsets.ModelViewSet):
+class BugViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Bug.objects.all()
     serializer_class = BugSerializer
     permission_classes = [IsAuthenticated]
@@ -241,7 +287,7 @@ class BugViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Bug.objects.filter(project__workspace__members=self.request.user)
         
-        project_id = self.request.query_params.get('project', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
         status_param = self.request.query_params.get('status', None)
         
         if project_id:
@@ -253,7 +299,22 @@ class BugViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        serializer.save(reporter=self.request.user)
+            bug = serializer.save(reporter=self.request.user)
+            
+            # Add activity logging
+            log_activity(
+                user=self.request.user,
+                action='create',
+                content_type='bug',
+                object_id=bug.key,
+                details={
+                    'bug_summary': bug.summary,
+                    'project_id': bug.project.id,
+                    'project_name': bug.project.name
+                }
+            )
+            
+            return bug
     
     @action(detail=True, methods=['post'])
     def assign(self, request, pk=None):
@@ -264,10 +325,26 @@ class BugViewSet(viewsets.ModelViewSet):
             return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         user = get_object_or_404(User, id=user_id)
+        
+        if not user.workspaces.filter(id=bug.project.workspace.id).exists():
+            return Response({"error": "User is not a member of this workspace"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
         bug.assignee = user
         bug.save()
-        
-        Notification.objects.create(
+        log_activity(
+            user=request.user,
+            action='assign',
+            content_type='bug',
+            object_id=bug.key,
+            details={
+                'bug_summary': bug.summary,
+                'project_id': bug.project.id,
+                'assigned_user_id': user.id,
+                'assigned_username': user.username
+            }
+        )
+        create_notification(
             user=user,
             sender=request.user,
             message=f"{request.user.username} has assigned you to bug '{bug.summary}'",
@@ -278,7 +355,45 @@ class BugViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(bug)
         return Response(serializer.data)
 
-class RetrospectiveViewSet(viewsets.ModelViewSet):
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        bug = self.get_object()
+        new_status = request.data.get('status')
+        
+        if not new_status:
+            return Response({"error": "Status is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        old_status = bug.status
+        bug.status = new_status
+        bug.save()
+        
+        log_activity(
+            user=request.user,
+            action='status',
+            content_type='bug',
+            object_id=bug.key,
+            details={
+                'bug_summary': bug.summary,
+                'project_id': bug.project.id,
+                'old_status': old_status,
+                'new_status': new_status
+            }
+        )
+        
+        if bug.assignee and bug.assignee != request.user:
+            create_notification(
+                user=bug.assignee,
+                sender=request.user,
+                message=f"Bug '{bug.summary}' status changed from {old_status} to {new_status}",
+                item_type='bug',
+                item_id=bug.key
+            )
+        
+        serializer = self.get_serializer(bug)
+        return Response(serializer.data)
+
+
+class RetrospectiveViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Retrospective.objects.all()
     serializer_class = RetrospectiveSerializer
     permission_classes = [IsAuthenticated]
@@ -286,7 +401,7 @@ class RetrospectiveViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Retrospective.objects.filter(project__workspace__members=self.request.user)
         
-        project_id = self.request.query_params.get('project', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
         type_param = self.request.query_params.get('type', None)
         
         if project_id:
@@ -303,13 +418,35 @@ class RetrospectiveViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def vote(self, request, pk=None):
         retro = self.get_object()
-        retro.votes += 1
-        retro.save()
         
+        try:
+            voted_users = json.loads(retro.voted_users)
+        except (json.JSONDecodeError, TypeError):
+            voted_users = []
+        
+        if request.user.id in voted_users:
+            return Response({"error": "You have already voted on this retrospective"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
+        retro.votes += 1
+        voted_users.append(request.user.id)
+        retro.voted_users = json.dumps(voted_users)
+        retro.save()
+        log_activity(
+            user=request.user,
+            action='vote',
+            content_type='retrospective',
+            object_id=retro.id,
+            details={
+                'retrospective_id': retro.id,
+                'project_id': retro.project.id,
+                'feedback': retro.feedback
+            }
+        )
         serializer = self.get_serializer(retro)
         return Response(serializer.data)
 
-class NotificationViewSet(viewsets.ModelViewSet):
+class NotificationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
@@ -322,14 +459,19 @@ class NotificationViewSet(viewsets.ModelViewSet):
         Notification.objects.filter(user=request.user, read=False).update(read=True)
         return Response({"status": "All notifications marked as read"})
     
+    # In actions that use get_object():
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
-        notification = self.get_object()
-        notification.read = True
-        notification.save()
-        return Response({"status": "Notification marked as read"})
+        try:
+            notification = self.get_object()
+            notification.read = True
+            notification.save()
+            return Response({"status": "Notification marked as read"})
+        except NotFound:
+            return Response({"error": "Notification ID is required. Please provide it in the X-Object-ID header."}, 
+                            status=status.HTTP_400_BAD_REQUEST)
 
-class BookmarkViewSet(viewsets.ModelViewSet):
+class BookmarkViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Bookmark.objects.all()
     serializer_class = BookmarkSerializer
     permission_classes = [IsAuthenticated]
@@ -340,7 +482,7 @@ class BookmarkViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class InvitationViewSet(viewsets.ModelViewSet):
+class InvitationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Invitation.objects.all()
     serializer_class = InvitationSerializer
     permission_classes = [IsAuthenticated]
@@ -414,14 +556,14 @@ class InvitationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(invitation)
         return Response(serializer.data)
 
-class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+class ActivityLogViewSet(HeaderIDMixin, viewsets.ReadOnlyModelViewSet):
     queryset = ActivityLog.objects.all()
     serializer_class = ActivityLogSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        workspace_id = self.request.query_params.get('workspace', None)
-        project_id = self.request.query_params.get('project', None)
+        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
         
         queryset = ActivityLog.objects.filter(
             user__workspaces__in=self.request.user.workspaces.all()
@@ -447,10 +589,10 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             for activity in task_activities:
                 try:
                     details = json.loads(activity.details)
-                    if details.get('project_id') == int(project_id):
+                    if details and isinstance(details, dict) and details.get('project_id') == int(project_id):
                         related_activities.append(activity.id)
-                except:
-                    pass
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    continue
             
             related_queryset = ActivityLog.objects.filter(id__in=related_activities)
             queryset = project_activities | related_queryset
@@ -481,25 +623,6 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(serializer.data)
         return Response([])
     
-def log_activity(user, action, content_type, object_id, details=None):
-    """
-    Utility function to log user activities
-    
-    Args:
-        user: User performing the action
-        action: One of 'create', 'update', 'delete', 'assign', 'status', 'comment', 'mention'
-        content_type: Model name like 'task', 'bug', etc.
-        object_id: ID or key of the object
-        details: JSON serializable dictionary with additional details
-    """
-    log = ActivityLog.objects.create(
-        user=user,
-        action=action,
-        content_type=content_type,
-        object_id=object_id,
-        details=json.dumps(details) if details else ''
-    )
-    return log
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):

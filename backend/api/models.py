@@ -158,6 +158,7 @@ class Retrospective(models.Model):
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='discussion')
     repeating = models.BooleanField(default=False)
     votes = models.IntegerField(default=0)
+    voted_users = models.TextField(blank=True, default='[]')
     owner = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

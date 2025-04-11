@@ -1,5 +1,5 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter, Route, DynamicRoute, SimpleRouter
 from .views import (
     UserViewSet, UserProfileViewSet, WorkspaceViewSet,
     ProjectViewSet, SprintViewSet, TaskViewSet, BugViewSet,
@@ -9,11 +9,54 @@ from .views import (
 from . import views
 from django.views.decorators.csrf import csrf_exempt
 
-router = DefaultRouter()
+# Custom router that allows PUT/DELETE on list endpoints
+class CustomRouter(DefaultRouter):
+    routes = [
+        # List route with PUT/DELETE support
+        Route(
+            url=r'^{prefix}{trailing_slash}$',
+            mapping={
+                'get': 'list',
+                'post': 'create',
+                'put': 'update_with_header',  # Custom action for PUT on list endpoint
+                'delete': 'destroy_with_header'  # Custom action for DELETE on list endpoint
+            },
+            name='{basename}-list',
+            detail=False,
+            initkwargs={'suffix': 'List'}
+        ),
+        # Detail route (unchanged)
+        Route(
+            url=r'^{prefix}/{lookup}{trailing_slash}$',
+            mapping={
+                'get': 'retrieve',
+                'put': 'update',
+                'patch': 'partial_update',
+                'delete': 'destroy'
+            },
+            name='{basename}-detail',
+            detail=True,
+            initkwargs={'suffix': 'Instance'}
+        ),
+        # Dynamically generated routes (unchanged)
+        DynamicRoute(
+            url=r'^{prefix}/{lookup}/{url_path}{trailing_slash}$',
+            name='{basename}-{url_name}',
+            detail=True,
+            initkwargs={}
+        ),
+        DynamicRoute(
+            url=r'^{prefix}/{url_path}{trailing_slash}$',
+            name='{basename}-{url_name}',
+            detail=False,
+            initkwargs={}
+        ),
+    ]
+
+router = CustomRouter()
 router.register(r'users', UserViewSet)
 router.register(r'profiles', UserProfileViewSet)
 router.register(r'workspaces', WorkspaceViewSet)
-
 router.register(r'projects', ProjectViewSet)
 router.register(r'sprints', SprintViewSet)
 router.register(r'tasks', TaskViewSet)
@@ -29,5 +72,5 @@ urlpatterns = [
     path('register/', csrf_exempt(views.register_user), name='register'),
     path('auth/', include('rest_framework.urls')),
     path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
-    path('auth/login/', views.login_view, name='api_login'),  # Add this line
+    path('auth/login/', views.login_view, name='api_login'),
 ]

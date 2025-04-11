@@ -1,0 +1,1518 @@
+================================================================================
+FILE: backend\api\admin.py
+================================================================================
+
+from django.contrib import admin
+from .models import (
+    Workspace, WorkspaceMember, Project, Sprint, 
+    Task, Bug, Retrospective, Bookmark, Invitation,
+    UserProfile, Notification, ActivityLog
+)
+
+admin.site.register(Workspace)
+admin.site.register(WorkspaceMember)
+admin.site.register(Project)
+admin.site.register(Sprint)
+admin.site.register(Task)
+admin.site.register(Bug)
+admin.site.register(Retrospective)
+admin.site.register(Bookmark)
+admin.site.register(Invitation)
+admin.site.register(UserProfile)
+admin.site.register(Notification)
+admin.site.register(ActivityLog)
+
+================================================================================
+FILE: backend\api\apps.py
+================================================================================
+
+from django.apps import AppConfig
+
+
+class ApiConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'api'
+    
+    def ready(self):
+        import api.signals  # Import signals when app is ready
+
+
+================================================================================
+FILE: backend\api\mixins.py
+================================================================================
+
+from rest_framework.exceptions import NotFound, ValidationError
+import re
+class HeaderIDMixin:
+    """
+    A mixin that allows ViewSets to retrieve objects using IDs from headers
+    instead of URL parameters.
+    """
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        if hasattr(request, 'object_id') and request.object_id:
+            self.kwargs['pk'] = request.object_id
+            return self.retrieve(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)
+
+    def get_object(self):
+        if hasattr(self.request, 'object_id'):
+            try:
+                obj = self.get_queryset().get(pk=self.request.object_id)
+                self.check_object_permissions(self.request, obj)
+                return obj
+            except self.get_queryset().model.DoesNotExist:
+                raise NotFound(f"No {self.get_queryset().model.__name__} matches the given query with ID {self.request.object_id}.")
+        return super().get_object()
+
+    def destroy(self, request, *args, **kwargs):
+        if hasattr(request, 'object_id') and request.object_id:
+            self.kwargs['pk'] = request.object_id
+        return super().destroy(request, *args, **kwargs)
+        
+    def update(self, request, *args, **kwargs):
+        if hasattr(request, 'object_id') and request.object_id:
+            self.kwargs['pk'] = request.object_id
+        return super().update(request, *args, **kwargs)
+        
+    def partial_update(self, request, *args, **kwargs):
+        if hasattr(request, 'object_id') and request.object_id:
+            self.kwargs['pk'] = request.object_id
+        return super().partial_update(request, *args, **kwargs)
+
+
+================================================================================
+FILE: backend\api\models.py
+================================================================================
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+import secrets
+
+class Workspace(models.Model):
+    name = models.CharField(max_length=100)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_workspaces')
+    members = models.ManyToManyField(User, related_name='workspaces', through='WorkspaceMember')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class WorkspaceMember(models.Model):
+    ROLE_CHOICES = (
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('team_leader', 'Team Leader'),
+        ('member', 'Member'),
+        ('viewer', 'Viewer'),
+    )
+    
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('workspace', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.workspace.name} ({self.role})"
+
+class Project(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='projects')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_projects')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class Sprint(models.Model):
+    name = models.CharField(max_length=100)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='sprints')
+    start_date = models.DateField()
+    end_date = models.DateField()
+    active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.project.name}"
+
+class Task(models.Model):
+    STATUS_CHOICES = (
+        ('backlog', 'Backlog'),
+        ('ready', 'Ready to Start'),
+        ('in_progress', 'In Progress'),
+        ('review', 'Waiting for Review'),
+        ('stuck', 'Stuck'),
+        ('done', 'Done'),
+    )
+    
+    PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    )
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
+    sprint = models.ForeignKey(Sprint, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reported_tasks')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='backlog')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    role = models.CharField(max_length=50, blank=True)  # Dev, Design, Product, etc.
+    item_id = models.CharField(max_length=20, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    due_date = models.DateField(null=True, blank=True)
+    section = models.CharField(max_length=50, default='main_sprint', blank=True)
+    
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.item_id:
+            # Generate a unique item ID
+            last_task = Task.objects.order_by('-id').first()
+            if last_task:
+                self.item_id = str(int(last_task.id) + 1000000)
+            else:
+                self.item_id = '10000000'
+        super().save(*args, **kwargs)
+
+class Bug(models.Model):
+    STATUS_CHOICES = (
+        ('to_do', 'To Do'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('not_resolved', 'Not Resolved'),
+    )
+    
+    PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    )
+    
+    summary = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='bugs')
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reported_bugs')
+    assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_bugs')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_do')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    key = models.CharField(max_length=20, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    due_date = models.DateField(null=True, blank=True)
+    resolution = models.CharField(max_length=100, blank=True)
+    # type to be added
+    def __str__(self):
+        return self.summary
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            # Generate a unique key
+            project_prefix = self.project.name[:3].upper()
+            last_bug = Bug.objects.filter(project=self.project).order_by('-id').first()
+            if last_bug and last_bug.key.startswith(project_prefix):
+                num = int(last_bug.key.split('-')[1]) + 1
+                self.key = f"{project_prefix}-{num}"
+            else:
+                self.key = f"{project_prefix}-1"
+        super().save(*args, **kwargs)
+
+class Retrospective(models.Model):
+    TYPE_CHOICES = (
+        ('improve', 'Improve'),
+        ('keep', 'Keep'),
+        ('discussion', 'Discussion'),
+    )
+    
+    feedback = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='retrospectives')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_retrospectives')
+    responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='responsible_retrospectives')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='discussion')
+    repeating = models.BooleanField(default=False)
+    votes = models.IntegerField(default=0)
+    voted_users = models.TextField(blank=True, default='[]')
+    owner = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.feedback
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
+    message = models.TextField()
+    item_type = models.CharField(max_length=50)
+    item_id = models.CharField(max_length=20)
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.message[:30]}"
+
+class Bookmark(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookmarks')
+    item_type = models.CharField(max_length=50)
+    item_id = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'item_type', 'item_id')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.item_type} - {self.item_id}"
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    job_title = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    last_active = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.user.username
+    
+class Invitation(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    )
+    
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invitations')
+    email = models.EmailField()
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    role = models.CharField(max_length=20, default='member')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    view_only = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Invitation to {self.email} for {self.workspace.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = (
+        ('create', 'Created'),
+        ('update', 'Updated'),
+        ('delete', 'Deleted'),
+        ('assign', 'Assigned'),
+        ('status', 'Status Change'),
+        ('comment', 'Commented'),
+        ('mention', 'Mentioned'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    content_type = models.CharField(max_length=50)  # Task, Bug, Sprint, etc.
+    object_id = models.CharField(max_length=50)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} {self.action} {self.content_type} at {self.created_at}"
+
+================================================================================
+FILE: backend\api\serializers.py
+================================================================================
+
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import (
+    Workspace, WorkspaceMember, Project, Sprint, 
+    Task, Bug, Retrospective, Notification, Bookmark, UserProfile,
+    Invitation, ActivityLog
+)
+
+class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password']
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        
+        user = User.objects.create(**validated_data)
+        
+        user.set_password(password)
+        user.save()
+        
+        return user
+        
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+            
+        if password:
+            instance.set_password(password)
+            
+        instance.save()
+        return instance
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'user', 'job_title', 'phone', 'location', 'avatar', 'last_active']
+
+class WorkspaceMemberSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = WorkspaceMember
+        fields = ['id', 'user', 'role', 'joined_at']
+
+class WorkspaceSerializer(serializers.ModelSerializer):
+    members = WorkspaceMemberSerializer(source='workspacemember_set', many=True, read_only=True)
+    
+    class Meta:
+        model = Workspace
+        fields = ['id', 'name', 'owner', 'members', 'created_at', 'updated_at']
+
+class ProjectSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Project
+        fields = ['id', 'name', 'description', 'workspace', 'created_by', 'created_at', 'updated_at']
+
+class SprintSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sprint
+        fields = ['id', 'name', 'project', 'start_date', 'end_date', 'active', 'created_at', 'updated_at']
+
+class TaskSerializer(serializers.ModelSerializer):
+    assigned_to = UserSerializer(read_only=True)
+    reporter = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Task
+        fields = [
+            'id', 'name', 'description', 'project', 'sprint', 'assigned_to', 
+            'reporter', 'status', 'priority', 'role', 'item_id', 
+            'created_at', 'updated_at', 'due_date'
+        ]
+
+class BugSerializer(serializers.ModelSerializer):
+    assignee = UserSerializer(read_only=True)
+    reporter = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Bug
+        fields = [
+            'id', 'summary', 'description', 'project', 'reporter', 
+            'assignee', 'status', 'priority', 'key', 'created_at', 
+            'updated_at', 'due_date', 'resolution'
+        ]
+
+class RetrospectiveSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+    responsible = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Retrospective
+        fields = [
+            'id', 'feedback', 'description', 'project', 'created_by', 
+            'responsible', 'type', 'repeating', 'votes', 'voted_users', 'owner', 
+            'created_at', 'updated_at'
+        ]
+
+class NotificationSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Notification
+        fields = ['id', 'user', 'sender', 'message', 'item_type', 'item_id', 'read', 'created_at']
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bookmark
+        fields = ['id', 'user', 'item_type', 'item_id', 'created_at']
+
+class InvitationSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Invitation
+        fields = ['id', 'workspace', 'email', 'sender', 'role', 'status', 'token', 'created_at', 'view_only']
+
+class ActivityLogSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = ActivityLog
+        fields = ['id', 'user', 'action', 'content_type', 'object_id', 'details', 'created_at']
+
+================================================================================
+FILE: backend\api\signals.py
+================================================================================
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.auth.models import User
+from django.contrib.auth.signals import user_logged_in
+from .models import UserProfile
+from django.utils import timezone
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    """
+    Signal handler to create or update a UserProfile when a User is saved
+    """
+    UserProfile.objects.get_or_create(user=instance)
+
+@receiver(user_logged_in)
+def update_user_last_login(sender, user, request, **kwargs):
+    """
+    Update user's last_active timestamp when they log in
+    """
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    profile.last_active = timezone.now()
+    profile.save()
+
+================================================================================
+FILE: backend\api\urls.py
+================================================================================
+
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    UserViewSet, UserProfileViewSet, WorkspaceViewSet,
+    ProjectViewSet, SprintViewSet, TaskViewSet, BugViewSet,
+    RetrospectiveViewSet, NotificationViewSet, BookmarkViewSet,
+    InvitationViewSet, ActivityLogViewSet, CustomAuthToken
+)
+from . import views
+from django.views.decorators.csrf import csrf_exempt
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'profiles', UserProfileViewSet)
+router.register(r'workspaces', WorkspaceViewSet)
+
+router.register(r'projects', ProjectViewSet)
+router.register(r'sprints', SprintViewSet)
+router.register(r'tasks', TaskViewSet)
+router.register(r'bugs', BugViewSet)
+router.register(r'retrospectives', RetrospectiveViewSet)
+router.register(r'notifications', NotificationViewSet)
+router.register(r'bookmarks', BookmarkViewSet)
+router.register(r'invitations', InvitationViewSet)
+router.register(r'activities', ActivityLogViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('register/', csrf_exempt(views.register_user), name='register'),
+    path('auth/', include('rest_framework.urls')),
+    path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
+    path('auth/login/', views.login_view, name='api_login'),  # Add this line
+]
+
+
+================================================================================
+FILE: backend\api\utils.py
+================================================================================
+
+import json
+from .models import ActivityLog, Notification
+from django.utils import timezone
+
+def log_activity(user, action, content_type, object_id, details=None):
+    """
+    Utility function to log user activities
+    
+    Args:
+        user: User performing the action
+        action: One of 'create', 'update', 'delete', 'assign', 'status', 'comment', 'mention'
+        content_type: Model name like 'task', 'bug', etc.
+        object_id: ID or key of the object
+        details: JSON serializable dictionary with additional details
+    """
+    log = ActivityLog.objects.create(
+        user=user,
+        action=action,
+        content_type=content_type,
+        object_id=object_id,
+        details=json.dumps(details) if details else ''
+    )
+    return log
+
+def create_notification(user, sender, message, item_type, item_id):
+    """
+    Create a notification for a user
+    
+    Args:
+        user: User to receive the notification
+        sender: User sending the notification
+        message: Notification message
+        item_type: Type of item (task, bug, etc.)
+        item_id: ID of the item
+    """
+    notification = Notification.objects.create(
+        user=user,
+        sender=sender,
+        message=message,
+        item_type=item_type,
+        item_id=item_id
+    )
+    return notification
+
+def update_user_activity(user):
+    """
+    Update the user's last active timestamp
+    
+    Args:
+        user: User to update
+    """
+    from .models import UserProfile
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    profile.last_active = timezone.now()
+    profile.save()
+    return profile
+
+================================================================================
+FILE: backend\api\views.py
+================================================================================
+
+from rest_framework import viewsets, status, permissions
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.db.models import Q
+from django.utils import timezone
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import NotFound
+
+from .models import (
+    Workspace, WorkspaceMember, Project, Sprint,
+    Task, Bug, Retrospective, Notification, Bookmark, UserProfile, ActivityLog,
+    Invitation
+)
+from .serializers import (
+    UserSerializer, UserProfileSerializer, WorkspaceSerializer, 
+    WorkspaceMemberSerializer, ProjectSerializer, SprintSerializer, 
+    TaskSerializer, BugSerializer, RetrospectiveSerializer, 
+    NotificationSerializer, BookmarkSerializer, ActivityLogSerializer, 
+    InvitationSerializer
+)
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .mixins import HeaderIDMixin
+from .utils import log_activity, create_notification, update_user_activity
+
+class UserViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        elif self.action == 'destroy':
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]
+    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_object(self):
+        if hasattr(self.request, 'object_id'):
+            try:
+                obj = self.get_queryset().get(pk=self.request.object_id)
+                self.check_object_permissions(self.request, obj)
+                return obj
+            except User.DoesNotExist:
+                raise NotFound(f"No User matches the given query with ID {self.request.object_id}.")
+        return super().get_object()
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def search(self, request):
+        search_term = request.data.get('search', '')
+        if search_term:
+            users = User.objects.filter(
+                Q(username__icontains=search_term) | 
+                Q(email__icontains=search_term) |
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term)
+            )
+            serializer = self.get_serializer(users, many=True)
+            return Response(serializer.data)
+        return Response([])
+
+class UserProfileViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def my_profile(self, request):
+        profile = update_user_activity(request.user)
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
+
+class WorkspaceViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Workspace.objects.all()
+    serializer_class = WorkspaceSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Workspace.objects.filter(members=self.request.user)
+    
+    def perform_create(self, serializer):
+        workspace = serializer.save(owner=self.request.user)
+        WorkspaceMember.objects.create(workspace=workspace, user=self.request.user, role='owner')
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ProjectViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace', None)
+        
+        if workspace_id:
+            return Project.objects.filter(workspace_id=workspace_id, workspace__members=self.request.user)
+        return Project.objects.filter(workspace__members=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+class SprintViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Sprint.objects.all()
+    serializer_class = SprintSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        active = self.request.query_params.get('active', None)
+        
+        queryset = Sprint.objects.filter(project__workspace__members=self.request.user)
+        
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        
+        if active == 'true':
+            queryset = queryset.filter(active=True)
+            
+        return queryset
+    
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        sprint = self.get_object()
+        project = sprint.project
+        
+        Sprint.objects.filter(project=project, active=True).update(active=False)
+        
+        sprint.active = True
+        sprint.save()
+        
+        serializer = self.get_serializer(sprint)
+        return Response(serializer.data)
+
+class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Task.objects.filter(project__workspace__members=self.request.user)
+        
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        sprint_id = self.request.META.get('HTTP_X_SPRINT_ID') or self.request.query_params.get('sprint', None)
+        status_param = self.request.query_params.get('status', None)
+
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        
+        if sprint_id:
+            queryset = queryset.filter(sprint_id=sprint_id)
+        
+        if status_param:
+            queryset = queryset.filter(status=status_param)  
+        return queryset
+    
+    def perform_create(self, serializer):
+        task = serializer.save(reporter=self.request.user)
+        
+        # Log activity
+        log_activity(
+            user=self.request.user,
+            action='create',
+            content_type='task',
+            object_id=task.item_id,
+            details={
+                'task_name': task.name,
+                'project_id': task.project.id,
+                'project_name': task.project.name
+            }
+        )
+        
+        return task
+    
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        task = self.get_object()
+        user_id = request.data.get('user_id')
+        
+        if not user_id:
+            return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = get_object_or_404(User, id=user_id)
+        
+        if not user.workspaces.filter(id=task.project.workspace.id).exists():
+            return Response({"error": "User is not a member of this workspace"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
+        task.assigned_to = user
+        task.save()
+        
+        create_notification(
+            user=user,
+            sender=request.user,
+            message=f"{request.user.username} has assigned you to task '{task.name}'",
+            item_type='task',
+            item_id=task.item_id
+        )
+        
+        log_activity(
+            user=request.user,
+            action='assign',
+            content_type='task',
+            object_id=task.item_id,
+            details={
+                'task_name': task.name,
+                'project_id': task.project.id,
+                'assigned_user_id': user.id,
+                'assigned_username': user.username
+            }
+        )
+        
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        task = self.get_object()
+        new_status = request.data.get('status')
+        
+        if not new_status:
+            return Response({"error": "Status is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        old_status = task.status
+        task.status = new_status
+        task.save()
+        
+        log_activity(
+            user=request.user,
+            action='status',
+            content_type='task',
+            object_id=task.item_id,
+            details={
+                'task_name': task.name,
+                'project_id': task.project.id,
+                'old_status': old_status,
+                'new_status': new_status
+            }
+        )
+        
+        if task.assigned_to and task.assigned_to != request.user:
+            create_notification(
+                user=task.assigned_to,
+                sender=request.user,
+                message=f"Task '{task.name}' status changed from {old_status} to {new_status}",
+                item_type='task',
+                item_id=task.item_id
+            )
+        
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
+
+class BugViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Bug.objects.all()
+    serializer_class = BugSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Bug.objects.filter(project__workspace__members=self.request.user)
+        
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        status_param = self.request.query_params.get('status', None)
+        
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+            
+        return queryset
+    
+    def perform_create(self, serializer):
+            bug = serializer.save(reporter=self.request.user)
+            
+            # Add activity logging
+            log_activity(
+                user=self.request.user,
+                action='create',
+                content_type='bug',
+                object_id=bug.key,
+                details={
+                    'bug_summary': bug.summary,
+                    'project_id': bug.project.id,
+                    'project_name': bug.project.name
+                }
+            )
+            
+            return bug
+    
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        bug = self.get_object()
+        user_id = request.data.get('user_id')
+        
+        if not user_id:
+            return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = get_object_or_404(User, id=user_id)
+        
+        if not user.workspaces.filter(id=bug.project.workspace.id).exists():
+            return Response({"error": "User is not a member of this workspace"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
+        bug.assignee = user
+        bug.save()
+        log_activity(
+            user=request.user,
+            action='assign',
+            content_type='bug',
+            object_id=bug.key,
+            details={
+                'bug_summary': bug.summary,
+                'project_id': bug.project.id,
+                'assigned_user_id': user.id,
+                'assigned_username': user.username
+            }
+        )
+        create_notification(
+            user=user,
+            sender=request.user,
+            message=f"{request.user.username} has assigned you to bug '{bug.summary}'",
+            item_type='bug',
+            item_id=bug.key
+        )
+        
+        serializer = self.get_serializer(bug)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        bug = self.get_object()
+        new_status = request.data.get('status')
+        
+        if not new_status:
+            return Response({"error": "Status is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        old_status = bug.status
+        bug.status = new_status
+        bug.save()
+        
+        log_activity(
+            user=request.user,
+            action='status',
+            content_type='bug',
+            object_id=bug.key,
+            details={
+                'bug_summary': bug.summary,
+                'project_id': bug.project.id,
+                'old_status': old_status,
+                'new_status': new_status
+            }
+        )
+        
+        if bug.assignee and bug.assignee != request.user:
+            create_notification(
+                user=bug.assignee,
+                sender=request.user,
+                message=f"Bug '{bug.summary}' status changed from {old_status} to {new_status}",
+                item_type='bug',
+                item_id=bug.key
+            )
+        
+        serializer = self.get_serializer(bug)
+        return Response(serializer.data)
+
+
+class RetrospectiveViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Retrospective.objects.all()
+    serializer_class = RetrospectiveSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Retrospective.objects.filter(project__workspace__members=self.request.user)
+        
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        type_param = self.request.query_params.get('type', None)
+        
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        
+        if type_param:
+            queryset = queryset.filter(type=type_param)
+            
+        return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def vote(self, request, pk=None):
+        retro = self.get_object()
+        
+        try:
+            voted_users = json.loads(retro.voted_users)
+        except (json.JSONDecodeError, TypeError):
+            voted_users = []
+        
+        if request.user.id in voted_users:
+            return Response({"error": "You have already voted on this retrospective"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
+        retro.votes += 1
+        voted_users.append(request.user.id)
+        retro.voted_users = json.dumps(voted_users)
+        retro.save()
+        log_activity(
+            user=request.user,
+            action='vote',
+            content_type='retrospective',
+            object_id=retro.id,
+            details={
+                'retrospective_id': retro.id,
+                'project_id': retro.project.id,
+                'feedback': retro.feedback
+            }
+        )
+        serializer = self.get_serializer(retro)
+        return Response(serializer.data)
+
+class NotificationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        Notification.objects.filter(user=request.user, read=False).update(read=True)
+        return Response({"status": "All notifications marked as read"})
+    
+    # In actions that use get_object():
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        try:
+            notification = self.get_object()
+            notification.read = True
+            notification.save()
+            return Response({"status": "Notification marked as read"})
+        except NotFound:
+            return Response({"error": "Notification ID is required. Please provide it in the X-Object-ID header."}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
+class BookmarkViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Bookmark.objects.all()
+    serializer_class = BookmarkSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Bookmark.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class InvitationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
+    queryset = Invitation.objects.all()
+    serializer_class = InvitationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Invitation.objects.filter(workspace__members=self.request.user)
+    
+    def perform_create(self, serializer):
+        invitation = serializer.save(sender=self.request.user)
+        
+        self.send_invitation_email(invitation)
+        
+        return invitation
+    
+    def send_invitation_email(self, invitation):
+        print(f"Sending invitation to {invitation.email} for {invitation.workspace.name}")
+    
+    @action(detail=False, methods=['get'])
+    def check(self, request):
+        token = request.query_params.get('token', None)
+        if not token:
+            return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            invitation = Invitation.objects.get(token=token, status='pending')
+            serializer = self.get_serializer(invitation)
+            return Response(serializer.data)
+        except Invitation.DoesNotExist:
+            return Response({"error": "Invalid or expired invitation"}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        invitation = self.get_object()
+        
+        if invitation.status != 'pending':
+            return Response({"error": "This invitation has already been processed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if invitation.email.lower() != request.user.email.lower():
+            return Response({"error": "This invitation is for a different email address"}, status=status.HTTP_403_FORBIDDEN)
+        
+        WorkspaceMember.objects.create(
+            workspace=invitation.workspace,
+            user=request.user,
+            role=invitation.role
+        )
+        
+        log_activity(
+            user=request.user,
+            action='join',
+            content_type='workspace',
+            object_id=invitation.workspace.id,
+            details={'invitation_id': invitation.id}
+        )
+    
+        invitation.status = 'accepted'
+        invitation.save()
+        
+        serializer = self.get_serializer(invitation)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def decline(self, request, pk=None):
+        invitation = self.get_object()
+        
+        if invitation.status != 'pending':
+            return Response({"error": "This invitation has already been processed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        invitation.status = 'declined'
+        invitation.save()
+        
+        serializer = self.get_serializer(invitation)
+        return Response(serializer.data)
+
+class ActivityLogViewSet(HeaderIDMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = ActivityLog.objects.all()
+    serializer_class = ActivityLogSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace', None)
+        project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
+        
+        queryset = ActivityLog.objects.filter(
+            user__workspaces__in=self.request.user.workspaces.all()
+        ).order_by('-created_at')
+        
+        if workspace_id:
+            queryset = queryset.filter(
+                user__workspaces__id=workspace_id,
+                user__workspaces__members=self.request.user
+            )
+        
+        if project_id:
+            project_activities = queryset.filter(
+                content_type='project',
+                object_id=project_id
+            )
+            
+            task_activities = queryset.filter(
+                content_type__in=['task', 'bug', 'sprint']
+            )
+            
+            related_activities = []
+            for activity in task_activities:
+                try:
+                    details = json.loads(activity.details)
+                    if details and isinstance(details, dict) and details.get('project_id') == int(project_id):
+                        related_activities.append(activity.id)
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    continue
+            
+            related_queryset = ActivityLog.objects.filter(id__in=related_activities)
+            queryset = project_activities | related_queryset
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def mentions(self, request):
+        queryset = ActivityLog.objects.filter(
+            action='mention',
+            details__contains=f'"mentioned_user_id": {request.user.id}'
+        ).order_by('-created_at')
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def bookmarks(self, request):
+        bookmarks = Bookmark.objects.filter(user=request.user)
+    
+        bookmark_conditions = Q()
+        for bookmark in bookmarks:
+            bookmark_conditions |= Q(content_type=bookmark.item_type, object_id=bookmark.item_id)
+        
+        if bookmark_conditions:
+            activities = ActivityLog.objects.filter(bookmark_conditions).order_by('-created_at')[:50]
+            serializer = self.get_serializer(activities, many=True)
+            return Response(serializer.data)
+        return Response([])
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    """
+    Create a new user without requiring authentication
+    """
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username
+        })
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    Custom login view that returns an authentication token
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is not None:
+        login(request, user)
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+================================================================================
+FILE: backend\backend\middleware.py
+================================================================================
+
+from django.utils.deprecation import MiddlewareMixin
+
+class CsrfExemptMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_request(self, request):
+        if request.path.startswith('/api/'):
+            setattr(request, '_dont_enforce_csrf_checks', True)
+        return None
+
+class HeaderIDMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if 'HTTP_X_OBJECT_ID' in request.META:
+            request.object_id = request.META.get('HTTP_X_OBJECT_ID')
+        
+        if 'HTTP_X_WORKSPACE_ID' in request.META:
+            request.workspace_id = request.META.get('HTTP_X_WORKSPACE_ID')
+            
+        if 'HTTP_X_PROJECT_ID' in request.META:
+            request.project_id = request.META.get('HTTP_X_PROJECT_ID')
+            
+        if 'HTTP_X_SPRINT_ID' in request.META:
+            request.sprint_id = request.META.get('HTTP_X_SPRINT_ID')
+        
+        return self.get_response(request)
+
+================================================================================
+FILE: backend\backend\settings.py
+================================================================================
+
+"""
+Django settings for backend project.
+
+Generated by 'django-admin startproject' using Django 5.1.6.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.1/topics/settings/
+
+For the full list of settings and their values, see
+https://docs.djangoproject.com/en/5.1/ref/settings/
+"""
+
+from pathlib import Path
+from datetime import timedelta
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+ALLOWED_HOSTS = []
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'api',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'backend.middleware.CsrfExemptMiddleware',
+    'backend.middleware.HeaderIDMiddleware',
+]
+
+ROOT_URLCONF = 'backend.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'backend.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': os.environ.get('DB_ENGINE'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = 'static/'
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('ACCESS_TOKEN_LIFETIME_DAYS', 1))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
+}
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
+
+================================================================================
+FILE: backend\backend\urls.py
+================================================================================
+
+"""
+URL configuration for backend project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.1/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]
+
+# Add media serving for development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

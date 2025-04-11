@@ -14,27 +14,21 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password']
 
     def create(self, validated_data):
-        # Extract the password
         password = validated_data.pop('password')
         
-        # Create the user without the password
         user = User.objects.create(**validated_data)
         
-        # Set the password properly (this handles the hashing)
         user.set_password(password)
         user.save()
         
         return user
         
     def update(self, instance, validated_data):
-        # Handle password updates properly
         password = validated_data.pop('password', None)
         
-        # Update other fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
             
-        # If password was provided, update it
         if password:
             instance.set_password(password)
             
@@ -106,7 +100,7 @@ class RetrospectiveSerializer(serializers.ModelSerializer):
         model = Retrospective
         fields = [
             'id', 'feedback', 'description', 'project', 'created_by', 
-            'responsible', 'type', 'repeating', 'votes', 'owner', 
+            'responsible', 'type', 'repeating', 'votes', 'voted_users', 'owner', 
             'created_at', 'updated_at'
         ]
 
