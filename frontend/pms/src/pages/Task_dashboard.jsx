@@ -19,14 +19,14 @@ const PMSDashboardSprints = () => {
   // Initial sprint data
 const initialSprintData = {
   'Sprint 1': [
-    { id: '13455134', name: 'Task 1', responsible: 'Vivek S.', role: 'Dev', status: 'In Progress', priority: 'High', added: '29 Dec 2024', storyPoints: 5 },
-    { id: '12451545', name: 'Task 2', responsible: 'Shriraj P.', role: 'Design', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024', storyPoints: 3 },
+    { id: '13455134', name: 'Task 1', responsible: 'Vivek S.', role: 'Bug', status: 'In Progress', priority: 'High', added: '29 Dec 2024', storyPoints: 5 },
+    { id: '12451545', name: 'Task 2', responsible: 'Shriraj P.', role: 'Test', status: 'Waiting for review', priority: 'Low', added: '24 Dec 2024', storyPoints: 3 },
   ],
   'sprint 2': [
-    { id: '19793110', name: 'task 1', responsible: 'Anand S.', role: 'Design', status: 'Done', priority: 'Medium', added: '1 Mar 2025', storyPoints: 2 },
+    { id: '19793110', name: 'task 1', responsible: 'Anand S.', role: 'Security', status: 'Done', priority: 'Medium', added: '1 Mar 2025', storyPoints: 2 },
   ],
   'Backlog': [
-    { id: '64135315', name: 'Task 4', responsible: 'Riya S.', role: 'Dev', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024', storyPoints: 8 },
+    { id: '64135315', name: 'Task 4', responsible: 'Riya S.', role: 'Bug', status: 'Ready to start', priority: 'Low', added: '21 Oct 2024', storyPoints: 8 },
   ]
 };
     const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName ,index}) => {
@@ -37,16 +37,17 @@ const initialSprintData = {
       };
     const getPriorityColor = (priority) => {
       switch (priority) {
-        case 'High': return 'bg-orange-100 text-orange-700';
-        case 'Medium': return 'bg-gray-100 text-gray-700';
-        case 'Low': return 'bg-green-100 text-green-700';
+        case 'Critical': return 'bg-red-300 text-red-700';
+        case 'High': return 'bg-orange-300 text-orange-700';
+        case 'Medium': return 'bg-blue-400 text-gray-700';
+        case 'Low': return 'bg-green-300 text-green-700';
         default: return 'bg-gray-100 text-gray-700';
       }
     };
     
     return (
       <div 
-  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}  onMouseLeave={() => setIsSelected(false)}
+  className={`mb-8 mx-8 w-auto ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}  onMouseLeave={() => setIsSelected(false)}
 >
 <div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
   <div 
@@ -70,42 +71,50 @@ const initialSprintData = {
   </div>
 </div>
         
-<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>  <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
+<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-0'}`}>  <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
     <table className="w-full border-collapse">
-      <thead>
-        <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600 ">
-          <th className="p-2 border-b text-left">
-            <input type="checkbox" className="mr-2" />
-            Tasks
-          </th>
-          <th className="p-2 border-b text-left">Owner</th>
-          <th className="p-2 border-b text-left">Status</th>
-          <th className="p-2 border-b text-left">Priority</th>
-          <th className="p-2 border-b text-left">Type</th>
-          <th className="p-2 border-b text-left">Task ID</th>
-          <th className="p-2 border-b text-left">Estimated SP</th>
-        </tr>
-      </thead>
+    <thead>
+  <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600">
+    <th className="p-2 border-b text-left w-2/12">
+      <input type="checkbox" className="mr-2" />
+      Tasks
+    </th>
+    <th className="p-2 border-b text-left w-2/12">Owner</th>
+    <th className="p-2 border-b text-left w-2/12">Status</th>
+    <th className="p-2 border-b text-left w-2/12">Priority</th>
+    <th className="p-2 border-b text-left w-2/12">Type</th>
+    <th className="p-2 border-b text-left w-1/12">Task ID</th>
+    <th className="p-2 border-b text-left w-1/12 pr-6">SP</th>
+  </tr>
+</thead>
       <tbody>
         {tasks.map((task) => (
           <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
-            <td className="p-2 border-b">
-              <div className="flex items-center">
-                <input type="checkbox" className="mr-2" />
-                {task.name}
-              </div>
-            </td>
-            <td className="p-2 border-b text-blue-600">{task.responsible}</td>
-            <td className="p-2 border-b">{task.status}</td>
-            <td className="p-2 border-b">
-              <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                {task.priority}
-              </span>
-            </td>
-            <td className="p-2 border-b">{task.role || "Missing"}</td>
-            <td className="p-2 border-b">{task.id}</td>
-            <td className="p-2 border-b">{task.storyPoints || "-"}</td>
-          </tr>
+          <td className="p-2 border-b w-3/12">
+            <div className="flex items-center">
+              <input type="checkbox" className="mr-2" />
+              <div className="truncate max-w-full">{task.name}</div>
+            </div>
+          </td>
+          <td className="p-2 border-b w-1/12 text-blue-600 truncate">{task.responsible}</td>
+          <td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
+    {task.status}
+  </span>
+</td>
+<td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+    {task.priority}
+  </span>
+</td>
+<td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.role)}`}>
+    {task.role || "Missing"}
+  </span>
+</td>
+          <td className="p-2 border-b w-1/12 truncate">{task.id}</td>
+          <td className="p-2 border-b w-1/12">{task.storyPoints || "-"}</td>
+        </tr>
         ))}
         {/* Add task row */}
         <tr className="text-sm">
@@ -120,8 +129,66 @@ const initialSprintData = {
         </tr>
       </tbody>
     </table>
+     {/* Summary Bar Charts */}
+     {tasks.length > 0 && (
+  <div className="grid grid-cols-12 gap-16 mt-3">
+    <div className="col-span-2 col-start-5">
+      <SummaryBarChart 
+        data={calculateStatusSummary(tasks)} 
+        getColorFunc={getStatusColor} 
+        total={tasks.length}
+        label="Status"
+      />
+    </div>
+    <div className="col-span-2 col-start-7">
+      <SummaryBarChart 
+        data={calculatePrioritySummary(tasks)} 
+        getColorFunc={getPriorityColor} 
+        total={tasks.length}
+        label="Priority"
+      />
+    </div>
+    <div className="col-span-2 col-start-9">
+      <SummaryBarChart 
+        data={calculateTypeSummary(tasks)} 
+        getColorFunc={getTypeColor} 
+        total={tasks.length}
+        label="Type"
+      />
+    </div>
+  </div>
+)}
   </div>
 </div>
+{/* Summary charts when collapsed - ADD HERE */}
+{!isExpanded && tasks.length > 0 && (
+  <div className="p-2 grid grid-cols-12 gap-16">
+    <div className="col-span-2 col-start-5">
+      <SummaryBarChart 
+        data={calculateStatusSummary(tasks)} 
+        getColorFunc={getStatusColor} 
+        total={tasks.length}
+        label="Status"
+      />
+    </div>
+    <div className="col-span-2 col-start-7">
+      <SummaryBarChart 
+        data={calculatePrioritySummary(tasks)} 
+        getColorFunc={getPriorityColor} 
+        total={tasks.length}
+        label="Priority"
+      />
+    </div>
+    <div className="col-span-2 col-start-9">
+      <SummaryBarChart 
+        data={calculateTypeSummary(tasks)} 
+        getColorFunc={getTypeColor} 
+        total={tasks.length}
+        label="Type"
+      />
+    </div>
+  </div>
+)}
 </div>
     );
   };
@@ -141,6 +208,28 @@ const initialSprintData = {
         default: return 'bg-gray-100 text-gray-700';
       }
     };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'Done': return 'bg-green-500 text-white';
+        case 'In Progress': return 'bg-orange-400 text-white';
+        case 'Waiting for review': return 'bg-cyan-300 text-gray-800';
+        case 'Ready to start': return 'bg-blue-600 text-white';
+        case 'Stuck': return 'bg-red-500 text-white';
+        default: return 'bg-gray-400 text-white';
+      }
+    };
+  
+    const getTypeColor = (type) => {
+      switch (type) {
+        case 'Bug': return 'bg-red-400 text-white';
+        case 'Feature': return 'bg-green-400 text-white';
+        case 'Quality': return 'bg-purple-400 text-white';
+        case 'Security': return 'bg-yellow-400 text-white';
+        case 'Test': return 'bg-blue-400 text-white';
+        default: return 'bg-gray-400 text-white';
+      }
+    };
     
     // Format dates to display in a nice format
     const formatDate = (dateStr) => {
@@ -153,7 +242,7 @@ const initialSprintData = {
     
     return (
       <div 
-  className={`mb-8 ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
+  className={`mb-8 mx-8 w-auto ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? 'bg-gray-100' : ''}  overflow-hidden`}
   onMouseEnter={() => setIsSelected(true)}
   onMouseLeave={() => setIsSelected(false)}
 >
@@ -177,42 +266,51 @@ const initialSprintData = {
   </div>
 </div>
         
-<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}>  <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
+<div className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? 'max-h-screen opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-0'}`}>
+    <div className="p-4 transform transition-transform duration-500" style={{transformOrigin: 'top'}}>
     <table className="w-full border-collapse">
-      <thead>
-        <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600 ">
-          <th className="p-2 border-b text-left">
-            <input type="checkbox" className="mr-2" />
-            Tasks
-          </th>
-          <th className="p-2 border-b text-left">Owner</th>
-          <th className="p-2 border-b text-left">Status</th>
-          <th className="p-2 border-b text-left">Priority</th>
-          <th className="p-2 border-b text-left">Type</th>
-          <th className="p-2 border-b text-left">Task ID</th>
-          <th className="p-2 border-b text-left">Estimated SP</th>
-        </tr>
-      </thead>
+    <thead>
+  <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600">
+    <th className="p-2 border-b text-left w-2/12">
+      <input type="checkbox" className="mr-2" />
+      Tasks
+    </th>
+    <th className="p-2 border-b text-left w-2/12">Owner</th>
+    <th className="p-2 border-b text-left w-2/12">Status</th>
+    <th className="p-2 border-b text-left w-2/12">Priority</th>
+    <th className="p-2 border-b text-left w-2/12">Type</th>
+    <th className="p-2 border-b text-left w-1/12">Task ID</th>
+    <th className="p-2 border-b text-left w-1/12 pr-6">SP</th>
+  </tr>
+</thead>
       <tbody>
         {tasks.map((task) => (
           <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
-            <td className="p-2 border-b">
-              <div className="flex items-center">
-                <input type="checkbox" className="mr-2" />
-                {task.name}
-              </div>
-            </td>
-            <td className="p-2 border-b text-blue-600">{task.responsible}</td>
-            <td className="p-2 border-b">{task.status}</td>
-            <td className="p-2 border-b">
-              <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                {task.priority}
-              </span>
-            </td>
-            <td className="p-2 border-b">{task.role || "Missing"}</td>
-            <td className="p-2 border-b">{task.id}</td>
-            <td className="p-2 border-b">{task.storyPoints || "-"}</td>
-          </tr>
+          <td className="p-2 border-b w-3/12">
+            <div className="flex items-center">
+              <input type="checkbox" className="mr-2" />
+              <div className="truncate max-w-full">{task.name}</div>
+            </div>
+          </td>
+          <td className="p-2 border-b w-1/12 text-blue-600 truncate">{task.responsible}</td>
+          <td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
+    {task.status}
+  </span>
+</td>
+<td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+    {task.priority}
+  </span>
+</td>
+<td className="p-2 border-b w-2/12">
+  <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.role)}`}>
+    {task.role || "Missing"}
+  </span>
+</td>
+          <td className="p-2 border-b w-1/12 truncate">{task.id}</td>
+          <td className="p-2 border-b w-1/12">{task.storyPoints || "-"}</td>
+        </tr>
         ))}
         {/* Add task row */}
         <tr className="text-sm">
@@ -227,8 +325,66 @@ const initialSprintData = {
         </tr>
       </tbody>
     </table>
+     {/* Summary Bar Charts */}
+     {tasks.length > 0 && (
+  <div className="grid grid-cols-12 gap-16 mt-3">
+    <div className="col-span-2 col-start-5">
+      <SummaryBarChart 
+        data={calculateStatusSummary(tasks)} 
+        getColorFunc={getStatusColor} 
+        total={tasks.length}
+        label="Status"
+      />
+    </div>
+    <div className="col-span-2 col-start-7">
+      <SummaryBarChart 
+        data={calculatePrioritySummary(tasks)} 
+        getColorFunc={getPriorityColor} 
+        total={tasks.length}
+        label="Priority"
+      />
+    </div>
+    <div className="col-span-2 col-start-9">
+      <SummaryBarChart 
+        data={calculateTypeSummary(tasks)} 
+        getColorFunc={getTypeColor} 
+        total={tasks.length}
+        label="Type"
+      />
+    </div>
+  </div>
+)}
   </div>
 </div>
+{/* Summary charts when collapsed - ADD HERE */}
+{!isExpanded && tasks.length > 0 && (
+  <div className="p-2 grid grid-cols-12 gap-16">
+    <div className="col-span-2 col-start-5">
+      <SummaryBarChart 
+        data={calculateStatusSummary(tasks)} 
+        getColorFunc={getStatusColor} 
+        total={tasks.length}
+        label="Status"
+      />
+    </div>
+    <div className="col-span-2 col-start-7">
+      <SummaryBarChart 
+        data={calculatePrioritySummary(tasks)} 
+        getColorFunc={getPriorityColor} 
+        total={tasks.length}
+        label="Priority"
+      />
+    </div>
+    <div className="col-span-2 col-start-9">
+      <SummaryBarChart 
+        data={calculateTypeSummary(tasks)} 
+        getColorFunc={getTypeColor} 
+        total={tasks.length}
+        label="Type"
+      />
+    </div>
+  </div>
+)}
 </div>
     );
   };
@@ -415,6 +571,61 @@ const filterTasks = (tasks) => {
   });
 };
 
+// Function to calculate status summary
+const calculateStatusSummary = (tasks) => {
+  const summary = {};
+  tasks.forEach(task => {
+    if (task.status) {
+      summary[task.status] = (summary[task.status] || 0) + 1;
+    }
+  });
+  return summary;
+};
+
+// Function to calculate priority summary
+const calculatePrioritySummary = (tasks) => {
+  const summary = {};
+  tasks.forEach(task => {
+    if (task.priority) {
+      summary[task.priority] = (summary[task.priority] || 0) + 1;
+    }
+  });
+  return summary;
+};
+
+// Function to calculate type summary
+const calculateTypeSummary = (tasks) => {
+  const summary = {};
+  tasks.forEach(task => {
+    const type = task.role || "Missing";
+    summary[type] = (summary[type] || 0) + 1;
+  });
+  return summary;
+};
+
+const SummaryBarChart = ({ data, getColorFunc, total, label }) => {
+  if (total === 0) return <div className="text-xs text-gray-400 px-2">{label}: No data</div>;
+  
+  return (
+    <div className="px-2 py-1 w-full overflow-hidden">
+      <div className="text-xs text-gray-600 mb-1">{label}</div>
+      <div className="flex h-5 rounded-sm overflow-hidden w-full">
+        {Object.entries(data).map(([key, value], index) => {
+          const percentage = (value / total) * 100;
+          return (
+            <div 
+              key={index} 
+              className={`${getColorFunc(key)}`} 
+              style={{ width: `${percentage}%` }}
+              title={`${key}: ${value} (${Math.round(percentage)}%)`}
+            ></div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // Function to check if a sprint has any matching tasks
 const sprintHasMatchingTasks = (sprintName) => {
   const tasks = sprintData[sprintName] || [];
@@ -427,15 +638,40 @@ const tableHasMatchingTasks = (tableName) => {
   return filterTasks(tasks).length > 0;
 };
 
-  // Function to get priority color
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High': return 'bg-orange-100 text-orange-700';
-      case 'Medium': return 'bg-gray-100 text-gray-700';
-      case 'Low': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
+ // Function to get priority color - bright contrasting colors
+const getPriorityColor = (priority) => {
+  switch (priority) {
+    case 'Critical': return 'bg-[#FF3B30] text-white';     // Bright red
+    case 'High': return 'bg-[#FF9500] text-white';         // Bright orange
+    case 'Medium': return 'bg-indigo-400 text-white';       // Bright blue
+    case 'Low': return 'bg-[#34C759] text-white';          // Bright green
+    default: return 'bg-[#8E8E93] text-white';             // Gray
+  }
+};
+
+// Function to get status color - bright contrasting colors
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Done': return 'bg-[#34C759] text-white';         // Bright green
+    case 'In Progress': return 'bg-[#FFA725] text-white';  // Bright orange
+    case 'Waiting for review': return 'bg-[#5AC8FA] text-gray-800'; // Light blue
+    case 'Ready to start': return 'bg-[#AF52DE] text-white'; // Purple
+    case 'Stuck': return 'bg-[#FF3B30] text-white';        // Bright red
+    default: return 'bg-[#8E8E93] text-white';             // Gray
+  }
+};
+
+// Function to get type color - bright contrasting colors
+const getTypeColor = (type) => {
+  switch (type) {
+    case 'Bug': return 'bg-[#FF3B30] text-white';          // Bright red
+    case 'Feature': return 'bg-[#007AFF] text-white';      // Bright blue
+    case 'Quality': return 'bg-[#5856D6] text-white';      // Indigo
+    case 'Security': return 'bg-[#FFCC00] text-gray-800';  // Bright yellow
+    case 'Test': return 'bg-[#34C759] text-white';         // Bright green
+    default: return 'bg-[#8E8E93] text-white';             // Gray
+  }
+};
   const openAddTableModal = () => {
     setIsAddTableModalOpen(true);
   };
@@ -729,9 +965,11 @@ const tableHasMatchingTasks = (tableName) => {
                     className="w-full px-3 py-2 border rounded-md"
                   >
                     <option value="">Select type</option>
-                    <option value="Dev">Dev</option>
-                    <option value="Design">Design</option>
-                    <option value="Product">Product</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Bug">Bug</option>
+                    <option value="Feature">Feature</option>
+                    <option value="Security">Security</option>
+                    <option value="Test">Test</option>
                   </select>
                 </div>
                 
@@ -760,7 +998,8 @@ const tableHasMatchingTasks = (tableName) => {
                     onChange={handleTaskInputChange}
                     className="w-full px-3 py-2 border rounded-md"
                   >
-                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
                   </select>
