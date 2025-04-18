@@ -27,7 +27,7 @@ import ExploreTemplates from "./components/tools"
 import WorkspaceName from "./pages/WorkspaceName";
 function App() {
     return (
-        <Router>
+        
           <Routes>
           <Route path="/" element={<LandingPage/>} />
           <Route path="/Login" element={<Login/>} />
@@ -52,9 +52,7 @@ function App() {
           <Route path="/inbox" element ={<PopupChatWindow/>}/>
           <Route path="/tools" element ={<ExploreTemplates/>}/>
           </Routes>
-            {/* Chatbot floats on every page */}
-            <ChatbotWidget />
-          </Router>
+         
           
       );
   

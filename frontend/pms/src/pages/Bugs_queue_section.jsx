@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect} from 'react';
 import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "lucide-react";
-
+import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
@@ -41,7 +41,29 @@ const Bugs_queue_section = () => {
       type: 'bug',
       dueDate: ''
     });
-
+    //Adding a state variable to store the list of projects.
+    const [projects, setProjects] = useState([]);
+    //useEffect to fetch projects List when the component mounts
+    useEffect(() => {
+      const fetchProjects = async () => {
+        try {
+          const response = await axios.get("http://localhost:8000/api/projects/", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "X-Project-ID": "3"
+            }
+          });
+          setProjects(response.data);
+        } catch (error) {
+          console.error("Error fetching projects:", error);
+          alert("Failed to load projects. Please try again.");
+        }
+      };
+    
+      // Fetch projects when the component mounts
+      fetchProjects();
+    }, []);
+    //colored buttons funtion 
     const getStatusColor = (status) => {
       switch (status) {
         case 'To DO': return 'bg-orange-100 text-orange-700';
@@ -135,40 +157,57 @@ const Bugs_queue_section = () => {
       console.log("View Mode Changed:", mode); // Debugging output
     };
   
+
+    // Hardcoding the access token for tesing
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ1MDM2MzcwLCJpYXQiOjE3NDQ5NDk5NzAsImp0aSI6ImVkZDc2MTNmMjYxYjQ4NTliODE2NTUxMTNhNGViYWVhIiwidXNlcl9pZCI6MX0.zWlwW1oecgXtlSgeK5b5ZZe1JQEzJJb3txREM6JzohI"; 
+    localStorage.setItem("token", token);
     
-    // Handle form submission for adding new issue
-    const handleAddIssue = (e) => {
+    //POST API to add new issue button
+    const handleAddIssue = async (e) => {
       e.preventDefault();
+    
+      // Log the data being sent to the backend
+      console.log("New Issue Data Being Sent to Backend:", newIssue);
+    
       
-      // Create a new issue with current date info
-      const currentDate = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
-      
-      const issueToAdd = {
-        id: issues.length + 1,
-        ...newIssue,
-        createdDate: currentDate,
-        updatedDate: currentDate
-      };
-      
-      // Add the new issue to the list
-      setIssues([...issues, issueToAdd]);
-      
-      // Reset form and close modal
-      setNewIssue({
-        key: '',
-        summary: '',
-        assignee: '',
-        reporter: '',
-        status: 'To DO',
-        resolution: 'Not Resolved',
-        type: 'bug',
-        dueDate: ''
-      });
-      setIsModalOpen(false);
+      // Retrieve the token from localStorage
+      const token = localStorage.getItem("token");
+    
+      try {
+        // Send the POST request with the Authorization header
+        const response = await axios.post(
+          "http://localhost:8000/api/bugs/",
+          newIssue,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "X-Project-ID": "3" // Include any other required headers
+            }
+          }
+        );
+    
+        // Log the response from the backend
+        console.log("Bug created successfully:", response.data);
+    
+        // Add the new bug to the local state
+        setIssues([...issues, response.data]);
+    
+        // Reset the form and close the modal
+        setNewIssue({
+          key: "",
+          summary: "",
+          assignee: "",
+          reporter: "",
+          status: "To DO",
+          project: 1,
+          dueDate: ""
+        });
+        setIsModalOpen(false);
+      } catch (error) {
+        // Log and display any errors
+        console.error("Error creating issue:", error);
+        alert("Failed to create issue. Please try again.");
+      }
     };
 
     return (
@@ -542,9 +581,12 @@ const Bugs_queue_section = () => {
                         className="w-full border border-gray-300 rounded p-2 text-sm"
                         value={newIssue.status}
                         onChange={(e) => setNewIssue({...newIssue, status: e.target.value})}
+                        required
                       >
-                        <option value="To DO">To DO</option>
-                        <option value="In Progress">In Progress</option>
+                        <option value="to_do">To DO</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="not_resolved">Not Resolved</option>
                         <option value="Done">Done</option>
                       </select>
                        {/* Display colored status indicator based on selected value */}
@@ -564,6 +606,44 @@ const Bugs_queue_section = () => {
                         onChange={(e) => setNewIssue({...newIssue, dueDate: e.target.value})}
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Project</label>
+                    <select 
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      value={newIssue.project}
+                      onChange={(e) => setNewIssue({ ...newIssue, project: e.target.value })}
+                      required
+                    >
+                       {/* Default option */}
+                       <option value="">Select Project</option>
+                      {/* Map over projects to populate options */}
+                      {projects.length > 0 ? (
+                        projects.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled value="">
+                          Loading projects...
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Priority</label>
+                    <select 
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      value={newIssue.priority}
+                      onChange={(e) => setNewIssue({ ...newIssue, priority: e.target.value })}
+                      required
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
                   </div>
                   
                   <div className="flex justify-end space-x-2">
