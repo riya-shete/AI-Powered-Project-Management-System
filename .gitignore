@@ -55,7 +55,8 @@ local_settings.py
 # Environment variables
 .env
 .env.*
-!.env.example
+
+backend/.env.example
 
 # Virtual Environment
 venv/

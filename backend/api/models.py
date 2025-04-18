@@ -126,7 +126,7 @@ class Bug(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateField(null=True, blank=True)
-    resolution = models.CharField(max_length=100, blank=True)
+    resolution = models.CharField(max_length=100, blank=True) 
     # type to be added
     def __str__(self):
         return self.summary
