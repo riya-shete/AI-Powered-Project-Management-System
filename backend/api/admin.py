@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Workspace, WorkspaceMember, Project, Sprint, 
     Task, Bug, Retrospective, Bookmark, Invitation,
-    UserProfile, Notification, ActivityLog
+    UserProfile, Notification, ActivityLog, OTP
 )
 
 admin.site.register(Workspace)
@@ -17,3 +17,4 @@ admin.site.register(Invitation)
 admin.site.register(UserProfile)
 admin.site.register(Notification)
 admin.site.register(ActivityLog)
+admin.site.register(OTP)

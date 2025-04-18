@@ -15,18 +15,18 @@ from rest_framework.exceptions import NotFound
 from .models import (
     Workspace, WorkspaceMember, Project, Sprint,
     Task, Bug, Retrospective, Notification, Bookmark, UserProfile, ActivityLog,
-    Invitation
+    Invitation, OTP
 )
 from .serializers import (
     UserSerializer, UserProfileSerializer, WorkspaceSerializer, 
     WorkspaceMemberSerializer, ProjectSerializer, SprintSerializer, 
     TaskSerializer, BugSerializer, RetrospectiveSerializer, 
     NotificationSerializer, BookmarkSerializer, ActivityLogSerializer, 
-    InvitationSerializer
+    InvitationSerializer, OTPRequestSerializer, OTPVerifySerializer
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .mixins import HeaderIDMixin
-from .utils import log_activity, create_notification, update_user_activity
+from .utils import log_activity, create_notification, update_user_activity, send_otp_email
 
 class UserViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -650,25 +650,117 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.pk,
             'username': user.username
         })
+# Replace the login_view with OTP-based login
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def login_view(request):
+def request_otp(request):
     """
-    Custom login view that returns an authentication token
+    Request an OTP code to be sent to the user's email
     """
-    username = request.data.get('username')
-    password = request.data.get('password')
-    
-    user = authenticate(username=username, password=password)
-    
-    if user is not None:
-        login(request, user)
-        token, created = Token.objects.get_or_create(user=user)
+    serializer = OTPRequestSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        
+        # Check if user exists
+        user = None
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # We'll create the user after OTP verification
+            pass
+        
+        # Generate OTP
+        otp = OTP.generate_otp(email)
+        
+        # Send OTP via email
+        send_otp_email(email, otp.code)
+        
         return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'username': user.username
+            'message': 'OTP sent to your email',
+            'email': email
         }, status=status.HTTP_200_OK)
-    else:
-        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_otp(request):
+    """
+    Verify OTP and authenticate user
+    """
+    serializer = OTPVerifySerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        otp_code = serializer.validated_data['otp_code']
+        
+        # Verify OTP
+        if OTP.verify_otp(email, otp_code):
+            # Get or create user
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # Create a new user with email as username
+                username = email.split('@')[0]
+                base_username = username
+                counter = 1
+                
+                # Ensure username is unique
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User.objects.create_user(
+                    username=username,
+                    email=email
+                )
+                
+                # Create user profile
+                UserProfile.objects.create(user=user)
+            
+            # Login the user
+            login(request, user)
+            
+            # Generate or get token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            # Update last active
+            update_user_activity(user)
+            
+            return Response({
+                'token': token.key,
+                'user_id': user.pk,
+                'username': user.username,
+                'email': user.email
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'error': 'Invalid or expired OTP'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Remove or comment out the old login_view
+# @csrf_exempt
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def login_view(request):
+#     """
+#     Custom login view that returns an authentication token
+#     """
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+#     
+#     user = authenticate(username=username, password=password)
+#     
+#     if user is not None:
+#         login(request, user)
+#         token, created = Token.objects.get_or_create(user=user)
+#         return Response({
+#             'token': token.key,
+#             'user_id': user.pk,
+#             'username': user.username
+#         }, status=status.HTTP_200_OK)
+#     else:
+#         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
