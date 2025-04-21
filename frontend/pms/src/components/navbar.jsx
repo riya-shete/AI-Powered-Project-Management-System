@@ -6,6 +6,7 @@ import ProfileSidebar from './ProfileSidebar';
 import PopupChatWindow from "./inbox"; // Imported chat component
 
 
+
 const Navbar = () => {
   const navigate = useNavigate();
   const [isNotificationOpen, setNotificationOpen] = useState(false);
@@ -175,9 +176,12 @@ const Navbar = () => {
       {/* Render Update Feed Modal */}
       <Feed isOpen={isFeedOpen} onClose={closeFeedModal} />
       <ProfileSidebar 
-        isOpen={isProfileSidebarOpen} 
-        onClose={() => setIsProfileSidebarOpen(false)} 
-      />
+  isOpen={isProfileSidebarOpen} 
+  onClose={() => setIsProfileSidebarOpen(false)}
+  openNotifications={() => setNotificationOpen(true)}
+  openTeamChat={() => setChatOpen(true)}
+  openUpdateFeed={() => setFeedOpen(true)}
+/>
       {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
     </>
   );
