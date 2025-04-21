@@ -3,8 +3,9 @@ from django.contrib.auth.models import User
 from .models import (
     Workspace, WorkspaceMember, Project, Sprint, 
     Task, Bug, Retrospective, Notification, Bookmark, UserProfile,
-    Invitation, ActivityLog
+    Invitation, ActivityLog, OTP
 )
+from django.contrib.auth import get_user_model
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -129,3 +130,11 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityLog
         fields = ['id', 'user', 'action', 'content_type', 'object_id', 'details', 'created_at']
+
+
+class OTPRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class OTPVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp_code = serializers.CharField(max_length=6, min_length=6)

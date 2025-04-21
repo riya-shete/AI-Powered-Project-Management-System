@@ -1,6 +1,11 @@
 import json
 from .models import ActivityLog, Notification
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 def log_activity(user, action, content_type, object_id, details=None):
     """
@@ -54,3 +59,25 @@ def update_user_activity(user):
     profile.last_active = timezone.now()
     profile.save()
     return profile
+
+
+def send_otp_email(email, otp_code):
+    """
+    Send OTP code to user's email
+    
+    Args:
+        email: Email address to send OTP to
+        otp_code: The OTP code to send
+    """
+    try:
+        subject = "Your Login OTP Code"
+        message = f"Your OTP code is: {otp_code}\n\nThis code will expire in 10 minutes."
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [email]
+        
+        send_mail(subject, message, from_email, recipient_list)
+        logger.info(f"OTP email sent to {email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send OTP email to {email}: {str(e)}")
+        return False # Explicitly return False on failure

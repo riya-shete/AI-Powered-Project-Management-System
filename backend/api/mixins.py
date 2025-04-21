@@ -60,7 +60,6 @@ class HeaderIDMixin:
             print(f"HeaderIDMixin.partial_update: Set pk={request.object_id} for PATCH request")
         return super().partial_update(request, *args, **kwargs)
         
-    # Add these new methods to handle PUT/DELETE on list endpoints
     def update_with_header(self, request, *args, **kwargs):
         """Handle PUT requests to list endpoints with X-Object-ID header"""
         print(f"HeaderIDMixin.update_with_header: Handling PUT request to list endpoint")

@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import secrets
+import random
+import string
 
 class Workspace(models.Model):
     name = models.CharField(max_length=100)
@@ -245,3 +247,49 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.username} {self.action} {self.content_type} at {self.created_at}"
+
+
+class OTP(models.Model):
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"OTP for {self.email}"
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Generate a 6-digit OTP
+            self.code = ''.join(random.choices(string.digits, k=6))
+        
+        if not self.expires_at:
+            # Set expiry to 10 minutes from now
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
+            
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def generate_otp(cls, email):
+        # Invalidate any existing OTPs for this email
+        cls.objects.filter(email=email, is_used=False).update(is_used=True)
+        
+        # Create a new OTP
+        otp = cls.objects.create(email=email)
+        return otp
+    
+    @classmethod
+    def verify_otp(cls, email, code):
+        try:
+            otp = cls.objects.get(
+                email=email,
+                code=code,
+                is_used=False,
+                expires_at__gt=timezone.now()
+            )
+            otp.is_used = True
+            otp.save()
+            return True
+        except cls.DoesNotExist:
+            return False

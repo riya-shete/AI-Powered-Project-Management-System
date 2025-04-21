@@ -71,6 +71,9 @@ urlpatterns = [
     path('', include(router.urls)),
     path('register/', csrf_exempt(views.register_user), name='register'),
     path('auth/', include('rest_framework.urls')),
-    path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
-    path('auth/login/', views.login_view, name='api_login'),
+    # Remove or comment out the old token endpoint
+    # path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
+    # Keep the OTP endpoints
+    path('auth/request-otp/', views.request_otp, name='request_otp'),
+    path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
 ]
