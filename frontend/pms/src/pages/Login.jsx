@@ -11,9 +11,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
-    mobile: "",
-    otp_code: "",
-    password: ""
+    otp_code: ""
+    
   });
     // New state variables for OTP functionality
     const [isOTPVerified, setIsOTPVerified] = useState(false);
@@ -30,26 +29,28 @@ export default function Login() {
     const requestOTP = async () => {
       try {
         setIsLoading(true);
-        // Based on your backend, it only accepts email for OTP
+    
+        // Ensure the contact method is email (as per backend requirements)
         if (contactMethod !== "email") {
-          alert("Mobile OTP is not supported. Please use email.");
+          alert("Only email-based OTP is supported. Please use your email.");
           setIsLoading(false);
           return;
-        } 
-        
-          const response = await axios.post(
-            "http://localhost:8000/auth/request-otp/", 
-            { email: formData.email },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-              }
-            }
+        }
+    
+        // Send the email to the backend for OTP generation
+        const response = await axios.post(
+          "http://localhost:8000/api/auth/request-otp/",
+          { email: formData.email }, // Backend only accepts email
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
         );
-        
+    
         console.log("OTP sent successfully:", response.data);
-        alert("OTP sent to your " + (contactMethod === "email" ? "email" : "mobile") + ". Please check.");
-        setShowOTPField(true);
+        alert(`OTP sent to your email (${formData.email}). Please check your inbox.`);
+        setShowOTPField(true); // Show the OTP input field
         setIsLoading(false);
       } catch (error) {
         setIsLoading(false);
@@ -57,46 +58,48 @@ export default function Login() {
         alert("Failed to send OTP. Please try again.");
       }
     };
-
   // OTP Verification Function
    // OTP Verification Function
    const verifyOTP = async () => {
     try {
       setIsLoading(true);
+  
+      // Verify the OTP by sending email and OTP code to the backend
       const response = await axios.post(
-        "http://localhost:8000/api/verify-otp/", 
-        { 
-          email: formData.email, 
-          otp_code: formData.otp_code  // Changed from 'otp' to 'otp_code'
+        "http://localhost:8000/api/auth/verify-otp/",
+        {
+          email: formData.email,       // Email used for OTP request
+          otp_code: formData.otp_code, // OTP entered by the user
         },
         {
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
         }
       );
-      
+  
+      // Extract the token and user details from the response
       const { token, user_id, username, email } = response.data;
-      
-      // Store the token and user info
+  
+      // Store the token and user info in localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user_id", user_id);
       localStorage.setItem("username", username);
       localStorage.setItem("email", email);
-      
+  
       console.log("OTP verified successfully. Token saved:", token);
       alert("Login successful!");
-      
-      // For subsequent API calls, you'll need to include this token in headers
+  
+      // Set the Authorization header for subsequent API calls
       axios.defaults.headers.common['Authorization'] = `Token ${token}`;
-      
+  
+      // Navigate to the dashboard or home page
       navigate("/Dashboard");
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
       console.error("Error verifying OTP:", error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Invalid OTP. Please try again.";
-      alert(errorMessage);
+      alert("Invalid OTP. Please try again.");
     }
   };
     const handleSubmit = (e) => {
@@ -136,7 +139,7 @@ export default function Login() {
               onClick={() => {
                 setContactMethod("email");
                 setShowOTPField(false);
-                setFormData({ ...formData, otp: "" });
+                setFormData({ ...formData, otp_code: "" });
               }}
             >
               Email
@@ -147,7 +150,7 @@ export default function Login() {
               onClick={() => {
                 setContactMethod("mobile")
                 setShowOTPField(false); 
-                setFormData({ ...formData, otp: "" });
+                setFormData({ ...formData, otp_code: "" });
               }}
             >
               Mobile
@@ -195,8 +198,8 @@ export default function Login() {
               </label>
               <input
                 type="text"
-                name="otp"
-                value={formData.otp}
+                name="otp_code"
+                value={formData.otp_code}
                 onChange={handleChange}
                 placeholder="6-digit OTP"
                 maxLength={6}
@@ -209,90 +212,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* OTP Password Field */}
-          {/* <div className="mb-2">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaLock className="text-gray-400" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                required
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? 
-                  <FaEyeSlash className="text-gray-400 hover:text-gray-600" /> : 
-                  <FaEye className="text-gray-400 hover:text-gray-600" />
-                }
-              </button>
-            </div>
-          </div>
-           */}
-          {/* Remember Me & Forgot Password */}
-          {/* <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={() => setRememberMe(!rememberMe)}
-                className="h-4 w-4 text-blue-600 focus:ring-teal-500 border-gray-300 rounded"
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-                Remember me
-              </label>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="text-blue-600 text-sm hover:underline"
-            >
-              Forgot password?
-            </button>
-          </div> */}
           
-          {/* Submit Button */}
-          {/* <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium transition-colors duration-200"
-          >
-            Login
-          </button>
-        </form> */}
-          {/* OTP Field (Visible only after requesting OTP) */}
-          {showOTPField && ( // <-- new block
-            <div className="mb-5">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Enter OTP
-              </label>
-              <input
-                type="text"
-                name="otp"
-                value={formData.otp}
-                onChange={handleChange}
-                placeholder="6-digit OTP"
-                maxLength={6}
-                className="w-full pl-3 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                required
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Enter the 6-digit code sent to your {contactMethod}
-              </p>
-            </div>
-          )}
-
           {/* Buttons */}
           {!showOTPField ? ( // <-- new condition block
             <>
@@ -325,7 +245,7 @@ export default function Login() {
                 type="button"
                 className="w-full bg-blue-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium transition-colors duration-200 mb-4"
                 onClick={verifyOTP}
-                disabled={isLoading || !formData.otp || formData.otp.length !== 6}
+                disabled={isLoading || !formData.otp_code|| formData.otp_code.length !== 6}
               >
                 {isLoading ? "Verifying..." : "Verify OTP"}
               </button>
@@ -335,7 +255,7 @@ export default function Login() {
                 type="button"
                 className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-lg font-medium transition-colors duration-200"
                 onClick={() => {
-                  setFormData({ ...formData, otp: "" }); // <-- new line
+                  setFormData({ ...formData, otp_code: "" }); 
                   requestOTP(); // <-- new line
                 }}
                 disabled={isLoading}
