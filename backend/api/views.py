@@ -700,6 +700,7 @@ def verify_otp(request):
             # Get or create user
             try:
                 user = User.objects.get(email=email)
+                print(f"Found existing user with email {email}: {user.username}")
             except User.DoesNotExist:
                 # Create a new user with email as username
                 username = email.split('@')[0]
@@ -711,13 +712,15 @@ def verify_otp(request):
                     username = f"{base_username}{counter}"
                     counter += 1
                 
+                print(f"Creating new user with email {email} and username {username}")
                 user = User.objects.create_user(
                     username=username,
                     email=email
                 )
                 
-                # Create user profile
-                UserProfile.objects.create(user=user)
+                # The UserProfile will be created by the post_save signal
+                # No need to create it manually here
+                print(f"User created successfully with ID: {user.id}")
             
             # Login the user
             login(request, user)
