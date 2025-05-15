@@ -1,8 +1,22 @@
-import React, { useState, useMemo } from 'react';
-import { Search, User, Filter, ArrowDownUp, EyeOff, MoreVertical, Plus, Edit, ThumbsUp } from 'lucide-react';
+"use client"
 
-import Navbar from '../components/navbar';
-import Sidebar from '../components/sidebar';
+import { useState, useMemo, useEffect } from "react"
+import {
+  Search,
+  User,
+  Filter,
+  ArrowDownUp,
+  EyeOff,
+  MoreVertical,
+  Plus,
+  Edit,
+  ThumbsUp,
+  Settings,
+  X,
+} from "lucide-react"
+
+import Navbar from "../components/navbar"
+import Sidebar from "../components/sidebar"
 
 const RetrospectivesPage = () => {
   return (
@@ -13,171 +27,465 @@ const RetrospectivesPage = () => {
         <Retrospectivesmain />
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Retrospectivesmain = () => {
-  const [retrospectives, setRetrospectives] = useState([
-    { id: '13455134', feedback: 'Unplanned Task', responsible: 'Vivek S.', type: 'Discussion', repeating: false, owner: 'Karishma', votes: 0, hasVoted: false, animating: false },
-    { id: '12451545', feedback: 'Focus on path', responsible: 'Shriraj P.', type: 'Improve', repeating: false, owner: 'Reyansh', votes: 0, hasVoted: false, animating: false },
-    { id: '3246151', feedback: 'Improve progress', responsible: 'Anand S.', type: 'Keep', repeating: true, owner: 'Ananya', votes: 0, hasVoted: false, animating: false },
-    { id: '64135315', feedback: 'CSM Team', responsible: 'Riya S.', type: 'Improve', repeating: false, owner: 'Rudra', votes: 0, hasVoted: false, animating: false },
-    { id: '1464135', feedback: 'Pending Bugs', responsible: 'Kalyani B.', type: 'Improve', repeating: false, owner: 'Pranav', votes: 0, hasVoted: false, animating: false },
-  ]);
+  // Load data from localStorage if available
+  const [retrospectives, setRetrospectives] = useState(() => {
+    const savedRetros = localStorage.getItem("retrospectives")
+    return savedRetros
+      ? JSON.parse(savedRetros)
+      : [
+          {
+            id: "13455134",
+            feedback: "Unplanned Task",
+            responsible: "Vivek S.",
+            type: "Discussion",
+            repeating: false,
+            owner: "Karishma",
+            votes: 0,
+            hasVoted: false,
+            animating: false,
+          },
+          {
+            id: "12451545",
+            feedback: "Focus on path",
+            responsible: "Shriraj P.",
+            type: "Improve",
+            repeating: false,
+            owner: "Reyansh",
+            votes: 0,
+            hasVoted: false,
+            animating: false,
+          },
+          {
+            id: "3246151",
+            feedback: "Improve progress",
+            responsible: "Anand S.",
+            type: "Keep",
+            repeating: true,
+            owner: "Ananya",
+            votes: 0,
+            hasVoted: false,
+            animating: false,
+          },
+          {
+            id: "64135315",
+            feedback: "CSM Team",
+            responsible: "Riya S.",
+            type: "Improve",
+            repeating: false,
+            owner: "Rudra",
+            votes: 0,
+            hasVoted: false,
+            animating: false,
+          },
+          {
+            id: "1464135",
+            feedback: "Pending Bugs",
+            responsible: "Kalyani B.",
+            type: "Improve",
+            repeating: false,
+            owner: "Pranav",
+            votes: 0,
+            hasVoted: false,
+            animating: false,
+          },
+        ]
+  })
+
+  // Save retrospectives to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("retrospectives", JSON.stringify(retrospectives))
+  }, [retrospectives])
+
+  // Load columns from localStorage if available
+  const [columns, setColumns] = useState(() => {
+    const savedColumns = localStorage.getItem("retroColumns")
+    return savedColumns
+      ? JSON.parse(savedColumns)
+      : [
+          { id: "checkbox", label: "", type: "checkbox", visible: true, width: "40px", order: 0 },
+          { id: "feedback", label: "Feedback", type: "text", visible: true, width: "25%", order: 1 },
+          { id: "responsible", label: "Responsible", type: "text", visible: true, width: "15%", order: 2 },
+          { id: "type", label: "Type", type: "type", visible: true, width: "15%", order: 3 },
+          { id: "repeating", label: "Repeating", type: "boolean", visible: true, width: "10%", order: 4 },
+          { id: "owner", label: "Owner", type: "text", visible: true, width: "15%", order: 5 },
+          { id: "votes", label: "Votes", type: "votes", visible: true, width: "10%", order: 6 },
+        ]
+  })
+
+  // Save columns to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("retroColumns", JSON.stringify(columns))
+  }, [columns])
 
   const [newRetrospective, setNewRetrospective] = useState({
-    feedback: '',
-    responsible: '',
-    type: 'Discussion',
+    feedback: "",
+    responsible: "",
+    type: "Discussion",
     repeating: false,
-    owner: '',
-  });
-  
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectAll, setSelectAll] = useState(false);
-  const [selectedRetrospectives, setSelectedRetrospectives] = useState([]);
-  const [editingRetrospective, setEditingRetrospective] = useState(null);
-  
+    owner: "",
+  })
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [selectAll, setSelectAll] = useState(false)
+  const [selectedRetrospectives, setSelectedRetrospectives] = useState([])
+  const [editingRetrospective, setEditingRetrospective] = useState(null)
+
   // Search and Filter States
-  const [searchQuery, setSearchQuery] = useState('');
-  const [personFilter, setPersonFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState("")
+  const [personFilter, setPersonFilter] = useState("")
+  const [typeFilter, setTypeFilter] = useState("")
 
   // Dropdown States
-  const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false);
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false)
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false)
+
+  // Column management state
+  const [selectedColumn, setSelectedColumn] = useState(null)
+  const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false)
+  const [showColumnModal, setShowColumnModal] = useState(false)
+  const [editingColumn, setEditingColumn] = useState(null)
+  const [newColumnData, setNewColumnData] = useState({ label: "", type: "text" })
+  const [isResizing, setIsResizing] = useState(false)
+  const [columnBeingModified, setColumnBeingModified] = useState(null)
+  const [startX, setStartX] = useState(0)
+  const [startWidth, setStartWidth] = useState(0)
+  const [draggedColumn, setDraggedColumn] = useState(null)
+  const [dragOverColumn, setDragOverColumn] = useState(null)
+
+  // Cell editing state
+  const [editingCell, setEditingCell] = useState(null)
+  const [cellValue, setCellValue] = useState("")
 
   // Get unique persons and types for dropdowns
-  const uniquePersons = [...new Set(retrospectives.map(r => r.responsible))];
-  const uniqueTypes = [...new Set(retrospectives.map(r => r.type))];
+  const uniquePersons = [...new Set(retrospectives.map((r) => r.responsible))]
+  const uniqueTypes = [...new Set(retrospectives.map((r) => r.type))]
 
   // Filtered Retrospectives
   const filteredRetrospectives = useMemo(() => {
-    return retrospectives.filter(retro => {
-      const matchesSearch = searchQuery 
+    return retrospectives.filter((retro) => {
+      const matchesSearch = searchQuery
         ? retro.feedback.toLowerCase().includes(searchQuery.toLowerCase()) ||
           retro.responsible.toLowerCase().includes(searchQuery.toLowerCase())
-        : true;
-      
-      const matchesPerson = personFilter 
-        ? retro.responsible === personFilter 
-        : true;
-      
-      const matchesType = typeFilter 
-        ? retro.type === typeFilter 
-        : true;
-      
-      return matchesSearch && matchesPerson && matchesType;
-    });
-  }, [retrospectives, searchQuery, personFilter, typeFilter]);
+        : true
+
+      const matchesPerson = personFilter ? retro.responsible === personFilter : true
+
+      const matchesType = typeFilter ? retro.type === typeFilter : true
+
+      return matchesSearch && matchesPerson && matchesType
+    })
+  }, [retrospectives, searchQuery, personFilter, typeFilter])
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'Discussion': return 'bg-orange-100 text-orange-700';
-      case 'Improve': return 'bg-green-100 text-green-700';
-      case 'Keep': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case "Discussion":
+        return "bg-orange-100 text-orange-700"
+      case "Improve":
+        return "bg-green-100 text-green-700"
+      case "Keep":
+        return "bg-blue-100 text-blue-700"
+      default:
+        return "bg-gray-100 text-gray-700"
     }
-  };
+  }
 
   const handleVote = (id) => {
-    setRetrospectives(prev => 
-      prev.map(retro => 
+    setRetrospectives((prev) =>
+      prev.map((retro) =>
         retro.id === id
-          ? { 
-              ...retro, 
-              votes: retro.hasVoted ? retro.votes - 1 : retro.votes + 1, 
+          ? {
+              ...retro,
+              votes: retro.hasVoted ? retro.votes - 1 : retro.votes + 1,
               hasVoted: !retro.hasVoted,
-              animating: true
-            } 
-          : retro
-      )
-    );
+              animating: true,
+            }
+          : retro,
+      ),
+    )
 
     // Reset animation state after a delay
     setTimeout(() => {
-      setRetrospectives(prev => 
-        prev.map(retro => 
-          retro.id === id
-            ? { ...retro, animating: false }
-            : retro
-        )
-      );
-    }, 800);
-  };
+      setRetrospectives((prev) => prev.map((retro) => (retro.id === id ? { ...retro, animating: false } : retro)))
+    }, 800)
+  }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewRetrospective(prev => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setNewRetrospective((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleAddRetrospective = () => {
-    const newId = Math.floor(Math.random() * 10000000).toString();
-    
+    const newId = Math.floor(Math.random() * 10000000).toString()
+
     const retrospectiveToAdd = {
       ...newRetrospective,
       id: newId,
       votes: 0,
       hasVoted: false,
-    };
-    
-    setRetrospectives(prev => [retrospectiveToAdd, ...prev]);
+    }
+
+    setRetrospectives((prev) => [retrospectiveToAdd, ...prev])
     setNewRetrospective({
-      feedback: '',
-      responsible: '',
-      type: 'Discussion',
+      feedback: "",
+      responsible: "",
+      type: "Discussion",
       repeating: false,
-      owner: '',
-    });
-    setShowAddForm(false);
-  };
+      owner: "",
+    })
+    setShowAddForm(false)
+  }
 
   const handleEditRetrospective = (retrospective) => {
-    setEditingRetrospective(retrospective);
+    setEditingRetrospective(retrospective)
     setNewRetrospective({
       feedback: retrospective.feedback,
       responsible: retrospective.responsible,
       type: retrospective.type,
       repeating: retrospective.repeating,
       owner: retrospective.owner,
-    });
-    setShowAddForm(true);
-  };
+    })
+    setShowAddForm(true)
+  }
 
   const handleSaveEdit = () => {
-    setRetrospectives(prev => prev.map(retrospective => 
-      retrospective.id === editingRetrospective.id 
-        ? { ...retrospective, ...newRetrospective } 
-        : retrospective
-    ));
+    setRetrospectives((prev) =>
+      prev.map((retrospective) =>
+        retrospective.id === editingRetrospective.id ? { ...retrospective, ...newRetrospective } : retrospective,
+      ),
+    )
     setNewRetrospective({
-      feedback: '',
-      responsible: '',
-      type: 'Discussion',
+      feedback: "",
+      responsible: "",
+      type: "Discussion",
       repeating: false,
-      owner: '',
-    });
-    setEditingRetrospective(null);
-    setShowAddForm(false);
-  };
+      owner: "",
+    })
+    setEditingRetrospective(null)
+    setShowAddForm(false)
+  }
 
   const handleToggleSelectAll = () => {
-    setSelectAll(!selectAll);
+    setSelectAll(!selectAll)
     if (!selectAll) {
-      setSelectedRetrospectives(retrospectives.map(r => r.id));
+      setSelectedRetrospectives(retrospectives.map((r) => r.id))
     } else {
-      setSelectedRetrospectives([]);
+      setSelectedRetrospectives([])
     }
-  };
+  }
 
   const handleRetrospectiveSelect = (retrospectiveId) => {
     if (selectedRetrospectives.includes(retrospectiveId)) {
-      setSelectedRetrospectives(prev => prev.filter(id => id !== retrospectiveId));
+      setSelectedRetrospectives((prev) => prev.filter((id) => id !== retrospectiveId))
     } else {
-      setSelectedRetrospectives(prev => [...prev, retrospectiveId]);
+      setSelectedRetrospectives((prev) => [...prev, retrospectiveId])
     }
-  };
-  
+  }
+
+  // Add a click handler to close the selected column when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if the click is outside the table headers
+      if (selectedColumn && !event.target.closest("th")) {
+        setSelectedColumn(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [selectedColumn])
+
+  // Column resizing
+  const handleResizeStart = (e, columnId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    setColumnBeingModified(columnId)
+    setStartX(e.clientX)
+
+    const column = columns.find((col) => col.id === columnId)
+    setStartWidth(Number.parseInt(column.width))
+
+    document.addEventListener("mousemove", handleResizeMove)
+    document.addEventListener("mouseup", handleResizeEnd)
+  }
+
+  const handleResizeMove = (e) => {
+    if (!isResizing) return
+
+    const diff = e.clientX - startX
+    const newWidth = Math.max(50, startWidth + diff)
+
+    setColumns((prev) => prev.map((col) => (col.id === columnBeingModified ? { ...col, width: `${newWidth}px` } : col)))
+  }
+
+  const handleResizeEnd = () => {
+    setIsResizing(false)
+    setColumnBeingModified(null)
+    document.removeEventListener("mousemove", handleResizeMove)
+    document.removeEventListener("mouseup", handleResizeEnd)
+  }
+
+  // Column reordering
+  const handleColumnDragStart = (columnId) => {
+    setDraggedColumn(columnId)
+  }
+
+  const handleColumnDragOver = (e, columnId) => {
+    e.preventDefault()
+    if (draggedColumn !== columnId) {
+      setDragOverColumn(columnId)
+    }
+  }
+
+  const handleColumnDrop = (e) => {
+    e.preventDefault()
+    if (draggedColumn && dragOverColumn) {
+      const draggedIndex = columns.findIndex((col) => col.id === draggedColumn)
+      const dropIndex = columns.findIndex((col) => col.id === dragOverColumn)
+
+      if (draggedIndex !== -1 && dropIndex !== -1) {
+        const newColumns = [...columns]
+        const [removed] = newColumns.splice(draggedIndex, 1)
+        newColumns.splice(dropIndex, 0, removed)
+
+        // Update order property
+        const reorderedColumns = newColumns.map((col, index) => ({
+          ...col,
+          order: index,
+        }))
+
+        setColumns(reorderedColumns)
+      }
+    }
+
+    setDraggedColumn(null)
+    setDragOverColumn(null)
+  }
+
+  // Column management functions
+  const handleAddColumn = () => {
+    setEditingColumn(null)
+    setNewColumnData({ label: "", type: "text" })
+    setShowColumnModal(true)
+  }
+
+  const handleEditColumn = (column) => {
+    setEditingColumn(column)
+    setNewColumnData({
+      label: column.label,
+      type: column.type,
+      visible: column.visible,
+    })
+    setShowColumnModal(true)
+  }
+
+  const handleColumnInputChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setNewColumnData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }))
+  }
+
+  const handleSaveColumn = () => {
+    if (editingColumn) {
+      // Update existing column
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === editingColumn.id
+            ? { ...col, label: newColumnData.label, type: newColumnData.type, visible: newColumnData.visible !== false }
+            : col,
+        ),
+      )
+    } else {
+      // Add new column
+      const newId = `custom_${Date.now()}`
+      setColumns((prev) => [
+        ...prev,
+        {
+          id: newId,
+          label: newColumnData.label,
+          type: newColumnData.type,
+          visible: true,
+          width: "150px",
+          order: prev.length,
+        },
+      ])
+
+      // Add this field to all existing retrospectives
+      setRetrospectives((prev) => prev.map((retro) => ({ ...retro, [newId]: "" })))
+    }
+
+    setShowColumnModal(false)
+  }
+
+  const handleDeleteColumn = (columnId) => {
+    // Don't allow deleting essential columns
+    if (["checkbox", "feedback", "votes"].includes(columnId)) return
+
+    setColumns((prev) => prev.filter((col) => col.id !== columnId))
+
+    // Remove this field from all retrospectives
+    setRetrospectives((prev) =>
+      prev.map((retro) => {
+        const newRetro = { ...retro }
+        delete newRetro[columnId]
+        return newRetro
+      }),
+    )
+  }
+
+  const handleToggleColumnVisibility = (columnId) => {
+    setColumns((prev) => prev.map((col) => (col.id === columnId ? { ...col, visible: !col.visible } : col)))
+  }
+
+  // Cell editing functions
+  const handleCellClick = (retroId, columnId, value) => {
+    // Don't allow editing checkbox or votes columns directly
+    if (["checkbox", "votes"].includes(columnId)) return
+
+    setEditingCell({ retroId, columnId })
+    setCellValue(value !== undefined ? value : "")
+  }
+
+  const handleCellChange = (e) => {
+    setCellValue(e.target.value)
+  }
+
+  const handleCellBlur = () => {
+    if (!editingCell) return
+
+    const { retroId, columnId } = editingCell
+
+    // For boolean fields like repeating, we need to convert the string to boolean
+    const finalValue = columnId === "repeating" ? cellValue === "Yes" || cellValue === "true" : cellValue
+
+    setRetrospectives((prev) =>
+      prev.map((retro) => (retro.id === retroId ? { ...retro, [columnId]: finalValue } : retro)),
+    )
+
+    setEditingCell(null)
+  }
+
+  const handleCellKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleCellBlur()
+    } else if (e.key === "Escape") {
+      setEditingCell(null)
+    }
+  }
+
+  // Sort columns by order
+  const sortedColumns = useMemo(() => {
+    return [...columns].sort((a, b) => a.order - b.order)
+  }, [columns])
+
   return (
     <div className="flex-1 overflow-auto w-full h-full">
       <div className="p-4 bg-white">
@@ -190,27 +498,53 @@ const Retrospectivesmain = () => {
 
         <div className="flex items-center mb-4">
           <div className="font-medium">Main Table</div>
-          <button className="ml-2">
-            <MoreVertical size={16} />
-          </button>
-          <button className="ml-4">
+          <div className="relative">
+            <button className="ml-2" onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}>
+              <MoreVertical size={16} />
+            </button>
+
+            {isColumnMenuOpen && (
+              <div className="absolute z-10 mt-1 w-48 bg-white border rounded shadow-lg">
+                <div className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center" onClick={handleAddColumn}>
+                  <Plus size={14} className="mr-2" />
+                  Add Column
+                </div>
+                <div className="px-3 py-2 border-t">Column Visibility</div>
+                {columns.map(
+                  (column) =>
+                    column.id !== "checkbox" && (
+                      <div key={column.id} className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={column.visible}
+                          onChange={() => handleToggleColumnVisibility(column.id)}
+                          className="mr-2"
+                        />
+                        {column.label}
+                      </div>
+                    ),
+                )}
+              </div>
+            )}
+          </div>
+          <button className="ml-2" onClick={handleAddColumn}>
             <Plus size={16} />
           </button>
         </div>
 
         <div className="flex mb-4 space-x-2 flex-wrap">
-          <button 
+          <button
             className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
             onClick={() => {
-              setEditingRetrospective(null);
+              setEditingRetrospective(null)
               setNewRetrospective({
-                feedback: '',
-                responsible: '',
-                type: 'Discussion',
+                feedback: "",
+                responsible: "",
+                type: "Discussion",
                 repeating: false,
-                owner: '',
-              });
-              setShowAddForm(true);
+                owner: "",
+              })
+              setShowAddForm(true)
             }}
           >
             New Feedback <Plus size={14} className="ml-1" />
@@ -226,34 +560,34 @@ const Retrospectivesmain = () => {
             <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
           </div>
           <div className="relative">
-            <button 
+            <button
               className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
               onClick={() => {
-                setIsPersonDropdownOpen(!isPersonDropdownOpen);
-                setIsTypeDropdownOpen(false);
+                setIsPersonDropdownOpen(!isPersonDropdownOpen)
+                setIsTypeDropdownOpen(false)
               }}
             >
-              <User size={14} className="mr-1" /> 
-              {personFilter || 'Person'}
+              <User size={14} className="mr-1" />
+              {personFilter || "Person"}
             </button>
             {isPersonDropdownOpen && (
               <div className="absolute z-10 mt-1 w-48 bg-white border rounded shadow-lg">
-                <div 
+                <div
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
-                    setPersonFilter('');
-                    setIsPersonDropdownOpen(false);
+                    setPersonFilter("")
+                    setIsPersonDropdownOpen(false)
                   }}
                 >
                   All Persons
                 </div>
-                {uniquePersons.map(person => (
-                  <div 
+                {uniquePersons.map((person) => (
+                  <div
                     key={person}
                     className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
-                      setPersonFilter(person);
-                      setIsPersonDropdownOpen(false);
+                      setPersonFilter(person)
+                      setIsPersonDropdownOpen(false)
                     }}
                   >
                     {person}
@@ -263,34 +597,34 @@ const Retrospectivesmain = () => {
             )}
           </div>
           <div className="relative">
-            <button 
+            <button
               className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
               onClick={() => {
-                setIsTypeDropdownOpen(!isTypeDropdownOpen);
-                setIsPersonDropdownOpen(false);
+                setIsTypeDropdownOpen(!isTypeDropdownOpen)
+                setIsPersonDropdownOpen(false)
               }}
             >
-              <Filter size={14} className="mr-1" /> 
-              {typeFilter || 'Type'}
+              <Filter size={14} className="mr-1" />
+              {typeFilter || "Type"}
             </button>
             {isTypeDropdownOpen && (
               <div className="absolute z-10 mt-1 w-48 bg-white border rounded shadow-lg">
-                <div 
+                <div
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
-                    setTypeFilter('');
-                    setIsTypeDropdownOpen(false);
+                    setTypeFilter("")
+                    setIsTypeDropdownOpen(false)
                   }}
                 >
                   All Types
                 </div>
-                {uniqueTypes.map(type => (
-                  <div 
+                {uniqueTypes.map((type) => (
+                  <div
                     key={type}
                     className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
-                      setTypeFilter(type);
-                      setIsTypeDropdownOpen(false);
+                      setTypeFilter(type)
+                      setIsTypeDropdownOpen(false)
                     }}
                   >
                     {type}
@@ -305,98 +639,286 @@ const Retrospectivesmain = () => {
           <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <EyeOff size={14} className="mr-1" /> Hide
           </button>
-          <button className="px-3 py-1.5 text-sm bg-pink-500 text-white rounded flex items-center">
-            AI
-          </button>
+          <button className="px-3 py-1.5 text-sm bg-pink-500 text-white rounded flex items-center">AI</button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border-collapse">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="w-8 p-3">
-                  <input 
-                    type="checkbox" 
-                    className="rounded" 
-                    checked={selectAll}
-                    onChange={handleToggleSelectAll}
-                  />
-                </th>
-                <th className="p-3 text-sm font-medium text-gray-600 w-1/4">Feedback</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Responsible</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Type</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Repeating</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Owner</th>
-                <th className="p-3 text-sm font-medium text-gray-600">Votes</th>
+                {sortedColumns
+                  .filter((col) => col.visible)
+                  .map((column) => (
+                    <th
+                      key={column.id}
+                      className={`p-3 text-sm font-medium text-gray-600 relative ${selectedColumn === column.id ? "bg-blue-50" : ""}`}
+                      style={{ width: column.width }}
+                      draggable={column.id !== "checkbox" && column.id !== "votes"}
+                      onDragStart={() => handleColumnDragStart(column.id)}
+                      onDragOver={(e) => handleColumnDragOver(e, column.id)}
+                      onDrop={handleColumnDrop}
+                      onClick={() =>
+                        column.id !== "checkbox" && setSelectedColumn(column.id === selectedColumn ? null : column.id)
+                      }
+                    >
+                      <div className="flex items-center">
+                        {column.id === "checkbox" ? (
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={selectAll}
+                            onChange={handleToggleSelectAll}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <>
+                            <span className="cursor-move">{column.label}</span>
+
+                            {/* Show column options only when the column is selected */}
+                            {selectedColumn === column.id && (
+                              <div className="ml-auto flex items-center">
+                                <button
+                                  className="text-gray-400 hover:text-gray-600 ml-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleAddColumn()
+                                  }}
+                                  title="Add column"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                                <button
+                                  className="text-gray-400 hover:text-gray-600 ml-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleEditColumn(column)
+                                  }}
+                                  title="Edit column"
+                                >
+                                  <Settings size={14} />
+                                </button>
+                                {!["checkbox", "feedback", "votes"].includes(column.id) && (
+                                  <button
+                                    className="text-gray-400 hover:text-red-600 ml-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteColumn(column.id)
+                                    }}
+                                    title="Delete column"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Column resize handle */}
+                      <div
+                        className="absolute top-0 right-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-gray-400"
+                        onMouseDown={(e) => handleResizeStart(e, column.id)}
+                      ></div>
+
+                      {/* Drag indicator */}
+                      {dragOverColumn === column.id && (
+                        <div className="absolute top-0 left-0 h-full w-1 bg-blue-500"></div>
+                      )}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
               {filteredRetrospectives.map((retrospective) => (
                 <tr key={retrospective.id} className="border-t hover:bg-gray-50">
-                  <td className="p-3">
-                    <input 
-                      type="checkbox" 
-                      className="rounded" 
-                      checked={selectedRetrospectives.includes(retrospective.id)}
-                      onChange={() => handleRetrospectiveSelect(retrospective.id)}
-                    />
-                  </td>
-                  <td className="p-3 relative">
-                    <div className="flex items-center">
-                      <span className="flex-grow">{retrospective.feedback}</span>
-                      <button 
-                        className="ml-2 text-gray-500 absolute right-3"
-                        onClick={() => handleEditRetrospective(retrospective)}
-                      >
-                        <Edit size={14} />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <a href="#" className="text-blue-600">{retrospective.responsible}</a>
-                  </td>
-                  <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(retrospective.type)}`}>
-                      {retrospective.type}
-                    </span>
-                  </td>
-                  <td className="p-3">{retrospective.repeating ? 'Yes' : 'No'}</td>
-                  <td className="p-3">{retrospective.owner}</td>
-                  <td className="p-3 flex items-center">
-                    {retrospective.votes}
-                    <button 
-                      className={`ml-2 text-gray-500 transform transition-transform duration-300 ease-out ${
-                        retrospective.animating 
-                          ? 'animate-vote-explosion scale-150' 
-                          : ''
-                      }`}
-                      onClick={() => handleVote(retrospective.id)}
-                    >
-                      <ThumbsUp 
-                        size={14} 
-                        color={retrospective.hasVoted ? 'blue' : 'currentColor'}
-                        fill={retrospective.hasVoted ? 'blue' : 'none'}
-                        className={`${
-                          retrospective.animating 
-                            ? 'animate-vote-pulse' 
-                            : ''
-                        }`}
-                      />
-                    </button>
-                  </td>
+                  {sortedColumns
+                    .filter((col) => col.visible)
+                    .map((column) => (
+                      <td key={`${retrospective.id}-${column.id}`} className="p-3">
+                        {column.id === "checkbox" ? (
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={selectedRetrospectives.includes(retrospective.id)}
+                            onChange={() => handleRetrospectiveSelect(retrospective.id)}
+                          />
+                        ) : column.id === "feedback" ? (
+                          <div className="relative">
+                            {editingCell &&
+                            editingCell.retroId === retrospective.id &&
+                            editingCell.columnId === "feedback" ? (
+                              <input
+                                type="text"
+                                value={cellValue}
+                                onChange={handleCellChange}
+                                onBlur={handleCellBlur}
+                                onKeyDown={handleCellKeyDown}
+                                className="w-full p-1 border rounded"
+                                autoFocus
+                              />
+                            ) : (
+                              <div className="flex items-center">
+                                <span
+                                  className="flex-grow cursor-pointer hover:bg-gray-200 p-1 rounded"
+                                  onClick={() => handleCellClick(retrospective.id, "feedback", retrospective.feedback)}
+                                >
+                                  {retrospective.feedback}
+                                </span>
+                                <button
+                                  className="ml-2 text-gray-500 absolute right-3"
+                                  onClick={() => handleEditRetrospective(retrospective)}
+                                >
+                                  <Edit size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : column.id === "responsible" ? (
+                          editingCell &&
+                          editingCell.retroId === retrospective.id &&
+                          editingCell.columnId === "responsible" ? (
+                            <input
+                              type="text"
+                              value={cellValue}
+                              onChange={handleCellChange}
+                              onBlur={handleCellBlur}
+                              onKeyDown={handleCellKeyDown}
+                              className="w-full p-1 border rounded"
+                              autoFocus
+                            />
+                          ) : (
+                            <a
+                              href="#"
+                              className="text-blue-600 hover:bg-gray-200 p-1 rounded block"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                handleCellClick(retrospective.id, "responsible", retrospective.responsible)
+                              }}
+                            >
+                              {retrospective.responsible}
+                            </a>
+                          )
+                        ) : column.id === "type" ? (
+                          editingCell && editingCell.retroId === retrospective.id && editingCell.columnId === "type" ? (
+                            <select
+                              value={cellValue}
+                              onChange={handleCellChange}
+                              onBlur={handleCellBlur}
+                              onKeyDown={handleCellKeyDown}
+                              className="w-full p-1 border rounded"
+                              autoFocus
+                            >
+                              <option value="Discussion">Discussion</option>
+                              <option value="Improve">Improve</option>
+                              <option value="Keep">Keep</option>
+                            </select>
+                          ) : (
+                            <div
+                              className="cursor-pointer hover:bg-gray-200 p-1 rounded inline-block"
+                              onClick={() => handleCellClick(retrospective.id, "type", retrospective.type)}
+                            >
+                              <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(retrospective.type)}`}>
+                                {retrospective.type}
+                              </span>
+                            </div>
+                          )
+                        ) : column.id === "repeating" ? (
+                          editingCell &&
+                          editingCell.retroId === retrospective.id &&
+                          editingCell.columnId === "repeating" ? (
+                            <select
+                              value={cellValue}
+                              onChange={handleCellChange}
+                              onBlur={handleCellBlur}
+                              onKeyDown={handleCellKeyDown}
+                              className="w-full p-1 border rounded"
+                              autoFocus
+                            >
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                          ) : (
+                            <div
+                              className="cursor-pointer hover:bg-gray-200 p-1 rounded"
+                              onClick={() =>
+                                handleCellClick(retrospective.id, "repeating", retrospective.repeating ? "Yes" : "No")
+                              }
+                            >
+                              {retrospective.repeating ? "Yes" : "No"}
+                            </div>
+                          )
+                        ) : column.id === "owner" ? (
+                          editingCell &&
+                          editingCell.retroId === retrospective.id &&
+                          editingCell.columnId === "owner" ? (
+                            <input
+                              type="text"
+                              value={cellValue}
+                              onChange={handleCellChange}
+                              onBlur={handleCellBlur}
+                              onKeyDown={handleCellKeyDown}
+                              className="w-full p-1 border rounded"
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="cursor-pointer hover:bg-gray-200 p-1 rounded"
+                              onClick={() => handleCellClick(retrospective.id, "owner", retrospective.owner)}
+                            >
+                              {retrospective.owner}
+                            </div>
+                          )
+                        ) : column.id === "votes" ? (
+                          <div className="flex items-center">
+                            {retrospective.votes}
+                            <button
+                              className={`ml-2 text-gray-500 transform transition-transform duration-300 ease-out ${
+                                retrospective.animating ? "animate-vote-explosion scale-150" : ""
+                              }`}
+                              onClick={() => handleVote(retrospective.id)}
+                            >
+                              <ThumbsUp
+                                size={14}
+                                color={retrospective.hasVoted ? "blue" : "currentColor"}
+                                fill={retrospective.hasVoted ? "blue" : "none"}
+                                className={`${retrospective.animating ? "animate-vote-pulse" : ""}`}
+                              />
+                            </button>
+                          </div>
+                        ) : editingCell &&
+                          editingCell.retroId === retrospective.id &&
+                          editingCell.columnId === column.id ? (
+                          <input
+                            type="text"
+                            value={cellValue}
+                            onChange={handleCellChange}
+                            onBlur={handleCellBlur}
+                            onKeyDown={handleCellKeyDown}
+                            className="w-full p-1 border rounded"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            className="cursor-pointer hover:bg-gray-200 p-1 rounded"
+                            onClick={() => handleCellClick(retrospective.id, column.id, retrospective[column.id])}
+                          >
+                            {retrospective[column.id] || ""}
+                          </div>
+                        )}
+                      </td>
+                    ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-      
+
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-medium mb-3">
-              {editingRetrospective ? 'Edit Feedback' : 'Add New Feedback'}
-            </h3>
+            <h3 className="text-lg font-medium mb-3">{editingRetrospective ? "Edit Feedback" : "Add New Feedback"}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Feedback</label>
@@ -450,7 +972,7 @@ const Retrospectivesmain = () => {
                     type="checkbox"
                     name="repeating"
                     checked={newRetrospective.repeating}
-                    onChange={(e) => setNewRetrospective(prev => ({ ...prev, repeating: e.target.checked }))}
+                    onChange={(e) => setNewRetrospective((prev) => ({ ...prev, repeating: e.target.checked }))}
                     className="mr-2"
                   />
                   Repeating
@@ -458,10 +980,7 @@ const Retrospectivesmain = () => {
               </div>
             </div>
             <div className="mt-4 flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-                onClick={() => setShowAddForm(false)}
-              >
+              <button className="px-4 py-2 border rounded hover:bg-gray-100" onClick={() => setShowAddForm(false)}>
                 Cancel
               </button>
               <button
@@ -469,8 +988,88 @@ const Retrospectivesmain = () => {
                 onClick={editingRetrospective ? handleSaveEdit : handleAddRetrospective}
                 disabled={!newRetrospective.feedback || !newRetrospective.responsible || !newRetrospective.owner}
               >
-                {editingRetrospective ? 'Save Changes' : 'Add Feedback'}
+                {editingRetrospective ? "Save Changes" : "Add Feedback"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Column Management Modal */}
+      {showColumnModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-3">{editingColumn ? "Edit Column" : "Add New Column"}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Column Name</label>
+                <input
+                  type="text"
+                  name="label"
+                  value={newColumnData.label}
+                  onChange={handleColumnInputChange}
+                  className="w-full px-3 py-2 border rounded"
+                  placeholder="Column name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Column Type</label>
+                <select
+                  name="type"
+                  value={newColumnData.type}
+                  onChange={handleColumnInputChange}
+                  className="w-full px-3 py-2 border rounded"
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean (Yes/No)</option>
+                  <option value="type">Type</option>
+                </select>
+              </div>
+              {editingColumn && (
+                <div className="flex items-center">
+                  <label className="text-sm font-medium mr-2">Visible</label>
+                  <input
+                    type="checkbox"
+                    name="visible"
+                    checked={newColumnData.visible !== false}
+                    onChange={handleColumnInputChange}
+                    className="rounded"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex justify-between">
+              {editingColumn && !["checkbox", "feedback", "votes"].includes(editingColumn.id) && (
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => {
+                    handleDeleteColumn(editingColumn.id)
+                    setShowColumnModal(false)
+                  }}
+                >
+                  Delete Column
+                </button>
+              )}
+              <div
+                className={
+                  editingColumn && !["checkbox", "feedback", "votes"].includes(editingColumn.id) ? "" : "ml-auto"
+                }
+              >
+                <button
+                  className="px-4 py-2 border rounded hover:bg-gray-100 mr-2"
+                  onClick={() => setShowColumnModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={handleSaveColumn}
+                  disabled={!newColumnData.label}
+                >
+                  {editingColumn ? "Save Changes" : "Add Column"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -479,13 +1078,27 @@ const Retrospectivesmain = () => {
       {/* Add custom CSS for the vote animation */}
       <style jsx global>{`
         @keyframes votePulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.5); }
+          0%,
+          100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.5);
+          }
         }
         @keyframes voteExplosion {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(2.5); opacity: 0.5; }
-          100% { transform: scale(1); opacity: 1; }
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(2.5);
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
         }
         .animate-vote-pulse {
           animation: votePulse 0.6s ease-in-out;
@@ -495,7 +1108,7 @@ const Retrospectivesmain = () => {
         }
       `}</style>
     </div>
-  );
-};
+  )
+}
 
-export default RetrospectivesPage;
+export default RetrospectivesPage
