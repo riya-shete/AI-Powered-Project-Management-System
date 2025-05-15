@@ -45,7 +45,7 @@ const IssuesPage = () => {
         setLoading(true);
         
         // Log the request details
-        console.log("Making API request to:", `${BASE_URL}/api/bug/`);
+        console.log("Making API request to:", `${BASE_URL}/api/bugs/`);
         console.log("Headers for Bugs Request:", {
           Authorization: `Bearer ${token}`,
           

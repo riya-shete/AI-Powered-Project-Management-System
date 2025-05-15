@@ -691,7 +691,7 @@ def verify_otp(request):
     if serializer.is_valid():
         email = serializer.validated_data['email']
         otp_code = serializer.validated_data['otp_code']
-        
+    
         try:
             otp = OTP.objects.get(
                 email=email,

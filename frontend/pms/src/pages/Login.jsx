@@ -77,17 +77,21 @@ export default function Login() {
           },
         }
       );
-  
+      
       // Extract the token and user details from the response
       const { token, user_id, username, email } = response.data;
-  
+      console.log(response.data);
       // Store the token and user info in localStorage
+      
       localStorage.setItem("token", token);
       localStorage.setItem("user_id", user_id);
       localStorage.setItem("username", username);
       localStorage.setItem("email", email);
-  
+      
       console.log("OTP verified successfully. Token saved:", token);
+      console.log("OTP verified successfully. user_id fetched:", user_id);
+      console.log("OTP verified successfully. username:", username);
+      console.log("OTP verified successfully. user-email:", email);
       alert("Login successful!");
   
       // Set the Authorization header for subsequent API calls
