@@ -62,7 +62,7 @@ const IssuesPage = () => {
 
 
 // Log the raw response data
-        console.log("Raw API response:", response);
+        console.log("Raw API response:", response.data);
         
         // Ensure the response contains JSON data
         if (response.data) {
