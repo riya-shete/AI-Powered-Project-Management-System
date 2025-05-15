@@ -5,7 +5,8 @@ import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 
-
+// Define your API base URL (replace this with your actual base URL)
+const BASE_URL = "http://localhost:8000"; // Replace with your actual backend URL
 
 const Bugs_queue_section = () => {
     return (
@@ -19,16 +20,70 @@ const Bugs_queue_section = () => {
     );
   };
 
-  const IssuesPage = () => {
-    // Sample data based on the image
-    const [issues, setIssues] = useState([
-      { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'In Progress', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
-      { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
-      { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
-      { id: 4, key: 'file', summary: 'recheck the invoice', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
-      { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
-      { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-    ]);
+  // const IssuesPage = () => {
+  //   // Sample data based on the image
+  //   const [issues, setIssues] = useState([
+  //     { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'In Progress', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
+  //     { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
+  //     { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
+  //     { id: 4, key: 'file', summary: 'recheck the invoice', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
+  //     { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
+  //     { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
+  //   ]);
+const IssuesPage = () => {
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  
+  // Fetch bugs from the backend
+  useEffect(() => {
+    const fetchBugs = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        console.log("Token used for fetching projects:", token);
+        setLoading(true);
+        
+        // Log the request details
+        console.log("Making API request to:", `${BASE_URL}/api/bug/`);
+        console.log("Headers for Bugs Request:", {
+          Authorization: `Bearer ${token}`,
+          
+        });
+ 
+    
+        const response = await axios.get("{{base_url}}/api/bugs/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          
+        });
+
+
+// Log the raw response data
+        console.log("Raw API response:", response);
+        
+        // Ensure the response contains JSON data
+        if (response.data) {
+          console.log("Bugs data received:", response.data);
+          setIssues(response.data);
+        } else {
+          console.error("Unexpected response format:", response);
+          setError("Failed to fetch bugs. Please try again.");
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        console.error("Error fetching bugs:", error);
+        console.error("Error details:", error.response ? error.response.data : error.message);
+        setError(error.message || "Failed to fetch bugs.");
+      }
+    };
+    fetchBugs();
+  }, []);
+
     // Modal state declarations
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newIssue, setNewIssue] = useState({
@@ -41,28 +96,37 @@ const Bugs_queue_section = () => {
       type: 'bug',
       dueDate: ''
     });
+
+
     //Adding a state variable to store the list of projects.
     const [projects, setProjects] = useState([]);
     //useEffect to fetch projects List when the component mounts
     useEffect(() => {
       const fetchProjects = async () => {
         try {
-          const response = await axios.get("http://localhost:8000/api/projects/", {
+          const token = localStorage.getItem("token");
+          const response = await axios.get("{{base_url}}/api/projects/", {
             headers: {
               Authorization: `Bearer ${token}`,
-              "X-Project-ID": "3"
+              "project": 1
             }
           });
+
+          console.log("Projects data received:", response.data);
           setProjects(response.data);
         } catch (error) {
           console.error("Error fetching projects:", error);
-          alert("Failed to load projects. Please try again.");
-        }
+        console.error("Error details:", error.response ? error.response.data : error.message);
+        setError("Failed to load projects. Please try again.");
+      }
       };
     
       // Fetch projects when the component mounts
       fetchProjects();
     }, []);
+
+
+
     //colored buttons funtion 
     const getStatusColor = (status) => {
       switch (status) {
@@ -158,10 +222,7 @@ const Bugs_queue_section = () => {
     };
   
 
-    // Hardcoding the access token for tesing
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ1MDM2MzcwLCJpYXQiOjE3NDQ5NDk5NzAsImp0aSI6ImVkZDc2MTNmMjYxYjQ4NTliODE2NTUxMTNhNGViYWVhIiwidXNlcl9pZCI6MX0.zWlwW1oecgXtlSgeK5b5ZZe1JQEzJJb3txREM6JzohI"; 
-    localStorage.setItem("token", token);
-    
+   
     //POST API to add new issue button
     const handleAddIssue = async (e) => {
       e.preventDefault();
@@ -176,15 +237,15 @@ const Bugs_queue_section = () => {
       try {
         // Send the POST request with the Authorization header
         const response = await axios.post(
-          "http://localhost:8000/api/bugs/",
-          newIssue,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "X-Project-ID": "3" // Include any other required headers
-            }
+        `${BASE_URL}/api/bugs/`,
+        newIssue,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Project-ID": newIssue.project // Use the selected project ID
           }
-        );
+        }
+      );
     
         // Log the response from the backend
         console.log("Bug created successfully:", response.data);
@@ -199,17 +260,47 @@ const Bugs_queue_section = () => {
           assignee: "",
           reporter: "",
           status: "To DO",
-          project: 1,
+          project: "",
+          priority: "medium",
           dueDate: ""
         });
         setIsModalOpen(false);
       } catch (error) {
         // Log and display any errors
         console.error("Error creating issue:", error);
-        alert("Failed to create issue. Please try again.");
+      console.error("Error details:", error.response ? error.response.data : error.message);
+      alert("Failed to create issue. Please try again.");
       }
     };
 
+
+    
+  // Show fallback UI when loading
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-600">Loading issues...</p>
+      </div>
+    );
+  }
+
+  // Show error message if there's an error
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p>Error: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
     return (
       <div className="flex-1 overflow-auto w-full h-full">
         <div className="p-4 bg-white">
@@ -443,30 +534,40 @@ const Bugs_queue_section = () => {
                           {/* {issue.type} this displays the type of file in string*/}
                         </div>
                       </td>
+
+                      {/*Key Column*/}
                       <td className="p-3 text-sm">{issue.key}</td>
+
+                      {/*Summary Column*/}
                       <td className="p-3 text-sm">{issue.summary}</td>
+
+                      {/*Assignee Column*/}
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.assignee.charAt(0).toUpperCase()}</div>
-                          <span>{issue.assignee}</span>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.assignee ? issue.assignee.charAt(0).toUpperCase() : 'U'}</div>
+                          <span>{issue.assignee || 'Unassigned'}</span>
                         </div>
                       </td>
+
+                      {/*Reporter Column*/}
                       <td className="p-3 text-sm">
                         <div className="flex items-center space-x-1">
                           <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                          {issue.reporter.charAt(0).toUpperCase()}</div>
-                          <span>{issue.reporter}</span>
+                          {issue.reporter}</div>
+                          <span>{issue.reporter || 'Unknown'}</span>
                         </div>
                       </td>
+
+                      {/*Status Column*/}
                       <td className="p-3 text-sm">
                         <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-normal ${getStatusColor(issue.status)}`}>
                           {issue.status}
                         </span>
                         
                       </td>
-                      <td className="p-3 text-sm">{issue.createdDate}</td>
-                      <td className="p-3 text-sm">{issue.updatedDate}</td>
-                      <td className="p-3 text-sm">{issue.dueDate}</td>
+                      <td className="p-3 text-sm">{issue.createdDate || 'N/A'}</td>
+                      <td className="p-3 text-sm">{issue.updatedDate || 'N/A'}</td>
+                      <td className="p-3 text-sm">{issue.dueDate || 'N/A'}</td>
                       <td className="p-3 text-sm">
                         <div className="flex space-x-2">
                           <button 
