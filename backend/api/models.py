@@ -116,6 +116,14 @@ class Bug(models.Model):
         ('high', 'High'),
         ('critical', 'Critical'),
     )
+
+    TYPE_CHOICES = (
+        ('bug', 'Bug'),
+        ('task', 'Task'),
+        ('feature', 'Feature'),
+        ('wallet','Wallet'),
+        ('warning','Warning'),
+    )
     
     summary = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -129,7 +137,7 @@ class Bug(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateField(null=True, blank=True)
     resolution = models.CharField(max_length=100, blank=True) 
-    # type to be added
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='bug') # Updated type field
     def __str__(self):
         return self.summary
 
