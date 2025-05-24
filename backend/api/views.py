@@ -699,34 +699,35 @@ def verify_otp(request):
                 is_used=False,
                 expires_at__gt=timezone.now()
             )
-            
             try:
                 user = User.objects.get(email=email)
-                
-                # Delete any existing token for this user
-                Token.objects.filter(user=user).delete()
-                
-                # Create a new token
-                token = Token.objects.create(user=user)
-                
-                # Mark OTP as used
-                otp.is_used = True
-                otp.save()
-                
-                # Update user's last activity
-                update_user_activity(user)
-                
-                return Response({
-                    'token': token.key,
-                    'user_id': user.id,
-                    'email': user.email,
-                    'username': user.username
-                })
             except User.DoesNotExist:
-                return Response(
-                    {"error": "No user found with this email address"}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )
+                # Create a new user if not found
+                username = email.split('@')[0]
+                # Ensure username is unique
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                user = User.objects.create(username=username, email=email)
+                user.set_unusable_password()
+                user.save()
+            # Delete any existing token for this user
+            Token.objects.filter(user=user).delete()
+            # Create a new token
+            token = Token.objects.create(user=user)
+            # Mark OTP as used
+            otp.is_used = True
+            otp.save()
+            # Update user's last activity
+            update_user_activity(user)
+            return Response({
+                'token': token.key,
+                'user_id': user.id,
+                'email': user.email,
+                'username': user.username
+            })
         except OTP.DoesNotExist:
             return Response(
                 {"error": "Invalid or expired OTP"}, 
