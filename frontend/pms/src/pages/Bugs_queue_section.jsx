@@ -4,10 +4,7 @@ import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "l
 import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
-import { toast } from 'react-toastify'; // For displaying success/failure messages
 
-// Define your API base URL (replace this with your actual base URL)
-const BASE_URL = "http://localhost:8000"; // Replace with your actual backend URL
 
 const Bugs_queue_section = () => {
   return (
@@ -21,16 +18,6 @@ const Bugs_queue_section = () => {
   )
 }
 
-  // const IssuesPage = () => {
-  //   // Sample data based on the image
-  //   const [issues, setIssues] = useState([
-  //     { id: 1, key: 'wal12', summary: 'Wallet not responding', assignee: 'rachna', reporter: 'Anand', status: 'In Progress', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'wallet' },
-  //     { id: 2, key: 'Acc-2', summary: 'files invalid', assignee: 'puspak', reporter: 'vivek', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'warning' },
-  //     { id: 3, key: 'task', summary: 'new task list', assignee: 'diya', reporter: 'ranalk', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'task' },
-  //     { id: 4, key: 'file', summary: 'recheck the invoice', assignee: 'liya', reporter: 'thor', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'document' },
-  //     { id: 5, key: 'feat', summary: 'need to update this feature ', assignee: 'liya', reporter: 'thor', status: 'Done', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'feature' },
-  //     { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
-  //   ]);
 const IssuesPage = () => {
   const [issues, setIssues] = useState([{ results: [] }]);
   const [loading, setLoading] = useState(true);
@@ -44,15 +31,6 @@ const IssuesPage = () => {
         const token = localStorage.getItem("token");
         console.log("Token used for fetching projects:", token);
         setLoading(true);
-        
-        // Log the request details
-        console.log("Making API request to:", `${BASE_URL}/api/bugs/`);
-        console.log("Headers for Bugs Request:", {
-          Authorization: `Token ${token}`,
-          
-        });
- 
-    
         const response = await axios.get("http://localhost:8000/api/bugs/", {
           headers: {
             Authorization: `Token ${token}`
