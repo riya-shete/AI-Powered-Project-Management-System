@@ -4,6 +4,7 @@ import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "l
 import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
+import { toast } from 'react-toastify'; // For displaying success/failure messages
 
 // Define your API base URL (replace this with your actual base URL)
 const BASE_URL = "http://localhost:8000"; // Replace with your actual backend URL
@@ -31,7 +32,7 @@ const Bugs_queue_section = () => {
   //     { id: 6, key: 'bugg', summary: 'Wallet not responding', assignee: 'kiya', reporter: 'loki', status: 'To DO', createdDate: '2 Mar 2025', updatedDate: '4 Mar 2025', dueDate: '10 Mar 2025', type: 'bug' },
   //   ]);
 const IssuesPage = () => {
-  const [issues, setIssues] = useState([]);
+  const [issues, setIssues] = useState([{ results: [] }]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,27 +48,37 @@ const IssuesPage = () => {
         // Log the request details
         console.log("Making API request to:", `${BASE_URL}/api/bugs/`);
         console.log("Headers for Bugs Request:", {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Token ${token}`,
           
         });
  
     
-        const response = await axios.get("{{base_url}}/api/bugs/", {
+        const response = await axios.get("http://localhost:8000/api/bugs/", {
           headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Token ${token}`
           },
           
         });
 
-
-// Log the raw response data
+        // Log the raw response data
         console.log("Raw API response:", response.data);
+        console.log("Issue Type:", response.data.results[6].type);
         
         // Ensure the response contains JSON data
-        if (response.data) {
-          console.log("Bugs data received:", response.data);
-          setIssues(response.data);
+        if (response.data && response.data.results) {
+          const transformedIssues = response.data.results.map((bug) => ({
+          id: bug.id,
+          key: bug.key || bug.summary, // Use `key` if available; fallback to `summary`
+          summary: bug.summary,
+          assignee: bug.assignee ? bug.assignee.username : "Unassigned", // Extract username or default to "Unassigned"
+          reporter: bug.reporter ? bug.reporter.username : "Unknown", // Extract username or default to "Unknown"
+          status: bug.status.charAt(0).toUpperCase() + bug.status.slice(1), // Format status (e.g., "resolved" → "Resolved")
+          createdDate: formatDate(bug.created_at), // Format date
+          updatedDate: formatDate(bug.updated_at), // Format date
+          dueDate: bug.due_date || "N/A", // Handle missing due date
+          type: bug.type, // Use `project` as `type`
+        }));
+        setIssues({ results: transformedIssues });
         } else {
           console.error("Unexpected response format:", response);
           setError("Failed to fetch bugs. Please try again.");
@@ -84,66 +95,79 @@ const IssuesPage = () => {
     fetchBugs();
   }, []);
 
-    // Modal state declarations
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newIssue, setNewIssue] = useState({
-      key: '',
-      summary: '',
-      assignee: '',
-      reporter: '',
-      status: 'To DO',
-      resolution: 'Not Resolved',
-      type: 'bug',
-      dueDate: ''
-    });
-
-
-    //Adding a state variable to store the list of projects.
-    const [projects, setProjects] = useState([]);
-    //useEffect to fetch projects List when the component mounts
+    // Helper function to format dates
+    function formatDate(dateString) {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const options = { day: "numeric", month: "short", year: "numeric" };
+    return date.toLocaleDateString(undefined, options); // Format as "2 Mar 2025"
+    }
+    // writing this useEffect to extract unique assignees from the fetched data
     useEffect(() => {
-      const fetchProjects = async () => {
-        try {
-          const token = localStorage.getItem("token");
-          const response = await axios.get("{{base_url}}/api/projects/", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "project": 1
-            }
-          });
-
-          console.log("Projects data received:", response.data);
-          setProjects(response.data);
-        } catch (error) {
-          console.error("Error fetching projects:", error);
-        console.error("Error details:", error.response ? error.response.data : error.message);
-        setError("Failed to load projects. Please try again.");
+      if (issues && issues.results) {
+        const uniqueAssignees = [...new Set(
+          issues.results
+            .map(issue => issue.assignee)
+            .filter(assignee => assignee && assignee !== "Unassigned")
+        )];
+        setUniqueAssignees(uniqueAssignees);
       }
-      };
-    
-      // Fetch projects when the component mounts
-      fetchProjects();
-    }, []);
+    }, [issues]);
+
+    //useState to store unique assignees
+    const [uniqueAssignees, setUniqueAssignees] = useState([]);
+
+    //writing this useEffect to extract unique projects and statuses from backend data
+    useEffect(() => {
+      if (issues && issues.results) {
+        // Extract unique projects
+        const projects = [...new Set(
+          issues.results
+            .map(issue => issue.project)
+            .filter(project => project)
+        )];
+        setUniqueProjects(projects);
+
+        // Extract unique statuses
+        const statuses = [...new Set(
+          issues.results
+            .map(issue => issue.status)
+            .filter(status => status)
+        )];
+        setUniqueStatuses(statuses);
+      }
+    }, [issues]);
+    //Two new useState variables for storing unique projects and statuses
+    const [uniqueProjects, setUniqueProjects] = useState([]);
+    const [uniqueStatuses, setUniqueStatuses] = useState([]);
+
 
 
 
     //colored buttons funtion 
     const getStatusColor = (status) => {
       switch (status) {
-        case 'To DO': return 'bg-orange-100 text-orange-700';
-        case 'In Progress': return 'bg-blue-100 text-blue-700';
-        case 'Done': return 'bg-green-100 text-green-700';
+        case 'Not_resolved': return 'bg-orange-100 text-orange-700';
+        case 'In_progress': return 'bg-blue-100 text-blue-700';
+        case 'Resolved': return 'bg-green-100 text-green-700';
         default: return 'bg-gray-100 text-gray-700';
       }
     };
+    
+// // Pagination state
+// const [currentPage, setCurrentPage] = useState(1);
+// const [totalPages, setTotalPages] = useState(1);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const totalPages = 10
+// useEffect(() => {
+//   if (issues.count) {
+//     const totalPages = Math.ceil(issues.count / 10); // Assuming 10 items per page
+//     setTotalPages(totalPages);
+//   }
+// }, [issues.count]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedProject, setSelectedProject] = useState("ronin fintech")
+  const [selectedProject, setSelectedProject] = useState("")
   const [selectedType, setSelectedType] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [selectedAssignee, setSelectedAssignee] = useState("")
@@ -153,7 +177,7 @@ const IssuesPage = () => {
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false)
-
+  
   // Column management state
   const [selectedColumn, setSelectedColumn] = useState(null)
   const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false)
@@ -202,6 +226,7 @@ const IssuesPage = () => {
       }
     }
   }, [projectDropdownOpen, typeDropdownOpen, statusDropdownOpen, assigneeDropdownOpen])
+   
 
   // Add a click handler to close the selected column when clicking outside
   useEffect(() => {
@@ -365,14 +390,15 @@ const IssuesPage = () => {
 
   // Filter states
   const filteredIssues = useMemo(() => {
-    return [...issues].filter((issue) => {
+    const results = Array.isArray(issues.results) ? issues.results : []; 
+    return results.filter((issue) => {
       // Ensure no mutation
       // Search filter (key and summary)
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const keyMatch = issue.key.toLowerCase().includes(query)
         const summaryMatch = issue.summary.toLowerCase().includes(query)
-        if (!keyMatch && !summaryMatch) return false
+        if (!keyMatch && !summaryMatch) return false;
       }
 
       // Other filters (project, type, status, assignee)
@@ -381,8 +407,8 @@ const IssuesPage = () => {
       if (selectedStatus && issue.status !== selectedStatus) return false
       if (selectedAssignee && issue.assignee !== selectedAssignee) return false
 
-      return true
-    })
+      return true;
+    });
   }, [issues, searchQuery, selectedProject, selectedType, selectedStatus, selectedAssignee])
 
   // View mode state
@@ -393,59 +419,192 @@ const IssuesPage = () => {
     console.log("View Mode Changed:", mode) // Debugging output
   }
 
-   
-    //POST API to add new issue button
-    const handleAddIssue = async (e) => {
-      e.preventDefault();
+       // Modal state declarations
+    const [isModalOpen, setIsModalOpen] = useState(false);
+const [currentUser, setCurrentUser] = useState({
+  id: null,
+  username: '',
+  email: ''
+});
+const [newIssue, setNewIssue] = useState({
+  summary: '',
+  assignee: '', // This should be user ID, not username
+  reporter: '', // This should be user ID, not username  
+  status: 'to_do', // Using underscore format as shown in your fetch
+  type: 'bug',
+  project: '1', // Project ID
+  priority: 'medium',
+  due_date: '', // Using underscore format
+  key: '' // If your backend expects this field
+});
+
+  // Fetch current user data from localStorage or API
+useEffect(() => {
+  const fetchCurrentUser = () => {
+    // Get user data from localStorage (stored during login)
+    const userId = localStorage.getItem("user_id");
+    const username = localStorage.getItem("username"); 
+    const userEmail = localStorage.getItem("user-email");
     
-      // Log the data being sent to the backend
-      console.log("New Issue Data Being Sent to Backend:", newIssue);
-    
+    if (userId && username) {
+      setCurrentUser({
+        id: parseInt(userId),
+        username: username,
+        email: userEmail || ''
+      });
       
-      // Retrieve the token from localStorage
-      const token = localStorage.getItem("token");
-    
-      try {
-        // Send the POST request with the Authorization header
-        const response = await axios.post(
-        `${BASE_URL}/api/bugs/`,
-        newIssue,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "X-Project-ID": newIssue.project // Use the selected project ID
-          }
-        }
-      );
-    
-        // Log the response from the backend
-        console.log("Bug created successfully:", response.data);
-    
-        // Add the new bug to the local state
-        setIssues([...issues, response.data]);
-    
-        // Reset the form and close the modal
-        setNewIssue({
-          key: "",
-          summary: "",
-          assignee: "",
-          reporter: "",
-          status: "To DO",
-          project: "",
-          priority: "medium",
-          dueDate: ""
-        });
-        setIsModalOpen(false);
-      } catch (error) {
-        // Log and display any errors
-        console.error("Error creating issue:", error);
-      console.error("Error details:", error.response ? error.response.data : error.message);
-      alert("Failed to create issue. Please try again.");
-      }
+      console.log("Current user loaded:", { id: userId, username, email: userEmail });
+    } else {
+      console.error("User data not found in localStorage");
+    }
+  };
+  
+  fetchCurrentUser();
+}, []);
+
+// Function to open modal and set default values
+const openCreateIssueModal = () => {
+  // Set the logged-in user as both assignee and reporter by default
+  setNewIssue({
+    summary: '',
+    assignee: currentUser.id || '', // Set current user as assignee
+    reporter: currentUser.id || '', // Set current user as reporter
+    status: 'to_do',
+    type: 'bug',
+    project: '1',
+    priority: 'medium',
+    due_date: '',
+    key: ''
+  });
+  setIsModalOpen(true);
+};
+
+// POST API to add new issue
+const handleAddIssue = async (e) => {
+  e.preventDefault();
+
+  // Validate required fields
+  if (!newIssue.summary || !newIssue.project) {
+    alert("Please fill in all required fields (Summary and Project)");
+    return;
+  }
+
+  // Log the data being sent to the backend
+  console.log("New Issue Data Being Sent to Backend:", newIssue);
+
+  // Retrieve the token from localStorage
+  const token = localStorage.getItem("token");
+  
+  if (!token) {
+    alert("Authentication token not found. Please log in again.");
+    return;
+  }
+
+  try {
+    // Prepare the payload - match your backend expected format
+    const payload = {
+      summary: newIssue.summary,
+      type: newIssue.type,
+      status: newIssue.status,
+      priority: newIssue.priority,
+      due_date: newIssue.due_date || null,
+      assignee: parseInt(newIssue.assignee) || currentUser.id, // Use current user if not specified
+      reporter: parseInt(newIssue.reporter) || currentUser.id, // Use current user if not specified
     };
 
+    // Add key if provided
+    if (newIssue.key) {
+      payload.key = newIssue.key;
+    }
 
+    console.log("Final payload being sent:", payload);
+
+    // Send the POST request - use the URL you provided
+    const response = await axios.post(
+      "http://127.0.0.1:8000/admin/api/bug/add/",
+      payload,
+      {
+        headers: {
+          Authorization: `Token ${token}`, // Use Token format as shown in your fetch
+          "Content-Type": "application/json",
+          "X-Project-ID": newIssue.project // Use the selected project ID
+        }
+      }
+    );
+
+    // Log the response from the backend
+    console.log("Bug created successfully:", response.data);
+
+    // Transform the response to match your local state format
+    const transformedBug = {
+      id: response.data.id,
+      key: response.data.key || response.data.summary,
+      summary: response.data.summary,
+      assignee: response.data.assignee ? response.data.assignee.username : "Unassigned",
+      reporter: response.data.reporter ? response.data.reporter.username : "Unknown",
+      status: response.data.status.charAt(0).toUpperCase() + response.data.status.slice(1),
+      createdDate: formatDate(response.data.created_at),
+      updatedDate: formatDate(response.data.updated_at),
+      dueDate: response.data.due_date || "N/A",
+      type: response.data.type,
+    };
+
+    // Add the new bug to the local state
+    if (issues && issues.results) {
+      setIssues({
+        ...issues,
+        results: [...issues.results, transformedBug]
+      });
+    } else {
+      setIssues({ results: [transformedBug] });
+    }
+
+    // Reset the form and close the modal
+    setNewIssue({
+      summary: '',
+      assignee: currentUser.id || '',
+      reporter: currentUser.id || '',
+      status: 'to_do',
+      type: 'bug',
+      project: '',
+      priority: 'medium',
+      due_date: '',
+      key: ''
+    });
     
+    setIsModalOpen(false);
+    alert("Issue created successfully!");
+
+  } catch (error) {
+    // Log and display any errors
+    console.error("Error creating issue:", error);
+    console.error("Error details:", error.response ? error.response.data : error.message);
+    
+    // More specific error handling
+    if (error.response) {
+      // Server responded with error status
+      const statusCode = error.response.status;
+      const errorData = error.response.data;
+      
+      if (statusCode === 401) {
+        alert("Authentication failed. Please log in again.");
+      } else if (statusCode === 400) {
+        alert(`Validation error: ${JSON.stringify(errorData)}`);
+      } else if (statusCode === 403) {
+        alert("Permission denied. You don't have access to create issues.");
+      } else {
+        alert(`Server error (${statusCode}): ${errorData.detail || 'Failed to create issue'}`);
+      }
+    } else if (error.request) {
+      // Network error
+      alert("Network error. Please check your connection and try again.");
+    } else {
+      // Other error
+      alert("Failed to create issue. Please try again.");
+    }
+  }
+};
+ 
   // Show fallback UI when loading
   if (loading) {
     return (
@@ -545,7 +704,7 @@ const IssuesPage = () => {
             <div>
               <button
                 className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
-                onClick={() => setIsModalOpen(true)}
+                onClick={openCreateIssueModal} 
               >
                 New Issue <Plus size={14} className="ml-1" />
               </button>
@@ -568,7 +727,7 @@ const IssuesPage = () => {
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
                 onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
               >
-                <span>Project : {selectedProject}</span>
+                <span>Project{selectedProject ? `: ${selectedProject}` : ""}</span>
                 <ChevronDown size={14} />
               </button>
               {projectDropdownOpen && (
@@ -581,22 +740,25 @@ const IssuesPage = () => {
                         setProjectDropdownOpen(false)
                       }}
                     >
-                      ronin fintech
+                      All Projects
                     </li>
+                    {uniqueProjects.map((project, index) => (
                     <li
+                      key={index}
                       className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       onClick={() => {
-                        setSelectedProject("other project")
+                        setSelectedProject(project)
                         setProjectDropdownOpen(false)
                       }}
                     >
-                      other project
+                      {project}
                     </li>
+                  ))}
                   </ul>
                 </div>
               )}
             </div>
-
+            {/* Type Dropdown */}
             <div className="relative" id="type-dropdown">
               <button
                 className="px-3 py-1 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
@@ -681,49 +843,27 @@ const IssuesPage = () => {
                     >
                       All Statuses
                     </li>
+                    {uniqueStatuses.map((status, index) => (
                     <li
+                      key={index}
                       className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       onClick={() => {
-                        setSelectedStatus("To DO")
+                        setSelectedStatus(status)
                         setStatusDropdownOpen(false)
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700">
-                          To DO
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(status)}`}>
+                          {status}
                         </span>
                       </div>
                     </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedStatus("In Progress")
-                        setStatusDropdownOpen(false)
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">
-                          In Progress
-                        </span>
-                      </div>
-                    </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedStatus("Done")
-                        setStatusDropdownOpen(false)
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                          Done
-                        </span>
-                      </div>
-                    </li>
+                  ))}
                   </ul>
                 </div>
               )}
             </div>
+            {/*Assignee Drodown */}
             <div className="relative" id="assignee-dropdown">
               <button
                 className="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm flex items-center space-x-1"
@@ -745,42 +885,18 @@ const IssuesPage = () => {
                     >
                       All Assignees
                     </li>
+                    {uniqueAssignees.map((assignee, index) => (
                     <li
+                      key={index}
                       className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       onClick={() => {
-                        setSelectedAssignee("Ronin")
+                        setSelectedAssignee(assignee)
                         setAssigneeDropdownOpen(false)
                       }}
                     >
-                      Ronin
+                      {assignee}
                     </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedAssignee("puspak")
-                        setAssigneeDropdownOpen(false)
-                      }}
-                    >
-                      puspak
-                    </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedAssignee("diya")
-                        setAssigneeDropdownOpen(false)
-                      }}
-                    >
-                      diya
-                    </li>
-                    <li
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSelectedAssignee("rachna")
-                        setAssigneeDropdownOpen(false)
-                      }}
-                    >
-                      rachna
-                    </li>
+                  ))}
                   </ul>
                 </div>
               )}
@@ -792,7 +908,7 @@ const IssuesPage = () => {
           </div>
         </div>
           
-          {/* Issues Table */}
+          {/* Issues main Table */}
           <div className="bg-white border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white border-collapse">
@@ -813,6 +929,7 @@ const IssuesPage = () => {
                 <tbody>
                   {filteredIssues.map((issue) => (
                     <tr key={issue.id} className="border-t border-gray-200 hover:bg-blue-50">
+                      
                       <td className="p-2 text-center align-middle">
                         <div className="flex items-center justify-center h-full">
                           {issueTypeIcons[issue.type] || <FileText size={16} className="text-gray-500" />}
@@ -821,52 +938,88 @@ const IssuesPage = () => {
                       </td>
 
                       {/*Key Column*/}
-                      <td className="p-3 text-sm">{issue.key}</td>
+                      <td className="p-3">
+                        <span className="text-sm font-semibold text-gray-800 tracking-wide">
+                          {issue.key}
+                        </span>
+                      </td>
 
                       {/*Summary Column*/}
-                      <td className="p-3 text-sm">{issue.summary}</td>
+                      <td className="p-3">
+                        <span className="text-sm font-medium text-gray-800 leading-relaxed">
+                          {issue.summary}
+                        </span>
+                        
+                      </td>
 
                       {/*Assignee Column*/}
-                      <td className="p-3 text-sm">
+                      <td className="p-3">
                         <div className="flex items-center space-x-1">
-                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">{issue.assignee ? issue.assignee.charAt(0).toUpperCase() : 'U'}</div>
-                          <span>{issue.assignee || 'Unassigned'}</span>
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                            {/*w-6 h-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-xs font-bold text-white shadow-sm"--for gradiaent colored avatar*/}
+                            {issue.assignee ? issue.assignee.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <span className='text-sm font-medium text-gray-700'>
+                            {issue.assignee || 'Unassigned'}
+                          </span>
                         </div>
                       </td>
 
                       {/*Reporter Column*/}
-                      <td className="p-3 text-sm">
-                        <div className="flex items-center space-x-1">
+                      <td className="p-3">
+                        <div className="flex items-center space-x-2">
+                        {/* Avatar */}
+                        {/*w-6 h-6 rounded-full bg-gradient-to-r from-green-400 to-green-600 flex items-center justify-center text-xs font-bold text-white shadow-sm"--for gradiaent colored avatar*/}
                           <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                          {issue.reporter}</div>
-                          <span>{issue.reporter || 'Unknown'}</span>
+                            {issue.reporter && issue.reporter !== 'Unknown' ? issue.reporter.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          {/* Full Username */}
+                          <span className="text-sm font-medium text-gray-700">
+                            {issue.reporter || 'Unknown'}
+                          </span>
                         </div>
                       </td>
 
                       {/*Status Column*/}
                       <td className="p-3 text-sm">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-normal ${getStatusColor(issue.status)}`}>
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(issue.status)}`}>
                           {issue.status}
                         </span>
-                        
                       </td>
-                      <td className="p-3 text-sm">{issue.createdDate || 'N/A'}</td>
-                      <td className="p-3 text-sm">{issue.updatedDate || 'N/A'}</td>
-                      <td className="p-3 text-sm">{issue.dueDate || 'N/A'}</td>
+                      
+                      {/* Date Columns - Consistent styling */}
+                      <td className="p-3">
+                        <span className="text-sm text-gray-600 font-medium">
+                          {issue.createdDate || 'N/A'}
+                        </span>
+                      </td>
+                      
+                      <td className="p-3">
+                        <span className="text-sm text-gray-600 font-medium">
+                          {issue.updatedDate || 'N/A'}
+                        </span>
+                      </td>
+                      
+                      <td className="p-3">
+                        <span className={`text-sm font-medium ${issue.dueDate !== 'N/A' ? 'text-orange-600' : 'text-gray-400'}`}>
+                          {issue.dueDate || 'N/A'}
+                        </span>
+                      </td>
+                      {/* Actions Column */}
                       <td className="p-3 text-sm">
                         <div className="flex space-x-2">
                           <button 
-                            className="text-blue-600 hover:underline text-xs"
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all duration-200"
                             onClick={() => {
                               // You could implement edit functionality here
                               alert(`Edit issue ${issue.id}`);
                             }}
                           >
-                            <Edit2 size={16} />
-                            
+                            <Edit2 size={16} />  
                           </button>
+                          
                           <button 
-                            className="text-red-600 hover:underline text-xs"
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-all duration-200"
                             onClick={() => {
                               // Filter out the deleted issue
                               setIssues(issues.filter(item => item.id !== issue.id));
@@ -887,134 +1040,111 @@ const IssuesPage = () => {
 
         {/* Issue Creation Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Create New Issue</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                  ✕
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Create New Issue</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                ✕
+              </button>
+            </div>
 
-              <form onSubmit={handleAddIssue}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Issue Key</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.key}
-                      onChange={(e) => setNewIssue({ ...newIssue, key: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Issue Type</label>
-                    <select
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.type}
-                      onChange={(e) => setNewIssue({ ...newIssue, type: e.target.value })}
-                    >
-                      <option value="bug">Bug</option>
-                      <option value="task">Task</option>
-                      <option value="feature">Feature</option>
-                      <option value="document">Document</option>
-                      <option value="wallet">Wallet</option>
-                    </select>
-                  </div>
-
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">Summary</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.summary}
-                      onChange={(e) => setNewIssue({ ...newIssue, summary: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Assignee</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.assignee}
-                      onChange={(e) => setNewIssue({ ...newIssue, assignee: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Reporter</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.reporter}
-                      onChange={(e) => setNewIssue({ ...newIssue, reporter: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
-                    <select
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.status}
-                      onChange={(e) => setNewIssue({ ...newIssue, status: e.target.value })}
-                      required
-                    >
-                      <option value="to_do">To DO</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="not_resolved">Not Resolved</option>
-                      <option value="Done">Done</option>
-                    </select>
-                    {/* Display colored status indicator based on selected value */}
-                    <div className="mt-1">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(newIssue.status)}`}
-                      >
-                        {newIssue.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                      value={newIssue.dueDate}
-                      onChange={(e) => setNewIssue({ ...newIssue, dueDate: e.target.value })}
-                    />
-                  </div>
-                </div>
+            <form onSubmit={handleAddIssue}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Project</label>
+                  <label className="block text-sm font-medium mb-1">Issue Key</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={newIssue.key}
+                    onChange={(e) => setNewIssue({ ...newIssue, key: e.target.value })}
+                    placeholder="Auto-generated if empty"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Issue Type</label>
                   <select
                     className="w-full border border-gray-300 rounded p-2 text-sm"
-                    value={newIssue.project}
-                    onChange={(e) => setNewIssue({ ...newIssue, project: e.target.value })}
-                    required
+                    value={newIssue.type}
+                    onChange={(e) => setNewIssue({ ...newIssue, type: e.target.value })}
                   >
-                    {/* Default option */}
-                    <option value="">Select Project</option>
-                    {/* Map over projects to populate options */}
-                    {projects.length > 0 ? (
-                      projects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled value="">
-                        Loading projects...
-                      </option>
-                    )}
+                    <option value="bug">Bug</option>
+                    <option value="task">Task</option>
+                    <option value="feature">Feature</option>
+                    <option value="document">Document</option>
+                    <option value="wallet">Wallet</option>
                   </select>
                 </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Summary *</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={newIssue.summary}
+                    onChange={(e) => setNewIssue({ ...newIssue, summary: e.target.value })}
+                    required
+                    placeholder="Brief description of the issue"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assignee</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-300 rounded p-2 text-sm bg-gray-50"
+                      value={currentUser.username}
+                      readOnly
+                    />
+                    <span className="text-xs text-gray-500">(You)</span>
+                  </div>
+                  <input type="hidden" value={newIssue.assignee} />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Reporter</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      className="flex-1 border border-gray-300 rounded p-2 text-sm bg-gray-50"
+                      value={currentUser.username}
+                      readOnly
+                    />
+                    <span className="text-xs text-gray-500">(You)</span>
+                  </div>
+                  <input type="hidden" value={newIssue.reporter} />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={newIssue.status}
+                    onChange={(e) => setNewIssue({ ...newIssue, status: e.target.value })}
+                    required
+                  >
+                    <option value="to_do">To DO</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="not_resolved">Not Resolved</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={newIssue.due_date}
+                    onChange={(e) => setNewIssue({ ...newIssue, due_date: e.target.value })}
+                  />
+                </div>
+
+
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Priority</label>
                   <select
@@ -1029,23 +1159,24 @@ const IssuesPage = () => {
                     <option value="critical">Critical</option>
                   </select>
                 </div>
+              </div>
 
-                <div className="flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 rounded text-sm"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm">
-                    Create Issue
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded text-sm"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm">
+                  Create Issue
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Column Management Modal */}
         {showColumnModal && (
