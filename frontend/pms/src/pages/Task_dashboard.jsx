@@ -1,10 +1,12 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
-import { useState, useEffect } from "react"
+import axios from "axios"
+
+const BASE_URL = "http://localhost:8000";
 
 const Task_dashboard = () => {
   return (
@@ -25,51 +27,61 @@ const PMSDashboardSprints = () => {
       {
         id: "13455134",
         name: "Task 1",
-        responsible: "Vivek S.",
+        assigned_to: "Vivek S.",
         role: "Bug",
         status: "In Progress",
         priority: "High",
         added: "29 Dec 2024",
-        storyPoints: 5,
+        story_points: 5,
+        description: "Fix critical bug in authentication",
+        due_date: "2024-12-30",
       },
       {
         id: "12451545",
         name: "Task 2",
-        responsible: "Shriraj P.",
+        assigned_to: "Shriraj P.",
         role: "Test",
         status: "Waiting for review",
         priority: "Low",
         added: "24 Dec 2024",
-        storyPoints: 3,
+        story_points: 3,
+        description: "Write unit tests for user module",
+        due_date: "2024-12-25",
       },
     ],
     "sprint 2": [
       {
         id: "19793110",
         name: "task 1",
-        responsible: "Anand S.",
+        assigned_to: "Anand S.",
         role: "Security",
         status: "Done",
         priority: "Medium",
         added: "1 Mar 2025",
-        storyPoints: 2,
+        story_points: 2,
+        description: "Security audit of API endpoints",
+        due_date: "2025-03-05",
       },
     ],
     Backlog: [
       {
         id: "64135315",
         name: "Task 4",
-        responsible: "Riya S.",
+        assigned_to: "Riya S.",
         role: "Bug",
         status: "Ready to start",
         priority: "Low",
         added: "21 Oct 2024",
-        storyPoints: 8,
+        story_points: 8,
+        description: "Fix UI rendering issues",
+        due_date: "2024-10-25",
       },
     ],
   }
 
-  // Initialize sprintData from localStorage if available
+  // State hooks for component
+  const [sprints, setSprints] = useState([]);
+  const [selectedSprintId, setSelectedSprintId] = useState("");
   const [sprintData, setSprintData] = useState(() => {
     const savedData = localStorage.getItem("sprintData")
     return savedData ? JSON.parse(savedData) : initialSprintData
@@ -82,6 +94,9 @@ const PMSDashboardSprints = () => {
   const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
   const [currentView, setCurrentView] = useState("All Sprints")
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false)
   const [newTableInfo, setNewTableInfo] = useState({
     name: "",
@@ -96,15 +111,20 @@ const PMSDashboardSprints = () => {
   })
   const [newSprintName, setNewSprintName] = useState("")
   const [addingToSprint, setAddingToSprint] = useState(null)
+
+  // Updated newTask state with all required fields
   const [newTask, setNewTask] = useState({
     name: "",
-    responsible: "",
+    description: "",
+    assigned_to: "",
     role: "",
     status: "",
     priority: "Medium",
-    storyPoints: "",
+    story_points: "",
+    due_date: "",
     added: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
   })
+
   const [columns, setColumns] = useState(() => {
     const savedColumns = localStorage.getItem("tableColumns")
     return savedColumns
@@ -112,13 +132,14 @@ const PMSDashboardSprints = () => {
       : [
           { id: "checkbox", label: "", type: "checkbox", visible: true, width: "40px", order: 0 },
           { id: "name", label: "Tasks", type: "text", visible: true, width: "2/12", order: 1 },
-          { id: "responsible", label: "Owner", type: "text", visible: true, width: "2/12", order: 2 },
+          { id: "assigned_to", label: "Owner", type: "text", visible: true, width: "2/12", order: 2 },
           { id: "status", label: "Status", type: "status", visible: true, width: "2/12", order: 3 },
           { id: "priority", label: "Priority", type: "priority", visible: true, width: "2/12", order: 4 },
           { id: "role", label: "Type", type: "role", visible: true, width: "2/12", order: 5 },
           { id: "id", label: "Task ID", type: "text", visible: true, width: "1/12", order: 6 },
-          { id: "storyPoints", label: "SP", type: "number", visible: true, width: "1/12", order: 7 },
-          { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 8 },
+          { id: "story_points", label: "SP", type: "number", visible: true, width: "1/12", order: 7 },
+          { id: "due_date", label: "Due Date", type: "date", visible: true, width: "1/12", order: 8 },
+          { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 9 },
         ]
   })
 
@@ -136,6 +157,38 @@ const PMSDashboardSprints = () => {
     const saved = localStorage.getItem("sortConfig")
     return saved ? JSON.parse(saved) : { key: null, direction: "ascending" }
   })
+
+  // Helper function to get sprint ID from sprint name
+  const getSprintId = (sprintName) => {
+    const sprintMapping = {
+      "Sprint 1": 3, // Use actual IDs from your database
+      "sprint 2": 3,
+      "Backlog": 3,
+      "4": 3
+      // Add more sprint mappings as needed
+    };
+
+    const sprintId = sprintMapping[sprintName];
+  if (!sprintId) {
+    console.warn(`No sprint ID mapping found for "${sprintName}", using default: 3`);
+    return 3; // Use a valid sprint ID that exists in your database
+  }
+
+  return sprintId;
+};
+
+  // Helper function to get project ID (you may need to adjust this based on your setup)
+  const getProjectId = () => {
+    // Try to get project ID from localStorage or context
+    const projectId = localStorage.getItem("project_id") || localStorage.getItem("current_project_id")
+    if (projectId) {
+      return Number.parseInt(projectId)
+    }
+
+    // If no project ID is stored, you might need to fetch it or use a default
+    console.warn("No project ID found in localStorage, using default project ID: 1")
+    return 1
+  }
 
   // Function to generate a random ID
   const generateId = () => {
@@ -188,38 +241,143 @@ const PMSDashboardSprints = () => {
     setAddingToSprint(null)
     setNewTask({
       name: "",
-      responsible: "",
+      description: "",
+      assigned_to: "",
       role: "",
       status: "",
       priority: "Medium",
-      storyPoints: "",
+      story_points: "",
+      due_date: "",
       added: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
     })
   }
 
-  // Function to add a new task to a sprint
+  // Add this function before addTaskToSprint
+  const validateTaskData = (taskData) => {
+    const requiredFields = ["name", "description", "project", "sprint"]
+    const missingFields = requiredFields.filter((field) => !taskData[field])
+
+    if (missingFields.length > 0) {
+      console.error("Missing required fields:", missingFields)
+      return false
+    }
+
+    // Check if numeric fields are valid
+    if (taskData.project && isNaN(taskData.project)) {
+      console.error("Project ID must be a number:", taskData.project)
+      return false
+    }
+
+    if (taskData.sprint && isNaN(taskData.sprint)) {
+      console.error("Sprint ID must be a number:", taskData.sprint)
+      return false
+    }
+
+    return true
+  }
+
+  // Updated function to add a new task to a sprint with proper field mapping
   const addTaskToSprint = () => {
-    if (!addingToSprint || !newTask.name) return
+    if (!addingToSprint || !newTask.name) {
+      console.error("Missing sprint name or task name");
+      return;
+    }
 
+    // Generate a unique item_id for the task
+    const itemId = `T${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`;
+    
+    // Use a valid sprint ID from your database
+    const sprintId = getSprintId(addingToSprint);
+    
+    // Make sure these match the backend model fields exactly
     const taskToAdd = {
-      ...newTask,
-      id: generateId(),
+      name: newTask.name || "Task name",
+      description: newTask.description || "Details",
+      project: getProjectId(),  // Use a valid project ID
+      sprint: sprintId, // Use a valid sprint ID (3 if that exists in your DB)
+      assigned_to: Number.parseInt(localStorage.getItem("user_id")) || 1,
+      reporter: Number.parseInt(localStorage.getItem("user_id")) || 1,
+      status: "backlog", // Must match STATUS_CHOICES in Task model
+      priority: "medium", // Must match PRIORITY_CHOICES in Task model
+      due_date: newTask.due_date || new Date().toISOString().split("T")[0],
+      story_points: Number.parseInt(newTask.story_points) || 0,
+      item_id: itemId,
+    };
+    
+    // Validate task data before sending
+    if (!validateTaskData(taskToAdd)) {
+      setError("Invalid task data. Please check all required fields.")
+      return
     }
 
-    // Check if we're adding to a predefined sprint or custom table
-    if (Object.keys(sprintData).includes(addingToSprint)) {
-      // Adding to sprint
-      setSprintData((prevData) => ({
-        ...prevData,
-        [addingToSprint]: [...prevData[addingToSprint], taskToAdd],
-      }))
-    } else {
-      // Adding to custom table
-      setCustomTableTasks((prevData) => ({
-        ...prevData,
-        [addingToSprint]: [...(prevData[addingToSprint] || []), taskToAdd],
-      }))
-    }
+    // Debug logging
+    console.log("=== TASK CREATION DEBUG ===")
+    console.log("Sprint name:", addingToSprint)
+    console.log("Sprint ID:", getSprintId(addingToSprint))
+    console.log("Project ID:", getProjectId())
+    console.log("Task data being sent:", taskToAdd)
+    console.log("Token:", localStorage.getItem("token"))
+    console.log("User ID:", localStorage.getItem("user_id"))
+
+    // Send POST request to create task
+    axios
+      .post("http://localhost:8000/api/tasks/", taskToAdd, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("token") && {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+          }),
+        },
+      })
+      .then((res) => {
+        console.log("Task created successfully:", res.data)
+        // Update local state with the new task from server response
+        setSprintData((prevData) => ({
+          ...prevData,
+          [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
+        }))
+
+        // Update tasks array
+        setTasks((prevTasks) => [...prevTasks, res.data])
+
+        // Clear any previous errors
+        setError(null)
+      })
+      .catch((err) => {
+        console.error("=== TASK CREATION ERROR ===")
+        console.error("Full error object:", err)
+        console.error("Error response:", err.response)
+        console.error("Error response data:", err.response?.data)
+
+        // Log each validation error in detail
+        if (err.response?.data && typeof err.response.data === "object") {
+          console.error("=== DETAILED VALIDATION ERRORS ===")
+          Object.entries(err.response.data).forEach(([field, errors]) => {
+            console.error(`${field}:`, errors)
+          })
+        }
+
+        console.error("Error response status:", err.response?.status)
+        console.error("Error response headers:", err.response?.headers)
+        console.error("Request config:", err.config)
+
+        // Set detailed error message
+        let errorMessage = `Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`
+
+        if (err.response?.data) {
+          if (typeof err.response.data === "object") {
+            // Handle validation errors
+            const validationErrors = Object.entries(err.response.data)
+              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
+              .join("; ")
+            errorMessage += ` - ${validationErrors}`
+          } else {
+            errorMessage += ` - ${err.response.data}`
+          }
+        }
+
+        setError(errorMessage)
+      })
 
     cancelAddingTask()
   }
@@ -227,11 +385,67 @@ const PMSDashboardSprints = () => {
   // Function to delete a task from a sprint
   const deleteTask = (sprintName, taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
-      setSprintData((prevData) => ({
-        ...prevData,
-        [sprintName]: prevData[sprintName].filter((task) => task.id !== taskId),
-      }))
+      // Send DELETE request to remove task
+      axios
+        .delete(`http://localhost:8000/api/tasks/${taskId}/`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(localStorage.getItem("token") && {
+              Authorization: `Token ${localStorage.getItem("token")}`,
+            }),
+          },
+        })
+        .then(() => {
+          // Update local state after successful deletion
+          setSprintData((prevData) => ({
+            ...prevData,
+            [sprintName]: prevData[sprintName].filter((task) => task.id !== taskId),
+          }))
+
+          // Update tasks array
+          setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
+        })
+        .catch((err) => {
+          console.error("Failed to delete task:", err)
+          setError(`Failed to delete task: ${err.response?.status} ${err.response?.statusText || err.message}`)
+        })
     }
+  }
+
+  // Updated function to update a task with proper field mapping
+  const updateTask = (taskId, updatedData, sprintName) => {
+    // Ensure we're sending the correct field names to the backend
+    const backendData = {
+      ...updatedData,
+      project: updatedData.project || getProjectId(),
+      sprint: updatedData.sprint || getSprintId(sprintName),
+      description: updatedData.description || "No description provided",
+      due_date: updatedData.due_date || new Date().toISOString().split("T")[0],
+    }
+
+    axios
+      .put(`http://localhost:8000/api/tasks/${taskId}/`, backendData, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("token") && {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+          }),
+        },
+      })
+      .then((res) => {
+        // Update local state with the updated task
+        setSprintData((prevData) => ({
+          ...prevData,
+          [sprintName]: prevData[sprintName].map((task) => (task.id === taskId ? res.data : task)),
+        }))
+
+        // Update tasks array
+        setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? res.data : task)))
+      })
+      .catch((err) => {
+        console.error("Failed to update task:", err)
+        setError(`Failed to update task: ${err.response?.status} ${err.response?.statusText || err.message}`)
+      })
   }
 
   // Function to handle change in new task form
@@ -250,14 +464,14 @@ const PMSDashboardSprints = () => {
     // Get owners from sprint data
     Object.values(sprintData).forEach((tasks) => {
       tasks.forEach((task) => {
-        if (task.responsible) owners.add(task.responsible)
+        if (task.assigned_to) owners.add(task.assigned_to)
       })
     })
 
     // Get owners from custom tables
     Object.values(customTableTasks).forEach((tasks) => {
       tasks.forEach((task) => {
-        if (task.responsible) owners.add(task.responsible)
+        if (task.assigned_to) owners.add(task.assigned_to)
       })
     })
 
@@ -293,14 +507,14 @@ const PMSDashboardSprints = () => {
         searchTerm === "" ||
         (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (task.id && task.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.responsible && task.responsible.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.assigned_to && task.assigned_to.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.storyPoints && task.storyPoints.toString().includes(searchTerm))
+        (task.story_points && task.story_points.toString().includes(searchTerm))
 
       // Person filter
-      const matchesPerson = selectedPerson === "" || task.responsible === selectedPerson
+      const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson
 
       // Status filter
       const matchesStatus = selectedStatus === "" || task.status === selectedStatus
@@ -407,6 +621,59 @@ const PMSDashboardSprints = () => {
       [sprintName]: !prev[sprintName],
     }))
   }
+
+  // Fetch sprints from backend API
+  useEffect(() => {
+    setLoading(true);
+    
+    // First fetch sprints to populate the dropdown
+    axios.get(`${BASE_URL}/api/sprints/`, {
+      headers: {
+        Authorization: `Token ${localStorage.getItem("token")}`,
+      }
+    })
+    .then(res => {
+      const sprintList = res.data.results || res.data;
+      setSprints(sprintList);
+      console.log("Available sprints:", sprintList);
+      
+      // Then fetch tasks
+      return axios.get(`${BASE_URL}/api/tasks/`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${localStorage.getItem("token")}`,
+        },
+      });
+    })
+    .then((res) => {
+      const taskArray = Array.isArray(res.data) ? res.data : res.data.results;
+      if (!Array.isArray(taskArray)) {
+        throw new Error("API did not return an array of tasks");
+      }
+      
+      const newSprintData = { ...sprintData };
+      taskArray.forEach((task) => {
+        const sprintName = task.sprint || "Backlog";
+        if (!newSprintData[sprintName]) {
+          newSprintData[sprintName] = [];
+          setSprintVisibility((prev) => ({
+            ...prev,
+            [sprintName]: true,
+          }));
+        }
+        newSprintData[sprintName].push(task);
+      });
+      
+      setSprintData(newSprintData);
+      setTasks(taskArray);
+      setLoading(false);
+    })
+    .catch((err) => {
+      console.error("Failed to fetch data:", err);
+      setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`);
+      setLoading(false);
+    });
+  }, []);
 
   // Add this function to the PMSDashboardSprints component to persist data
   useEffect(() => {
@@ -545,14 +812,15 @@ const PMSDashboardSprints = () => {
       return saved
         ? JSON.parse(saved)
         : {
-            name: "25%",
-            responsible: "15%",
+            name: "20%",
+            assigned_to: "15%",
             status: "15%",
-            priority: "15%",
-            role: "15%",
-            id: "10%",
-            storyPoints: "5%",
-            actions: "10%",
+            priority: "10%",
+            role: "10%",
+            id: "8%",
+            story_points: "7%",
+            due_date: "10%",
+            actions: "5%",
           }
     })
     const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -561,12 +829,13 @@ const PMSDashboardSprints = () => {
         ? JSON.parse(saved)
         : {
             name: true,
-            responsible: true,
+            assigned_to: true,
             status: true,
             priority: true,
             role: true,
             id: true,
-            storyPoints: true,
+            story_points: true,
+            due_date: true,
             actions: true,
           }
     })
@@ -676,18 +945,18 @@ const PMSDashboardSprints = () => {
 
       const { taskId, columnId } = editingCell
 
-      // Update the task in the parent component
-      const updatedTasks = tasks.map((task) => {
-        if (task.id === taskId) {
-          return { ...task, [columnId]: editValue }
-        }
-        return task
-      })
+      // Find the task to update
+      const taskToUpdate = tasks.find((task) => task.id === taskId)
+      if (!taskToUpdate) return
 
-      // Update the sprint data in the parent component
-      const updatedSprintData = { ...sprintData }
-      updatedSprintData[sprintName] = updatedTasks
-      setSprintData(updatedSprintData)
+      // Create updated task data
+      const updatedTaskData = {
+        ...taskToUpdate,
+        [columnId]: editValue,
+      }
+
+      // Call the updateTask function to send to API
+      updateTask(taskId, updatedTaskData, sprintName)
 
       setEditingCell(null)
     }
@@ -835,11 +1104,13 @@ const PMSDashboardSprints = () => {
                         />
                         {columnId === "name"
                           ? "Tasks"
-                          : columnId === "responsible"
+                          : columnId === "assigned_to"
                             ? "Owner"
-                            : columnId === "storyPoints"
+                            : columnId === "story_points"
                               ? "SP"
-                              : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
+                              : columnId === "due_date"
+                                ? "Due Date"
+                                : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
                       </label>
                     ))}
                     <div className="border-t mt-2 pt-2">
@@ -898,11 +1169,13 @@ const PMSDashboardSprints = () => {
                               <div className="flex items-center">
                                 {columnId === "name"
                                   ? "Tasks"
-                                  : columnId === "responsible"
+                                  : columnId === "assigned_to"
                                     ? "Owner"
-                                    : columnId === "storyPoints"
+                                    : columnId === "story_points"
                                       ? "SP"
-                                      : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
+                                      : columnId === "due_date"
+                                        ? "Due Date"
+                                        : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
 
                                 {sortConfig.key === columnId && (
                                   <span className="ml-1">{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
@@ -1018,9 +1291,22 @@ const PMSDashboardSprints = () => {
                                       </option>
                                     ))}
                                   </select>
-                                ) : columnId === "storyPoints" ? (
+                                ) : columnId === "story_points" ? (
                                   <input
                                     type="number"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={saveCellEdit}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") saveCellEdit()
+                                      if (e.key === "Escape") cancelCellEdit()
+                                    }}
+                                    className="w-full p-1 border rounded"
+                                    autoFocus
+                                  />
+                                ) : columnId === "due_date" ? (
+                                  <input
+                                    type="date"
                                     value={editValue}
                                     onChange={(e) => setEditValue(e.target.value)}
                                     onBlur={saveCellEdit}
@@ -1048,7 +1334,7 @@ const PMSDashboardSprints = () => {
                                 )
                               ) : (
                                 <div
-                                  className={`truncate max-w-full cursor-pointer hover:bg-gray-200 p-1 rounded ${columnId === "responsible" ? "text-blue-600" : ""}`}
+                                  className={`truncate max-w-full cursor-pointer hover:bg-gray-200 p-1 rounded ${columnId === "assigned_to" ? "text-blue-600" : ""}`}
                                   onClick={() => {
                                     if (columnId !== "id") {
                                       startCellEdit(task.id, columnId, task[columnId])
@@ -1069,6 +1355,12 @@ const PMSDashboardSprints = () => {
                                     <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.role)}`}>
                                       {task.role || "Missing"}
                                     </span>
+                                  ) : columnId === "due_date" ? (
+                                    task.due_date ? (
+                                      new Date(task.due_date).toLocaleDateString()
+                                    ) : (
+                                      "-"
+                                    )
                                   ) : (
                                     task[columnId] || "-"
                                   )}
@@ -1357,6 +1649,18 @@ const PMSDashboardSprints = () => {
 
   return (
     <div className="flex-1 overflow-auto w-full h-full">
+      {loading && (
+        <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+          <div className="text-xl font-medium text-gray-700">Loading tasks...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-8 mb-4">
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      )}
       {/* Header section */}
       <div className="p-4 bg-white">
         {/* Header section */}
@@ -1578,13 +1882,25 @@ const PMSDashboardSprints = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  name="description"
+                  value={newTask.description}
+                  onChange={handleTaskInputChange}
+                  placeholder="Enter task description"
+                  className="w-full px-3 py-2 border rounded-md"
+                  rows="3"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
                   <input
                     type="text"
-                    name="responsible"
-                    value={newTask.responsible}
+                    name="assigned_to"
+                    value={newTask.assigned_to}
                     onChange={handleTaskInputChange}
                     placeholder="Assign owner"
                     className="w-full px-3 py-2 border rounded-md"
@@ -1644,10 +1960,21 @@ const PMSDashboardSprints = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
                   <input
                     type="number"
-                    name="storyPoints"
-                    value={newTask.storyPoints || ""}
+                    name="story_points"
+                    value={newTask.story_points || ""}
                     onChange={handleTaskInputChange}
                     placeholder="SP"
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    name="due_date"
+                    value={newTask.due_date}
+                    onChange={handleTaskInputChange}
                     className="w-full px-3 py-2 border rounded-md"
                   />
                 </div>
