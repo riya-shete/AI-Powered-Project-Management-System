@@ -488,17 +488,21 @@ class InvitationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Invitation.objects.filter(workspace__members=self.request.user)
+        # Modified to show invitations to both sender and receiver (by email)
+        user_email = self.request.user.email
+        return Invitation.objects.filter(
+            Q(workspace__members=self.request.user) |  # User is a workspace member
+            Q(sender=self.request.user) |              # User is the sender
+            Q(email__iexact=user_email)                # User is the receiver
+        ).distinct()
     
     def perform_create(self, serializer):
+        # Save the invitation with the current user as sender
+        # No email notification is sent
         invitation = serializer.save(sender=self.request.user)
-        
-        self.send_invitation_email(invitation)
-        
         return invitation
     
-    def send_invitation_email(self, invitation):
-        print(f"Sending invitation to {invitation.email} for {invitation.workspace.name}")
+    # Removed send_invitation_email method since we don't want email notifications
     
     @action(detail=False, methods=['get'])
     def check(self, request):
