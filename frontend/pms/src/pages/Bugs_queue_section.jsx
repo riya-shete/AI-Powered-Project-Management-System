@@ -4,6 +4,8 @@ import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "l
 import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
+import { useParams } from 'react-router-dom'
+
 
 
 const Bugs_queue_section = () => {
@@ -22,6 +24,7 @@ const IssuesPage = () => {
   const [issues, setIssues] = useState([{ results: [] }]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { projectId } = useParams()
 
   
   // Fetch bugs from the backend
@@ -30,17 +33,22 @@ const IssuesPage = () => {
       try {
         const token = localStorage.getItem("token");
         console.log("Token used for fetching projects:", token);
+        console.log("Project ID from URL:", projectId); // Debug log
         setLoading(true);
         const response = await axios.get("http://localhost:8000/api/bugs/", {
           headers: {
-            Authorization: `Token ${token}`
+            Authorization: `Token ${token}`,
+            'X-Project-ID': projectId || '1'
           },
           
         });
 
         // Log the raw response data
         console.log("Raw API response:", response.data);
-        console.log("Issue Type:", response.data.results[6].type);
+        if (response.data.results.length > 0) {
+          console.log("First Issue Type:", response.data.results[0]?.type);
+        }
+
         
         // Ensure the response contains JSON data
         if (response.data && response.data.results) {
@@ -71,7 +79,7 @@ const IssuesPage = () => {
       }
     };
     fetchBugs();
-  }, []);
+  }, [projectId]);
 
     // Helper function to format dates
     function formatDate(dateString) {

@@ -97,7 +97,7 @@ export default function Login() {
       // Set the Authorization header for subsequent API calls
       axios.defaults.headers.common['Authorization'] = `Token ${token}`;
   
-      // Navigate to the dashboard or home page
+     // Navigate to the dashboard or home page
       navigate("/Dashboard");
       setIsLoading(false);
     } catch (error) {
@@ -109,9 +109,8 @@ export default function Login() {
     const handleSubmit = (e) => {
     e.preventDefault();
     // Login logic here
-    navigate("/Dashboard");
+    navigate("/project/:/dashboard");
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-teal-50 text-gray-900 relative p-6">
       {/* Background decorative elements */}

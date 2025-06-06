@@ -1,5 +1,6 @@
 "use client"
-
+// ADD: Import axios at the top of your file
+import axios from 'axios'
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import {
@@ -24,13 +25,56 @@ const Sidebar = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState([])
-  const [showSearchInput, setShowSearchInput] = useState(false)
+  // API base URL 
+  const BASE_URL = "http://localhost:8000" 
+
+  // ADD: Project state management
+  const [currentProjectId, setCurrentProjectId] = useState(
+    localStorage.getItem('currentProjectId') || '1'
+  )
+
+//state variables
+const [projects, setProjects] = useState([])
+const [workspacesFromAPI, setWorkspacesFromAPI] = useState([])
+const [loading, setLoading] = useState(false)
+const [error, setError] = useState(null)
+
+//Project dialog states
+const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false)
+const [isRenameProjectDialogOpen, setIsRenameProjectDialogOpen] = useState(false)
+const [isDeleteProjectDialogOpen, setIsDeleteProjectDialogOpen] = useState(false)
+const [activeProject, setActiveProject] = useState(null)
+const [newProjectName, setNewProjectName] = useState("")
+const [activeWorkspaceForProject, setActiveWorkspaceForProject] = useState(null);
+
+//Search state
+const [searchQuery, setSearchQuery] = useState("")
+const [searchResults, setSearchResults] = useState([])
+const [showSearchInput, setShowSearchInput] = useState(false)
 
   // Workspace management state
   const [activeWorkspaceMenu, setActiveWorkspaceMenu] = useState(null)
+
+
+//Project expansion state
+const [expandedProjects, setExpandedProjects] = useState(() => {
+  try {
+    const saved = localStorage.getItem("expandedProjects")
+    return saved ? JSON.parse(saved) : {}
+  } catch (error) {
+    console.error("Error loading expandedProjects from localStorage:", error)
+    return {}
+  }
+})
+
+//Save expanded projects to localStorage
+useEffect(() => {
+  try {
+    localStorage.setItem("expandedProjects", JSON.stringify(expandedProjects))
+  } catch (error) {
+    console.error("Error saving expandedProjects to localStorage:", error)
+  }
+}, [expandedProjects])
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -41,33 +85,249 @@ const Sidebar = () => {
   const [dialogTitle, setDialogTitle] = useState("")
   const [dialogAction, setDialogAction] = useState("")
 
-  // Define the standard pages that each workspace should have
-  const getStandardPages = () => [
+  const token = localStorage.getItem("token");
+  console.log("Token used for fetching projects:", token);
+
+  //Workspace CRUD API functions
+  const workspaceAPI = {
+    // GET All Workspaces
+    getAllWorkspaces: async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/workspaces/", {
+          headers: {
+            'Authorization': `Token ${token}`, 
+          }
+        })
+        console.log("fetched workspaces:",response.data)
+        return response.data
+        
+      } catch (error) {
+        console.error('Error fetching workspaces:', error)
+        throw error
+      }
+    },
+
+    // GET Workspace by ID
+    getWorkspaceById: async (workspaceId) => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/workspaces/", {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'X-Object-ID': workspaceId
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error fetching workspace:', error)
+        throw error
+      }
+    },
+
+    // POST Create Workspace (updated)
+  createWorkspace: async (workspaceData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const user_id = localStorage.getItem("user_id");
+      
+      const response = await axios.post(
+        "http://localhost:8000/api/workspaces/", 
+        {
+          name: workspaceData.name,
+          description: workspaceData.description || "New workspace",
+          icon: "workspace_icon", // Default icon
+          owner: parseInt(user_id) // Get owner from localStorage
+        },
+        {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error creating workspace:', error);
+      throw error;
+    }
+  },
+    // PUT Update Workspace
+    updateWorkspace: async (workspaceId, workspaceData) => {
+      try {
+        const response = await axios.put("http://localhost:8000/api/workspaces/", workspaceData, {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+            'X-Object-ID': workspaceId
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error updating workspace:', error)
+        throw error
+      }
+    },
+
+    // DELETE Workspace
+    deleteWorkspace: async (workspaceId) => {
+      try {
+        const response = await axios.delete("http://localhost:8000/api/workspaces/", {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'X-Object-ID': workspaceId
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error deleting workspace:', error)
+        throw error
+      }
+    }
+  }
+
+  //Project CRUD API functions
+  const projectAPI = {
+    // GET All Projects
+    getAllProjects: async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/projects/", {
+          headers: {
+            'Authorization': `Token ${token}`,
+          }
+        })
+        console.log("fetched projects", response.data)
+        
+        return response.data
+      } catch (error) {
+        console.error('Error fetching projects:', error)
+        throw error
+      }
+    },
+
+    // GET Projects by Workspace
+    getProjectsByWorkspace: async (workspaceId) => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/projects/", {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'X-Workspace-ID': workspaceId,
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error fetching projects by workspace:', error)
+        throw error
+      }
+    },
+
+    getProjectById: async (projectId) => {
+    try {
+      const response = await axios.get(`http://localhost:8000/api/projects/${projectId}/`, {
+        headers: {
+          'Authorization': `Token ${token}`,
+        }
+      })
+      
+      const projectData = response.data
+      
+      // Stored projectId in localStorage for global access
+      localStorage.setItem('currentProjectId', projectId)
+      
+      //stored full project data if needed
+      localStorage.setItem('currentProject', JSON.stringify(projectData))
+      
+      return {
+        ...projectData,
+        projectId: projectId
+      }
+      
+    } catch (error) {
+      console.error('Error fetching project:', error)
+      throw error
+    }
+  },
+    // POST Create Project
+    createProject: async (projectData, workspaceId) => {
+      try {
+        const response = await axios.post("http://localhost:8000/api/projects/", projectData, {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+            'X-Workspace-ID': workspaceId,
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error creating project:', error)
+        throw error
+      }
+    },
+
+    // PUT Update Project
+    updateProject: async (projectId, projectData) => {
+      try {
+        const response = await axios.put("http://localhost:8000/api/projects/", projectData, {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+            'X-Object-ID': projectId
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error updating project:', error)
+        throw error
+      }
+    },
+
+    // DELETE Project
+    deleteProject: async (projectId) => {
+      try {
+        const response = await axios.delete("http://localhost:8000/api/projects/", {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'X-Object-ID': projectId
+          }
+        })
+        return response.data
+      } catch (error) {
+        console.error('Error deleting project:', error)
+        throw error
+      }
+    }
+  }
+
+  //getStandardPages function:
+  const getStandardPages = (projectId) => {
+  // Using the passed projectId parameter, fallback to localStorage
+  const actualProjectId = projectId || localStorage.getItem('currentProjectId') || '1'
+  
+  return [
     {
       id: 1,
       name: "PMS",
       iconType: "FolderKanban",
-      path: "/taskdashboard",
+      path: `/project/${actualProjectId}/taskdashboard`,
     },
     {
       id: 2,
       name: "Sprints",
       iconType: "Zap",
-      path: "/sprintspage",
+      path: `/project/${actualProjectId}/sprintspage`,
     },
     {
       id: 3,
       name: "Bugs Queue",
       iconType: "AlertCircle",
-      path: "/bugsqueue",
+      path: `/project/${actualProjectId}/bugsqueue`,
     },
     {
       id: 4,
       name: "Retrospectives",
       iconType: "Clock",
-      path: "/retrospective",
+      path: `/project/${actualProjectId}/retrospective`,
     },
   ]
+}
 
   // Function to render the correct icon based on type
   const renderIcon = (iconType) => {
@@ -85,19 +345,19 @@ const Sidebar = () => {
     }
   }
 
-  // Default workspaces data
-  const defaultWorkspaces = [
-    {
-      id: 1,
-      name: "My Team",
-      icon: "M",
-      color: "blue",
-      isActive: true,
-      pages: getStandardPages(),
-    },
-  ]
+// Default workspaces data
+const defaultWorkspaces = [
+  {
+    id: 1,
+    name: "My Team",
+    icon: "M",
+    color: "blue",
+    isActive: true,
+    
+  },
+]
 
-  // Load state from localStorage or use defaults
+  //Load state from localStorage or use defaults
   const [expandedSections, setExpandedSections] = useState(() => {
     try {
       const saved = localStorage.getItem("expandedSections")
@@ -165,10 +425,10 @@ const Sidebar = () => {
 
   // Track active workspace based on current path
   useEffect(() => {
-    // Find which workspace contains the current path
+    // Finding which workspace contains the current path
     const currentPath = location.pathname
 
-    // Only update active status if we're on a workspace page
+    // update only active status if we're on a workspace page
     const isWorkspacePath = workspaces.some((workspace) => workspace.pages.some((page) => page.path === currentPath))
 
     if (isWorkspacePath) {
@@ -236,7 +496,7 @@ const Sidebar = () => {
     setSearchResults(results)
   }, [searchQuery, workspaces])
 
-  // Close workspace menu when clicking outside
+  // Closing workspace menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Check if the click is outside any workspace menu
@@ -267,44 +527,76 @@ const Sidebar = () => {
       [section]: !prev[section],
     }))
   }
-
+  //Toggle down-up project expansion
+const toggleProject = (projectId) => {
+  setExpandedProjects((prev) => ({
+    ...prev,
+    [projectId]: !prev[projectId],
+  }))
+}
   const handleNavigation = (path) => {
     navigate(path)
-    // Don't close dropdowns when navigating
   }
 
-  const addWorkspace = () => {
-    if (newWorkspaceName.trim()) {
-      const newWorkspace = {
-        id: Date.now(),
+// Updated addWorkspace function
+const addWorkspace = async () => {
+  if (newWorkspaceName.trim()) {
+    setLoading(true);
+    try {
+      // CREATE via API with all required fields
+      const newWorkspaceData = {
         name: newWorkspaceName,
-        icon: newWorkspaceName.charAt(0).toUpperCase(),
+        description: `${newWorkspaceName} workspace`,
+      };
+      
+      const createdWorkspace = await workspaceAPI.createWorkspace(newWorkspaceData);
+      
+      //local state with API response
+      const newWorkspace = {
+        id: createdWorkspace.id,
+        name: createdWorkspace.name,
+        icon: createdWorkspace.name.charAt(0).toUpperCase(),
         color: getRandomColor(),
         isActive: false,
-        pages: getStandardPages(), // Call the function to get fresh pages
-      }
+        pages: getStandardPages(currentProjectId),
+      };
 
-      setWorkspaces([...workspaces, newWorkspace])
-
-      // Automatically expand the new workspace
+      setWorkspaces([...workspaces, newWorkspace]);
+      
+      // Auto-expand the new workspace
       setExpandedSections((prev) => ({
         ...prev,
         [newWorkspace.name]: true,
-      }))
+      }));
 
       // Reset and close dialog
-      setNewWorkspaceName("")
-      setIsCreateDialogOpen(false)
+      setNewWorkspaceName("");
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      setError('Failed to create workspace');
+      console.error('Create workspace error:', error);
+      // Show error to user
+      alert(`Failed to create workspace: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setLoading(false);
     }
   }
+};
 
-  const renameWorkspace = () => {
-    if (newWorkspaceName && newWorkspaceName !== activeWorkspace.name) {
-      // Update workspace name
+//renameWorkspace function - not funtional right now
+const renameWorkspace = async () => {
+  if (newWorkspaceName && newWorkspaceName !== activeWorkspace.name) {
+    setLoading(true)
+    try {
+      // UPDATE via API
+      await workspaceAPI.updateWorkspace(activeWorkspace.id, {
+        name: newWorkspaceName,
+      })
+
+      // Update local state
       const updatedWorkspaces = workspaces.map((w) =>
         w.id === activeWorkspace.id ? { ...w, name: newWorkspaceName } : w,
       )
-
       setWorkspaces(updatedWorkspaces)
 
       // Update expanded sections with new name
@@ -322,15 +614,27 @@ const Sidebar = () => {
         newPinnedWorkspaces[pinnedIndex] = { ...newPinnedWorkspaces[pinnedIndex], name: newWorkspaceName }
         setPinnedWorkspaces(newPinnedWorkspaces)
       }
+    } catch (error) {
+      setError('Failed to rename workspace')
+      console.error('Rename workspace error:', error)
+    } finally {
+      setLoading(false)
     }
-
-    // Reset and close dialog
-    setNewWorkspaceName("")
-    setIsRenameDialogOpen(false)
-    setActiveWorkspace(null)
   }
 
-  const deleteWorkspace = () => {
+  // Reset and close dialog
+  setNewWorkspaceName("")
+  setIsRenameDialogOpen(false)
+  setActiveWorkspace(null)
+}
+
+//deleteWorkspace function
+const deleteWorkspace = async () => {
+  setLoading(true)
+  try {
+    // DELETE via API
+    await workspaceAPI.deleteWorkspace(activeWorkspace.id)
+
     // Remove from pinned if it exists there
     setPinnedWorkspaces(pinnedWorkspaces.filter((pinned) => pinned.id !== activeWorkspace.id))
 
@@ -340,7 +644,128 @@ const Sidebar = () => {
     // Close dialog
     setIsDeleteDialogOpen(false)
     setActiveWorkspace(null)
+  } catch (error) {
+    setError('Failed to delete workspace')
+    console.error('Delete workspace error:', error)
+  } finally {
+    setLoading(false)
   }
+}
+
+//Project management functions
+const addProject = async () => {
+  if (newProjectName.trim() && activeWorkspaceForProject) {
+    setLoading(true);
+    try {
+      const projectData = {
+        name: newProjectName,
+        key: `pjt_${Math.random().toString(36).substring(2, 6)}`, // Generate random key
+        description: `${newProjectName} project`,
+        icon: "project_icon",
+        workspace: activeWorkspaceForProject.id
+      };
+
+      const createdProject = await projectAPI.createProject(projectData, activeWorkspaceForProject.id);
+      
+      // Update projects state
+      setProjects([...projects, {
+        ...createdProject,
+        workspaceId: activeWorkspaceForProject.id
+      }]);
+
+      setNewProjectName("");
+      setIsCreateProjectDialogOpen(false);
+    } catch (error) {
+      setError('Failed to create project');
+      console.error('Create project error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+};
+
+//rename project - not working rn
+const renameProject = async () => {
+  if (newProjectName && newProjectName !== activeProject.name) {
+    setLoading(true)
+    try {
+      await projectAPI.updateProject(activeProject.id, {
+        name: newProjectName,
+      })
+
+      // Update local state
+      setProjects(projects.map(p => 
+        p.id === activeProject.id ? { ...p, name: newProjectName } : p
+      ))
+      
+      setNewProjectName("")
+      setIsRenameProjectDialogOpen(false)
+      setActiveProject(null)
+    } catch (error) {
+      setError('Failed to rename project')
+      console.error('Rename project error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+}
+
+const deleteProject = async () => {
+  setLoading(true)
+  try {
+    await projectAPI.deleteProject(activeProject.id)
+    
+    setProjects(projects.filter(p => p.id !== activeProject.id))
+    
+    setIsDeleteProjectDialogOpen(false)
+    setActiveProject(null)
+  } catch (error) {
+    setError('Failed to delete project')
+    console.error('Delete project error:', error)
+  } finally {
+    setLoading(false)
+  }
+}
+// ADD: Project dialog handlers
+const openCreateProjectDialog = (workspace) => {
+  setActiveWorkspaceForProject(workspace)
+  setNewProjectName("")
+  setIsCreateProjectDialogOpen(true)
+}
+
+const openRenameProjectDialog = (project) => {
+  setActiveProject(project)
+  setNewProjectName(project.name)
+  setIsRenameProjectDialogOpen(true)
+}
+
+const openDeleteProjectDialog = (project) => {
+  setActiveProject(project)
+  setIsDeleteProjectDialogOpen(true)
+}
+//Loading data on component mount
+useEffect(() => {
+  const loadInitialData = async () => {
+    setLoading(true)
+    try {
+      // Load workspaces and projects from API
+      const [workspacesData, projectsData] = await Promise.all([
+        workspaceAPI.getAllWorkspaces(),
+        projectAPI.getAllProjects()
+      ])
+      
+      setWorkspacesFromAPI(workspacesData)
+      setProjects(projectsData)
+    } catch (error) {
+      setError('Failed to load data')
+      console.error('Load data error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  loadInitialData()
+}, [])
 
   const togglePin = (workspace, e) => {
     e.stopPropagation()
@@ -413,7 +838,7 @@ const Sidebar = () => {
     // Navigate to the page
     handleNavigation(result.path)
 
-    // If it's a workspace page, set the workspace as active
+    // If it's a workspace page the workspace will be set as as active
     if (result.type === "page" && result.workspace) {
       setActiveWorkspaceForNav(result.workspace.id)
 
@@ -425,8 +850,6 @@ const Sidebar = () => {
     } else if (result.type === "workspace") {
       setActiveWorkspaceForNav(result.id)
     }
-
-    // Close the search
     closeSearch()
   }
 
@@ -486,7 +909,7 @@ const Sidebar = () => {
     setIsDeleteDialogOpen(true)
   }
 
-  // Render workspace pages with proper state handling
+// trying to_render workspace pages with proper state handling
   const renderWorkspacePages = (workspace) => {
     return (
       <div className="pl-8 pr-4 py-2 bg-gray-50 space-y-2">
@@ -558,18 +981,55 @@ const Sidebar = () => {
       </div>
     )
   }
+//reender project menu
+const renderProjectMenu = (project, workspaceId) => {
+  const menuId = `project-${project.id}`
+  if (activeWorkspaceMenu !== menuId) return null
 
-  // Render a reusable dialog component
-  const renderDialog = ({
-    isOpen,
-    title,
-    action,
-    showInput = true,
-    onConfirm,
-    confirmText,
-    confirmClass = "bg-blue-600 hover:bg-blue-700",
-  }) => {
-    if (!isOpen) return null
+  return (
+    <div
+      className="absolute right-0 top-full mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10 py-1 workspace-menu-container"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+        onClick={(e) => {
+          e.stopPropagation()
+          openRenameProjectDialog(project)
+          setActiveWorkspaceMenu(null)
+        }}
+      >
+        <Pencil className="w-4 h-4 mr-2" />
+        Rename
+      </button>
+
+      <button
+        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+        onClick={(e) => {
+          e.stopPropagation()
+          openDeleteProjectDialog(project)
+          setActiveWorkspaceMenu(null)
+        }}
+      >
+        <Trash2 className="w-4 h-4 mr-2" />
+        Delete
+      </button>
+    </div>
+  )
+}
+// Enhanced dialog component with description field
+const renderDialog = ({
+  isOpen,
+  title,
+  action,
+  showInput = true,
+  onConfirm,
+  confirmText,
+  confirmClass = "bg-blue-600 hover:bg-blue-700",
+}) => {
+  const [description, setDescription] = useState("");
+
+  if (!isOpen) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 dialog-overlay">
@@ -579,7 +1039,11 @@ const Sidebar = () => {
           </div>
 
           {showInput && (
-            <div className="p-6">
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Workspace Name
+              </label>
               <input
                 type="text"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -590,7 +1054,20 @@ const Sidebar = () => {
                 autoFocus
               />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description (optional)
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter workspace description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+        )}
 
           {!showInput && (
             <div className="p-6">
@@ -817,110 +1294,315 @@ const Sidebar = () => {
           </div>
         )}
 
-        {expandedSections["Workspaces"] && (
-          <div className="pl-4 pr-4 py-2 bg-gray-50 space-y-2">
-            {workspaces.map((workspace) => (
-              <div key={workspace.id} className="relative">
-                <div
-                  className={`flex items-center justify-between p-3 rounded-md ${workspace.isActive ? `${getBgColorClass(workspace.color)} border-l-4` : "hover:bg-gray-100"} transition-all duration-200 cursor-pointer`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setActiveWorkspaceForNav(workspace.id)
+  {expandedSections["Workspaces"] && (
+  <div className="pl-4 pr-4 py-2 bg-gray-50 space-y-2">
+    {workspaces.map((workspace) => (
+      <div key={workspace.id} className="relative">
+        <div
+          className={`flex items-center justify-between p-3 rounded-md ${workspace.isActive ? `${getBgColorClass(workspace.color)} border-l-4` : "hover:bg-gray-100"} transition-all duration-200 cursor-pointer`}
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleSection(workspace.name)
+            // Store the workspace/project ID when clicked
+            localStorage.setItem('currentProjectId', workspace.id.toString())
+            
+            // Set active workspace
+            setActiveWorkspaceForNav(workspace.id)
+            const standardPages = getStandardPages()
+            if (standardPages && standardPages.length > 0) {
+              console.log('Navigating to:', standardPages[0].path)
+              handleNavigation(standardPages[0].path)
+            }
+          }}
+        >
+          <div className="flex items-center">
+            <div
+              className={`w-6 h-6 ${getColorClass(workspace.color)} rounded-md flex items-center justify-center text-white font-medium text-xs mr-3 shadow-sm`}
+            >
+              {workspace.icon}
+            </div>
+            <span
+              className={`font-medium ${workspace.isActive ? getTextColorClass(workspace.color) : "text-gray-700"}`}
+            >
+              {workspace.name}
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              className={`p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors duration-200`}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleSection(workspace.name)
+              }}
+            >
+              <ChevronDown
+                className={`w-4 h-4 transform transition-transform duration-200 ${expandedSections[workspace.name] ? "rotate-180" : ""}`}
+              />
+            </button>
+            <button
+              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-200 rounded transition-colors duration-200 relative workspace-menu-container"
+              onClick={(e) => toggleWorkspaceMenu(e, workspace.id, "workspace")}
+            >
+              <Settings className="w-4 h-4" />
+              {renderWorkspaceMenu(workspace, "workspace")}
+            </button>
+          </div>
+        </div>
+        
 
-                    // Navigate to first page of workspace when clicking on workspace
-                    if (workspace.pages && workspace.pages.length > 0) {
-                      handleNavigation(workspace.pages[0].path)
-                    }
-                  }}
-                >
-                  <div className="flex items-center">
-                    <div
-                      className={`w-6 h-6 ${getColorClass(workspace.color)} rounded-md flex items-center justify-center text-white font-medium text-xs mr-3 shadow-sm`}
-                    >
-                      {workspace.icon}
+        {/* Render projects under this workspace when expanded */}
+        {expandedSections[workspace.name] && (
+          <div className="ml-6 mt-2 space-y-1">
+            {Array.isArray(projects.results) &&
+              projects.results
+                .filter(project => project.workspace === workspace.id)
+              .map((project) => (
+                <div key={project.id} className="relative">
+                  <div
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors duration-200 group"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      localStorage.setItem('currentProjectId', project.id.toString())
+                      setCurrentProjectId(project.id.toString())
+                      toggleProject(project.id)
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-5 h-5 bg-green-500 rounded-md flex items-center justify-center text-white font-medium text-xs mr-2">
+                        P
+                      </div>
+                      <span className="text-sm text-gray-700 group-hover:text-gray-900 font-medium">
+                        {project.name}
+                      </span>
                     </div>
-                    <span
-                      className={`font-medium ${workspace.isActive ? getTextColorClass(workspace.color) : "text-gray-700"}`}
-                    >
-                      {workspace.name}
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleProject(project.id)
+                        }}
+                      >
+                        <ChevronDown
+                          className={`w-3 h-3 transform transition-transform duration-200 ${expandedProjects[project.id] ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      <button
+                        className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors duration-200 relative workspace-menu-container"
+                        onClick={(e) => toggleWorkspaceMenu(e, project.id, "project")}
+                      >
+                        <Settings className="w-3 h-3" />
+                        {renderProjectMenu(project, workspace.id)}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      className={`p-1 text-gray-500 hover:bg-gray-200 rounded transition-colors duration-200`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleSection(workspace.name)
-                      }}
-                    >
-                      <ChevronDown
-                        className={`w-4 h-4 transform transition-transform duration-200 ${expandedSections[workspace.name] ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    <button
-                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-200 rounded transition-colors duration-200 relative workspace-menu-container"
-                      onClick={(e) => toggleWorkspaceMenu(e, workspace.id, "workspace")}
-                    >
-                      <Settings className="w-4 h-4" />
-                      {renderWorkspaceMenu(workspace, "workspace")}
-                    </button>
-                  </div>
-                </div>
 
-                {/* Workspace content - show when expanded */}
-                {expandedSections[workspace.name] && renderWorkspacePages(workspace)}
+                  {/* Render project pages when expanded */}
+                  {expandedProjects[project.id] && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {getStandardPages(project.id).map((page) => (
+                        <div
+                          key={page.id}
+                          className={`flex items-center p-2 rounded-md cursor-pointer transition-colors duration-200 group ${
+                            location.pathname === page.path 
+                              ? "bg-blue-50 text-blue-600 border-l-2 border-blue-500" 
+                              : "hover:bg-gray-50"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            localStorage.setItem('currentProjectId', project.id.toString())
+                            setCurrentProjectId(project.id.toString())
+                            handleNavigation(page.path)
+                          }}
+                        >
+                          {renderIcon(page.iconType)}
+                          <span className="text-xs text-gray-600 group-hover:text-gray-900">
+                            {page.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+            {Array.isArray(projects.results) && projects.results.filter(project => project.workspace === workspace.id).length === 0 && (
+              <div className="ml-6 text-xs text-gray-500 italic py-2">
+                No projects in this workspace
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
+    ))}
+  </div>
+)}
+</div>
 
-      <div className="mt-auto p-4 border-t border-gray-200">
+
+<div className="mt-auto p-4 border-t border-gray-200">
+  <button
+    onClick={() => {
+      if (window.confirm("Are you sure you want to log out?")) {
+        handleNavigation("/Login")
+      }
+    }}
+    className="w-full flex items-center justify-center gap-2 rounded-lg shadow-sm bg-blue-500 text-white py-2 px-4 hover:bg-red-600 transition font-medium"
+  >
+    <LogOut className="w-5 h-5" />
+    <span>Log out</span>
+  </button>
+</div>
+
+
+{renderDialog({
+  isOpen: isCreateDialogOpen,
+  title: "Create New Workspace",
+  action: "Create",
+  showInput: true,
+  onConfirm: addWorkspace,
+  confirmText: loading ? "Creating..." : "Create",
+  confirmClass: loading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700",
+})}
+
+{/* Rename Workspace Dialog */}
+{renderDialog({
+  isOpen: isRenameDialogOpen,
+  title: "Rename Workspace",
+  action: "Rename",
+  showInput: true,
+  onConfirm: renameWorkspace,
+  confirmText: "Rename",
+})}
+
+{/* Delete Workspace Dialog */}
+{renderDialog({
+  isOpen: isDeleteDialogOpen,
+  title: "Delete Workspace",
+  action: "Delete",
+  showInput: false,
+  onConfirm: deleteWorkspace,
+  confirmText: "Delete",
+  confirmClass: "bg-red-600 hover:bg-red-700",
+})}
+{/* ADD: Project Dialogs */}
+{/* Create Project Dialog */}
+{isCreateProjectDialogOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 dialog-overlay">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">Create New Project</h3>
+      </div>
+      <div className="p-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Project Name
+          </label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter project name"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            autoFocus
+          />
+        </div>
+      </div>
+      <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
         <button
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
           onClick={() => {
-            if (window.confirm("Are you sure you want to log out?")) {
-              handleNavigation("/Login")
-            }
+            setIsCreateProjectDialogOpen(false)
+            setActiveWorkspaceForProject(null)
+            setNewProjectName("")
           }}
-          className="w-full flex items-center justify-center gap-2 rounded-lg shadow-sm bg-blue-500 text-white py-2 px-4 hover:bg-red-600 transition font-medium"
         >
-          <LogOut className="w-5 h-5" />
-          <span>Log out</span>
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md text-sm font-medium text-white"
+          onClick={addProject}
+          disabled={loading}
+        >
+          {loading ? "Creating..." : "Create"}
         </button>
       </div>
-
-      {/* Create Workspace Dialog */}
-      {renderDialog({
-        isOpen: isCreateDialogOpen,
-        title: "Create New Workspace",
-        action: "Create",
-        showInput: true,
-        onConfirm: addWorkspace,
-        confirmText: "Create",
-      })}
-
-      {/* Rename Workspace Dialog */}
-      {renderDialog({
-        isOpen: isRenameDialogOpen,
-        title: "Rename Workspace",
-        action: "Rename",
-        showInput: true,
-        onConfirm: renameWorkspace,
-        confirmText: "Rename",
-      })}
-
-      {/* Delete Workspace Dialog */}
-      {renderDialog({
-        isOpen: isDeleteDialogOpen,
-        title: "Delete Workspace",
-        action: "Delete",
-        showInput: false,
-        onConfirm: deleteWorkspace,
-        confirmText: "Delete",
-        confirmClass: "bg-red-600 hover:bg-red-700",
-      })}
     </div>
-  )
+  </div>
+)}
+
+{/* Rename Project Dialog */}
+{isRenameProjectDialogOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 dialog-overlay">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">Rename Project</h3>
+      </div>
+      <div className="p-6">
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={newProjectName}
+          onChange={(e) => setNewProjectName(e.target.value)}
+          autoFocus
+        />
+      </div>
+      <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+        <button
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          onClick={() => {
+            setIsRenameProjectDialogOpen(false)
+            setActiveProject(null)
+            setNewProjectName("")
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md text-sm font-medium text-white"
+          onClick={renameProject}
+        >
+          Rename
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Delete Project Dialog */}
+{isDeleteProjectDialogOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 dialog-overlay">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">Delete Project</h3>
+      </div>
+      <div className="p-6">
+        <p className="text-gray-700">
+          Are you sure you want to delete "{activeProject?.name}"? This action cannot be undone.
+        </p>
+      </div>
+      <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+        <button
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          onClick={() => {
+            setIsDeleteProjectDialogOpen(false)
+            setActiveProject(null)
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 border border-transparent rounded-md text-sm font-medium text-white"
+          onClick={deleteProject}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+</div>
+)
 }
 
 export default Sidebar

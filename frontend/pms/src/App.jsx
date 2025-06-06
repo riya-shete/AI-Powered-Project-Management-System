@@ -39,10 +39,13 @@ function App() {
           <Route path="/Integrations" element={<Integrations/>} />
           <Route path="/TaskBoardColumns" element={<TaskBoardColumns/>} />
           <Route path="/dashboard" element={<Dashboard/>} />
-          <Route path="/sprintspage" element={<SprintsPage/>} />
-          <Route path="/taskdashboard" element={<Task_dashboard/>} />
-          <Route path="/bugsqueue" element={<Bugs_queue_section/>} />
-          <Route path="/retrospective" element={<RetrospectiveComponent/>} />
+          {/* Project-specific routes */}
+          
+          <Route path="/project/:projectId/bugsqueue" element={<Bugs_queue_section/>} />
+          <Route path="/project/:projectId/sprintspage" element={<SprintsPage/>} />
+          <Route path="/project/:projectId/retrospective" element={<RetrospectiveComponent/>} />
+          <Route path="/project/:projectId/taskdashboard" element={<Task_dashboard/>} />
+
           <Route path="/notification" element={<NotificationsDemo/>}/>
           <Route path="/feed" element = {<Feed/>}/>
           <Route path="/profile" element = {<Profile/>}/>
