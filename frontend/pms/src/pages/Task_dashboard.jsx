@@ -1,10 +1,12 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from "lucide-react"
+import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit, Laptop } from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
+import { useParams } from 'react-router-dom'
+
 
 const BASE_URL = "http://localhost:8000";
 
@@ -21,63 +23,65 @@ const Task_dashboard = () => {
 }
 
 const PMSDashboardSprints = () => {
+  const { projectId } = useParams()
+  const [sprintId, setSprintId] = useState(null);
   // Initial sprint data
-  const initialSprintData = {
-    "Sprint 1": [
-      {
-        id: "13455134",
-        name: "Task 1",
-        assigned_to: "Vivek S.",
-        role: "Bug",
-        status: "In Progress",
-        priority: "High",
-        added: "29 Dec 2024",
-        story_points: 5,
-        description: "Fix critical bug in authentication",
-        due_date: "2024-12-30",
-      },
-      {
-        id: "12451545",
-        name: "Task 2",
-        assigned_to: "Shriraj P.",
-        role: "Test",
-        status: "Waiting for review",
-        priority: "Low",
-        added: "24 Dec 2024",
-        story_points: 3,
-        description: "Write unit tests for user module",
-        due_date: "2024-12-25",
-      },
-    ],
-    "sprint 2": [
-      {
-        id: "19793110",
-        name: "task 1",
-        assigned_to: "Anand S.",
-        role: "Security",
-        status: "Done",
-        priority: "Medium",
-        added: "1 Mar 2025",
-        story_points: 2,
-        description: "Security audit of API endpoints",
-        due_date: "2025-03-05",
-      },
-    ],
-    Backlog: [
-      {
-        id: "64135315",
-        name: "Task 4",
-        assigned_to: "Riya S.",
-        role: "Bug",
-        status: "Ready to start",
-        priority: "Low",
-        added: "21 Oct 2024",
-        story_points: 8,
-        description: "Fix UI rendering issues",
-        due_date: "2024-10-25",
-      },
-    ],
-  }
+  // const initialSprintData = {
+  //   "Sprint 1": [
+  //     {
+  //       id: "13455134",
+  //       name: "Task 1",
+  //       assigned_to: "Vivek S.",
+  //       role: "Bug",
+  //       status: "In Progress",
+  //       priority: "High",
+  //       added: "29 Dec 2024",
+  //       story_points: 5,
+  //       description: "Fix critical bug in authentication",
+  //       due_date: "2024-12-30",
+  //     },
+  //     {
+  //       id: "12451545",
+  //       name: "Task 2",
+  //       assigned_to: "Shriraj P.",
+  //       role: "Test",
+  //       status: "Waiting for review",
+  //       priority: "Low",
+  //       added: "24 Dec 2024",
+  //       story_points: 3,
+  //       description: "Write unit tests for user module",
+  //       due_date: "2024-12-25",
+  //     },
+  //   ],
+  //   "sprint 2": [
+  //     {
+  //       id: "19793110",
+  //       name: "task 1",
+  //       assigned_to: "Anand S.",
+  //       role: "Security",
+  //       status: "Done",
+  //       priority: "Medium",
+  //       added: "1 Mar 2025",
+  //       story_points: 2,
+  //       description: "Security audit of API endpoints",
+  //       due_date: "2025-03-05",
+  //     },
+  //   ],
+  //   Backlog: [
+  //     {
+  //       id: "64135315",
+  //       name: "Task 4",
+  //       assigned_to: "Riya S.",
+  //       role: "Bug",
+  //       status: "Ready to start",
+  //       priority: "Low",
+  //       added: "21 Oct 2024",
+  //       story_points: 8,
+  //       description: "Fix UI rendering issues",
+  //       due_date: "2024-10-25",
+  //     },
+  //   ],
+  // }
 
   // State hooks for component
   const [sprints, setSprints] = useState([]);
@@ -158,6 +162,21 @@ const PMSDashboardSprints = () => {
     return saved ? JSON.parse(saved) : { key: null, direction: "ascending" }
   })
 
+  console.log("printing project id",projectId)
+  // Helper function to get project ID (you may need to adjust this based on your setup)
+  // const getProjectId = () => {
+  //   // Try to get project ID from localStorage or context
+  //   const projectId = localStorage.getItem("project_id") || localStorage.getItem("current_project_id")
+  //   if (projectId) {
+  //     return Number.parseInt(projectId)
+  //   }
+
+  //   // If no project ID is stored, you might need to fetch it or use a default
+  //   console.warn("No project ID found in localStorage, using default project ID: 1")
+  //   return 1
+  // }
+
+  //do this dynamically itsfetching staticaly
   // Helper function to get sprint ID from sprint name
   const getSprintId = (sprintName) => {
     const sprintMapping = {
@@ -176,19 +195,6 @@ const PMSDashboardSprints = () => {
 
   return sprintId;
 };
-
-  // Helper function to get project ID (you may need to adjust this based on your setup)
-  const getProjectId = () => {
-    // Try to get project ID from localStorage or context
-    const projectId = localStorage.getItem("project_id") || localStorage.getItem("current_project_id")
-    if (projectId) {
-      return Number.parseInt(projectId)
-    }
-
-    // If no project ID is stored, you might need to fetch it or use a default
-    console.warn("No project ID found in localStorage, using default project ID: 1")
-    return 1
-  }
 
   // Function to generate a random ID
   const generateId = () => {
@@ -622,58 +628,71 @@ const PMSDashboardSprints = () => {
     }))
   }
 
-  // Fetch sprints from backend API
   useEffect(() => {
-    setLoading(true);
-    
-    // First fetch sprints to populate the dropdown
-    axios.get(`${BASE_URL}/api/sprints/`, {
+  setLoading(true);
+
+  let sprintList = [];
+
+  // First fetch sprints to populate the dropdown
+  axios.get(`${BASE_URL}/api/sprints/`, {
+    headers: {
+      Authorization: `Token ${localStorage.getItem("token")}`,
+    }
+  })
+  .then(res => {
+    sprintList = res.data.results || res.data;
+    setSprints(sprintList);
+    console.log("Available sprints:", sprintList);
+
+    // Then fetch tasks
+    return axios.get(`${BASE_URL}/api/tasks/`, {
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Token ${localStorage.getItem("token")}`,
-      }
-    })
-    .then(res => {
-      const sprintList = res.data.results || res.data;
-      setSprints(sprintList);
-      console.log("Available sprints:", sprintList);
-      
-      // Then fetch tasks
-      return axios.get(`${BASE_URL}/api/tasks/`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${localStorage.getItem("token")}`,
-        },
-      });
-    })
-    .then((res) => {
-      const taskArray = Array.isArray(res.data) ? res.data : res.data.results;
-      if (!Array.isArray(taskArray)) {
-        throw new Error("API did not return an array of tasks");
-      }
-      
-      const newSprintData = { ...sprintData };
-      taskArray.forEach((task) => {
-        const sprintName = task.sprint || "Backlog";
-        if (!newSprintData[sprintName]) {
-          newSprintData[sprintName] = [];
-          setSprintVisibility((prev) => ({
-            ...prev,
-            [sprintName]: true,
-          }));
-        }
-        newSprintData[sprintName].push(task);
-      });
-      
-      setSprintData(newSprintData);
-      setTasks(taskArray);
-      setLoading(false);
-    })
-    .catch((err) => {
-      console.error("Failed to fetch data:", err);
-      setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`);
-      setLoading(false);
+      },
     });
-  }, []);
+  })
+  .then((res) => {
+    const taskArray = Array.isArray(res.data) ? res.data : res.data.results;
+    if (!Array.isArray(taskArray)) {
+      throw new Error("API did not return an array of tasks");
+    }
+
+    const newSprintData = { ...sprintData };
+    taskArray.forEach((task) => {
+      const sprintName = task.sprint || "Backlog";
+
+      // ✅ Get corresponding sprint ID dynamically from fetched sprints
+      const matchingSprint = sprintList.find(
+        (s) => s.name.toLowerCase() === sprintName.toLowerCase()
+      );
+      const sprintId = matchingSprint?.id || 3; // Fallback to default ID 3
+
+      if (!newSprintData[sprintName]) {
+        newSprintData[sprintName] = [];
+        setSprintVisibility((prev) => ({
+          ...prev,
+          [sprintName]: true,
+        }));
+      }
+
+      // You can attach sprintId to the task if needed
+      task.sprintId = sprintId;
+
+      newSprintData[sprintName].push(task);
+    });
+
+    setSprintData(newSprintData);
+    setTasks(taskArray);
+    setLoading(false);
+  })
+  .catch((err) => {
+    console.error("Failed to fetch data:", err);
+    setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`);
+    setLoading(false);
+  });
+}, []);
+
 
   // Add this function to the PMSDashboardSprints component to persist data
   useEffect(() => {
