@@ -38,9 +38,9 @@ function App() {
           <Route path="/SprintTasks" element={<SprintTasks />} />
           <Route path="/Integrations" element={<Integrations/>} />
           <Route path="/TaskBoardColumns" element={<TaskBoardColumns/>} />
-          
+          <Route path="/dashboard" element={<Dashboard/>} />
           {/* Project-specific routes */}
-          <Route path="/project/:projectId/dashboard" element={<Dashboard/>} />
+          
           <Route path="/project/:projectId/bugsqueue" element={<Bugs_queue_section/>} />
           <Route path="/project/:projectId/sprintspage" element={<SprintsPage/>} />
           <Route path="/project/:projectId/retrospective" element={<RetrospectiveComponent/>} />
