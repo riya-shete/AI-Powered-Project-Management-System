@@ -488,7 +488,6 @@ class InvitationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # Modified to show invitations to both sender and receiver (by email)
         user_email = self.request.user.email
         return Invitation.objects.filter(
             Q(workspace__members=self.request.user) |  # User is a workspace member
@@ -497,12 +496,9 @@ class InvitationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         ).distinct()
     
     def perform_create(self, serializer):
-        # Save the invitation with the current user as sender
-        # No email notification is sent
         invitation = serializer.save(sender=self.request.user)
         return invitation
     
-    # Removed send_invitation_email method since we don't want email notifications
     
     @action(detail=False, methods=['get'])
     def check(self, request):
@@ -654,7 +650,6 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.pk,
             'username': user.username
         })
-# Replace the login_view with OTP-based login
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -666,18 +661,14 @@ def request_otp(request):
     if serializer.is_valid():
         email = serializer.validated_data['email']
         
-        # Check if user exists
         user = None
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # We'll create the user after OTP verification
             pass
         
-        # Generate OTP
         otp = OTP.generate_otp(email)
         
-        # Send OTP via email
         send_otp_email(email, otp.code)
         
         return Response({
@@ -706,9 +697,7 @@ def verify_otp(request):
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
-                # Create a new user if not found
                 username = email.split('@')[0]
-                # Ensure username is unique
                 base_username = username
                 counter = 1
                 while User.objects.filter(username=username).exists():
@@ -717,14 +706,10 @@ def verify_otp(request):
                 user = User.objects.create(username=username, email=email)
                 user.set_unusable_password()
                 user.save()
-            # Delete any existing token for this user
             Token.objects.filter(user=user).delete()
-            # Create a new token
             token = Token.objects.create(user=user)
-            # Mark OTP as used
             otp.is_used = True
             otp.save()
-            # Update user's last activity
             update_user_activity(user)
             return Response({
                 'token': token.key,

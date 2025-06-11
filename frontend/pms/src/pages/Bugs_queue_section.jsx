@@ -56,13 +56,14 @@ const IssuesPage = () => {
           id: bug.id,
           key: bug.key || bug.summary, // Use `key` if available; fallback to `summary`
           summary: bug.summary,
+          type: bug.type,
           assignee: bug.assignee ? bug.assignee.username : "Unassigned", // Extract username or default to "Unassigned"
           reporter: bug.reporter ? bug.reporter.username : "Unknown", // Extract username or default to "Unknown"
           status: bug.status.charAt(0).toUpperCase() + bug.status.slice(1), // Format status (e.g., "resolved" → "Resolved")
           createdDate: formatDate(bug.created_at), // Format date
           updatedDate: formatDate(bug.updated_at), // Format date
           dueDate: bug.due_date || "N/A", // Handle missing due date
-          type: bug.type, // Use `project` as `type`
+          
         }));
         setIssues({ results: transformedIssues });
         } else {
@@ -491,6 +492,7 @@ const handleAddIssue = async (e) => {
     const payload = {
       summary: newIssue.summary,
       type: newIssue.type,
+      project: parseInt(projectId), // Use projectId from URL params
       status: newIssue.status,
       priority: newIssue.priority,
       due_date: newIssue.due_date || null,
@@ -507,13 +509,13 @@ const handleAddIssue = async (e) => {
 
     // Send the POST request - use the URL you provided
     const response = await axios.post(
-      "http://127.0.0.1:8000/admin/api/bug/add/",
+      "http://localhost:8000/api/bugs/",
       payload,
       {
         headers: {
           Authorization: `Token ${token}`, // Use Token format as shown in your fetch
           "Content-Type": "application/json",
-          "X-Project-ID": newIssue.project // Use the selected project ID
+          "X-Project-ID": projectId // Use the selected project ID
         }
       }
     );
@@ -526,13 +528,14 @@ const handleAddIssue = async (e) => {
       id: response.data.id,
       key: response.data.key || response.data.summary,
       summary: response.data.summary,
+      type: response.data.type,
       assignee: response.data.assignee ? response.data.assignee.username : "Unassigned",
       reporter: response.data.reporter ? response.data.reporter.username : "Unknown",
       status: response.data.status.charAt(0).toUpperCase() + response.data.status.slice(1),
       createdDate: formatDate(response.data.created_at),
       updatedDate: formatDate(response.data.updated_at),
       dueDate: response.data.due_date || "N/A",
-      type: response.data.type,
+    
     };
 
     // Add the new bug to the local state
@@ -551,8 +554,7 @@ const handleAddIssue = async (e) => {
       assignee: currentUser.id || '',
       reporter: currentUser.id || '',
       status: 'to_do',
-      type: 'bug',
-      project: '',
+      type: '',
       priority: 'medium',
       due_date: '',
       key: ''

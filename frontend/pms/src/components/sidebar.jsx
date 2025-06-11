@@ -35,7 +35,7 @@ const Sidebar = () => {
 
 //state variables
 const [projects, setProjects] = useState([])
-const [workspacesFromAPI, setWorkspacesFromAPI] = useState([])
+// const [workspacesFromAPI, setWorkspacesFromAPI] = useState([])
 const [loading, setLoading] = useState(false)
 const [error, setError] = useState(null)
 
@@ -84,6 +84,11 @@ useEffect(() => {
   const [newWorkspaceName, setNewWorkspaceName] = useState("")
   const [dialogTitle, setDialogTitle] = useState("")
   const [dialogAction, setDialogAction] = useState("")
+
+const getWorkspaceIcon = (workspace) => { 
+  // return workspace.icon || workspace.name.charAt(0).toUpperCase(); 
+  return 'W';
+}
 
   const token = localStorage.getItem("token");
   console.log("Token used for fetching projects:", token);
@@ -353,6 +358,7 @@ const defaultWorkspaces = [
     icon: "M",
     color: "blue",
     isActive: true,
+    pages: getStandardPages()
     
   },
 ]
@@ -429,13 +435,15 @@ const defaultWorkspaces = [
     const currentPath = location.pathname
 
     // update only active status if we're on a workspace page
-    const isWorkspacePath = workspaces.some((workspace) => workspace.pages.some((page) => page.path === currentPath))
+    const isWorkspacePath = workspaces.some((workspace) =>
+      (workspace.pages || []).some((page) => page.path === currentPath)
+    );
 
     if (isWorkspacePath) {
       const updatedWorkspaces = workspaces.map((workspace) => ({
         ...workspace,
-        isActive: workspace.pages.some((page) => page.path === currentPath),
-      }))
+        isActive: (workspace.pages || []).some((page) => page.path === currentPath),
+      }));
 
       setWorkspaces(updatedWorkspaces)
 
@@ -664,7 +672,6 @@ const addProject = async () => {
         icon: "project_icon",
         workspace: activeWorkspaceForProject.id
       };
-
       const createdProject = await projectAPI.createProject(projectData, activeWorkspaceForProject.id);
       
       // Update projects state
@@ -753,8 +760,10 @@ useEffect(() => {
         workspaceAPI.getAllWorkspaces(),
         projectAPI.getAllProjects()
       ])
-      
-      setWorkspacesFromAPI(workspacesData)
+      // Update the workspaces state with fetched data
+      setWorkspaces(workspacesData.results)
+
+      // setWorkspacesFromAPI(workspacesData)
       setProjects(projectsData)
     } catch (error) {
       setError('Failed to load data')
@@ -1156,7 +1165,7 @@ const renderDialog = ({
                       <div
                         className={`w-5 h-5 ${getColorClass(workspace.color)} rounded-md flex items-center justify-center text-white font-medium text-xs mr-2 shadow-sm`}
                       >
-                        {workspace.icon}
+                        {getWorkspaceIcon(workspace)}
                       </div>
                       <span className="font-medium">{workspace.name}</span>
                     </div>
@@ -1303,7 +1312,7 @@ const renderDialog = ({
           onClick={(e) => {
             e.stopPropagation()
             toggleSection(workspace.name)
-            // Store the workspace/project ID when clicked
+            
             localStorage.setItem('currentProjectId', workspace.id.toString())
             
             // Set active workspace
@@ -1319,7 +1328,7 @@ const renderDialog = ({
             <div
               className={`w-6 h-6 ${getColorClass(workspace.color)} rounded-md flex items-center justify-center text-white font-medium text-xs mr-3 shadow-sm`}
             >
-              {workspace.icon}
+              {getWorkspaceIcon(workspace)}
             </div>
             <span
               className={`font-medium ${workspace.isActive ? getTextColorClass(workspace.color) : "text-gray-700"}`}
@@ -1345,6 +1354,16 @@ const renderDialog = ({
             >
               <Settings className="w-4 h-4" />
               {renderWorkspaceMenu(workspace, "workspace")}
+            </button>
+            {/* New + icon for adding projects */}
+            <button
+              className="p-1 text-gray-400 hover:text-green-600 hover:bg-gray-200 rounded transition-colors duration-200"
+              onClick={(e) => {
+                e.stopPropagation()
+                openCreateProjectDialog(workspace)
+              }}
+            >
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </div>
