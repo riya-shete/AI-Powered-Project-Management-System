@@ -137,7 +137,7 @@ class Bug(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateField(null=True, blank=True)
     resolution = models.CharField(max_length=100, blank=True) 
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='bug') # Updated type field
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='bug')
     def __str__(self):
         return self.summary
 

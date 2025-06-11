@@ -90,7 +90,7 @@ class BugSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'summary', 'description', 'project', 'reporter', 
             'assignee', 'status', 'priority', 'key', 'created_at', 
-            'updated_at', 'due_date', 'resolution'
+            'updated_at', 'due_date', 'resolution', 'type'
         ]
 
 class RetrospectiveSerializer(serializers.ModelSerializer):
