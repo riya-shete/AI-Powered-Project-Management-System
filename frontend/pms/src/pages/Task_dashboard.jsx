@@ -119,22 +119,42 @@ const PMSDashboardSprints = () => {
   }, [])
 
   useEffect(() => {
-    axios
-      .get(`${BASE_URL}/api/tasks/`, {
-        headers: { Authorization: `Token ${localStorage.getItem("token")}` },
-      })
-      .then((res) => {
-        setTasks(res.data)
-        const bySprint = res.data.reduce((acc, task) => {
-          const sprintName = task.sprint_name || `Sprint ${task.sprint}`
-          acc[sprintName] = acc[sprintName] || []
-          acc[sprintName].push(task)
-          return acc
-        }, {})
-        setSprintData(bySprint)
-      })
-      .catch((err) => console.error("Failed to load tasks:", err))
-  }, [])
+  if (!sprints || sprints.length === 0) return;
+
+  axios
+    .get(`${BASE_URL}/api/tasks/`, {
+      headers: {
+        Authorization: `Token ${localStorage.getItem("token")}`,
+      },
+    })
+    .then((res) => {
+      const allTasks = res.data.results || res.data;
+
+      // ✅ First, get the valid sprint IDs for the current project
+      const validSprintIds = sprints.map((s) => s.id);
+
+      // ✅ Filter only tasks that belong to sprints of this project
+      const filteredTasks = allTasks.filter((task) =>
+        validSprintIds.includes(task.sprint)
+      );
+
+      // ✅ Group tasks by sprint name
+      const bySprint = filteredTasks.reduce((acc, task) => {
+        const sprintName =
+          sprints.find((s) => s.id === task.sprint)?.name ||
+          `Sprint ${task.sprint}`;
+
+        acc[sprintName] = acc[sprintName] || [];
+        acc[sprintName].push(task);
+        return acc;
+      }, {});
+
+      setSprintData(bySprint);
+    })
+    .catch((err) => console.error("Failed to load tasks:", err));
+}, [sprints]);
+
+
 
   const getSprintId = (sprintName) => {
     if (!Array.isArray(sprints) || sprints.length === 0) {
@@ -611,7 +631,7 @@ const PMSDashboardSprints = () => {
     }))
   }
 
-  console.log("✅ projectId in Task_dashboard.jsx:", projectId);
+  
 
   useEffect(() => {
   const token = localStorage.getItem("token");
@@ -655,10 +675,14 @@ const PMSDashboardSprints = () => {
       const dataBySprint = {};
       const visibilityBySprint = {};
 
-      allSprintTasks.forEach(({ sprintId, tasks }) => {
-        dataBySprint[sprintId] = tasks;
-        visibilityBySprint[sprintId] = true;
-      });
+       allSprintTasks.forEach(({ sprintId, tasks }) => {
+          // find the sprint object you already fetched up above
+          const sprintName = sprints.find(s => s.id === sprintId)?.name || `Sprint ${sprintId}`
+
+          dataBySprint[sprintName]     = tasks
+          visibilityBySprint[sprintName] = true
+        })
+
 
       setSprintData(dataBySprint);
       setSprintVisibility(visibilityBySprint);
