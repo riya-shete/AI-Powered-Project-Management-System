@@ -68,16 +68,16 @@ const PMSDashboardSprints = () => {
 
   // Updated newTask state with all required fields
   const [newTask, setNewTask] = useState({
-    name: "",
-    description: "",
-    assigned_to: "",
-    role: "",
-    status: "",
-    priority: "Medium",
-    story_points: "",
-    due_date: "",
-    added: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-  })
+  name: "",
+  description: "",
+  assigned_to: "",
+  role: "",
+  status: "",
+  priority: "",
+  due_date: "",
+  created_at: new Date().toISOString(),  // Automatically sets current timestamp
+  item_id: "",
+})
 
   const [columns, setColumns] = useState(() => {
     const savedColumns = localStorage.getItem("tableColumns")
@@ -91,7 +91,7 @@ const PMSDashboardSprints = () => {
           { id: "priority", label: "Priority", type: "priority", visible: true, width: "2/12", order: 4 },
           { id: "role", label: "Type", type: "role", visible: true, width: "2/12", order: 5 },
           { id: "id", label: "Task ID", type: "text", visible: true, width: "1/12", order: 6 },
-          { id: "story_points", label: "SP", type: "number", visible: true, width: "1/12", order: 7 },
+          { id: "created_at", label: "Created at", type: "number", visible: true, width: "1/12", order: 7 },
           { id: "due_date", label: "Due Date", type: "date", visible: true, width: "1/12", order: 8 },
           { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 9 },
         ]
@@ -139,7 +139,8 @@ const PMSDashboardSprints = () => {
       );
 
       // ✅ Group tasks by sprint name
-      const bySprint = filteredTasks.reduce((acc, task) => {
+      
+      const bySprint  = allTasks.reduce((acc, task) => {
         const sprintName =
           sprints.find((s) => s.id === task.sprint)?.name ||
           `Sprint ${task.sprint}`;
@@ -149,7 +150,7 @@ const PMSDashboardSprints = () => {
         return acc;
       }, {});
 
-      setSprintData(bySprint);
+       setSprintData(prev => ({ ...prev, ...bySprint }))
     })
     .catch((err) => console.error("Failed to load tasks:", err));
 }, [sprints]);
@@ -275,8 +276,8 @@ const PMSDashboardSprints = () => {
       assigned_to: "",
       role: "",
       status: "",
-      priority: "Medium",
-      story_points: "",
+      priority: "",
+      created_at: "",
       due_date: "",
       added: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
     })
@@ -314,18 +315,21 @@ const PMSDashboardSprints = () => {
     const sprintId = getSprintId(addingToSprint)
 
     const taskToAdd = {
-      name: newTask.name || "Task name",
-      description: newTask.description || "Details",
-      project: Number(projectId),
-      sprint: sprintId,
-      assigned_to: Number.parseInt(localStorage.getItem("user_id")) || 1,
-      reporter: Number.parseInt(localStorage.getItem("user_id")) || 1,
-      status: "backlog",
-      priority: "medium",
-      due_date: newTask.due_date || new Date().toISOString().split("T")[0],
-      story_points: Number.parseInt(newTask.story_points) || 0,
-      item_id: itemId,
-    }
+  name: newTask.name,
+  description: newTask.description,
+  project: Number(projectId),
+  sprint: sprintId,
+  assigned_to: Number.parseInt(newTask.assigned_to, 10),
+  reporter: Number.parseInt(localStorage.getItem("user_id"), 10),
+  status: newTask.status,
+  priority: newTask.priority,
+  role: newTask.role,
+  due_date: newTask.due_date,
+  created_at: newTask.created_at,   // pulled from newTask state
+  item_id: itemId,
+}
+
+
 
     if (!validateTaskData(taskToAdd)) {
       setError("Invalid task data. Please check all required fields.")
@@ -417,6 +421,7 @@ const PMSDashboardSprints = () => {
             [sprintName]: prevData[sprintName].filter((task) => task.id !== taskId),
           }))
           setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
+          console.log(`✅ Task ${taskId} deleted from sprint "${sprintName}"`);
         })
         .catch((err) => {
           console.error("Failed to delete task:", err)
@@ -426,27 +431,30 @@ const PMSDashboardSprints = () => {
   }
 
   const buildTaskUpdatePayload = (newTask, existingTask, projectId, sprintId, itemId) => {
-    return {
-      name: newTask.name || existingTask.name || "Task name",
-      description: newTask.description || existingTask.description || "Details",
-      project: Number(projectId) || existingTask.project,
-      sprint: sprintId || existingTask.sprint,
-      assigned_to: Number.parseInt(localStorage.getItem("user_id")) || existingTask.assigned_to,
-      reporter: Number.parseInt(localStorage.getItem("user_id")) || existingTask.reporter,
-      status: newTask.status || existingTask.status || "backlog",
-      priority: newTask.priority || existingTask.priority || "medium",
-      due_date: newTask.due_date || existingTask.due_date || new Date().toISOString().split("T")[0],
-      story_points: Number.parseInt(newTask.story_points) || existingTask.story_points || 0,
-      item_id: itemId || existingTask.item_id,
-    }
+  return {
+    name:        newTask.name        || existingTask.name        || "Task name",
+    description: newTask.description || existingTask.description || "Details",
+    project:     Number(projectId)   || existingTask.project,
+    sprint:      sprintId            || existingTask.sprint,
+    assigned_to: Number.parseInt(localStorage.getItem("user_id")) || existingTask.assigned_to,
+    reporter:    Number.parseInt(localStorage.getItem("user_id")) || existingTask.reporter,
+    status:      newTask.status      || existingTask.status      || "backlog",
+    priority:    newTask.priority    || existingTask.priority    || "medium",
+    due_date:    newTask.due_date    || existingTask.due_date    || new Date().toISOString().split("T")[0],
+    created_at:  newTask.created_at  || existingTask.created_at  || new Date().toISOString(),
+    item_id:     itemId              || existingTask.item_id,
   }
+}
 
-  const updateTask = (taskId, newTask, sprintName) => {
-    const existingTask = tasks.find((t) => t.id === taskId)
-    if (!existingTask) {
-      console.error("Task not found!")
-      return
-    }
+const updateTask = (taskId, newTask, sprintName) => {
+  // look in the sprintData for this sprint
+  const list = sprintData[sprintName] || [];
+  const existingTask = list.find(t => t.id === taskId);
+
+  if (!existingTask) {
+    console.error("Task not found in sprintData!", sprintName, list);
+    return;
+  }
 
     const backendData = buildTaskUpdatePayload(
       newTask,
@@ -474,6 +482,7 @@ const PMSDashboardSprints = () => {
           ...sd,
           [sprintName]: sd[sprintName].map((t) => (t.id === taskId ? res.data : t)),
         }))
+        console.log("✅ Task updated!", res.data);
       })
       .catch((err) => {
         console.error("Update failed:", err.response?.data || err)
@@ -520,28 +529,28 @@ const PMSDashboardSprints = () => {
   }
 
   const filterTasks = (tasks) => {
-    return tasks.filter((task) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.id && task.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.assigned_to && task.assigned_to.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.story_points && task.story_points.toString().includes(searchTerm))
+  return tasks.filter((task) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.id && task.id.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.assigned_to && task.assigned_to.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.created_at && task.created_at.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson
-      const matchesStatus = selectedStatus === "" || task.status === selectedStatus
+    const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson;
+    const matchesStatus = selectedStatus === "" || task.status === selectedStatus;
 
-      return matchesSearch && matchesPerson && matchesStatus
-    })
-  }
+    return matchesSearch && matchesPerson && matchesStatus;
+  });
+}
+
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case "Critical":
-        return "bg-[#FF3B30] text-white"
+      
       case "High":
         return "bg-[#FF9500] text-white"
       case "Medium":
@@ -570,11 +579,11 @@ const PMSDashboardSprints = () => {
     }
   }
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case "Bug":
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "Dev":
         return "bg-[#FF3B30] text-white"
-      case "Feature":
+      case "Design":
         return "bg-[#007AFF] text-white"
       case "Quality":
         return "bg-[#5856D6] text-white"
@@ -646,53 +655,51 @@ const PMSDashboardSprints = () => {
 
   // 1) Fetch only the sprints for this project
   axios
-    .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
-    .then((res) => {
-      const mySprints = res.data.results || res.data;
-      setSprints(mySprints);
+  .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
+  .then((res) => {
+    const mySprints = res.data.results || res.data;
+    setSprints(mySprints);
 
-      // 2) For each sprint, fetch only its tasks
-      return Promise.all(
-        mySprints.map((s) => {
-          const taskHeaders = {
-            Authorization: `Token ${token}`,
-            "X-Sprint-ID": s.id,
-          };
+    // 2) For each sprint, fetch only its tasks, but keep the sprint name with it
+    return Promise.all(
+      mySprints.map((s) => {
+        const taskHeaders = {
+          Authorization: `Token ${token}`,
+          "X-Sprint-ID": s.id,
+        };
 
-          console.log("📝 Fetching tasks for sprint:", s.id, "→ with headers:", taskHeaders);
+        console.log("📝 Fetching tasks for sprint:", s.id, "→ with headers:", taskHeaders);
 
-          return axios
-            .get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders })
-            .then((r) => ({
-              sprintId: s.id,
-              tasks: r.data.results || r.data,
-            }));
-        })
-      );
-    })
-    .then((allSprintTasks) => {
-      // 3) Build up your sprintData & visibility maps
-      const dataBySprint = {};
-      const visibilityBySprint = {};
+        return axios
+          .get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders })
+          .then((r) => ({
+            sprintName: s.name,                     // carry the name
+            tasks: r.data.results || r.data,
+          }));
+      })
+    );
+  })
+  .then((allSprintTasks) => {
+    // 3) Build up your sprintData & visibility maps using the carried sprintName
+    const dataBySprint = {};
+    const visibilityBySprint = {};
 
-       allSprintTasks.forEach(({ sprintId, tasks }) => {
-          // find the sprint object you already fetched up above
-          const sprintName = sprints.find(s => s.id === sprintId)?.name || `Sprint ${sprintId}`
-
-          dataBySprint[sprintName]     = tasks
-          visibilityBySprint[sprintName] = true
-        })
-
-
-      setSprintData(dataBySprint);
-      setSprintVisibility(visibilityBySprint);
-      setLoading(false);
-    })
-    .catch((err) => {
-      console.error("❌ Failed to fetch data:", err);
-      setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`);
-      setLoading(false);
+    allSprintTasks.forEach(({ sprintName, tasks }) => {
+      dataBySprint[sprintName] = tasks;
+      visibilityBySprint[sprintName] = true;
     });
+
+    setSprintData(dataBySprint);
+    setSprintVisibility(visibilityBySprint);
+    setLoading(false);
+  })
+  .catch((err) => {
+    console.error("❌ Failed to fetch data:", err);
+    setError(
+      `Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`
+    );
+    setLoading(false);
+  });
 }, [projectId]);
 
 
@@ -830,7 +837,7 @@ const PMSDashboardSprints = () => {
             priority: "10%",
             role: "10%",
             id: "8%",
-            story_points: "7%",
+            created_at: "7%",
             due_date: "10%",
             actions: "5%",
           }
@@ -846,7 +853,7 @@ const PMSDashboardSprints = () => {
             priority: true,
             role: true,
             id: true,
-            story_points: true,
+            created_at: true,
             due_date: true,
             actions: true,
           }
@@ -1042,7 +1049,7 @@ const PMSDashboardSprints = () => {
 
     const availableColumns = Object.keys(visibleColumns).filter((col) => col !== "checkbox" && col !== "actions")
     const statusOptions = ["Done", "In Progress", "Waiting for review", "Ready to start", "Stuck"]
-    const priorityOptions = ["Critical", "High", "Medium", "Low"]
+    const priorityOptions = [ "High", "Medium", "Low"]
     const roleOptions = ["Bug", "Feature", "Quality", "Security", "Test"]
 
     return (
@@ -1130,8 +1137,8 @@ const PMSDashboardSprints = () => {
                                   ? "Tasks"
                                   : columnId === "assigned_to"
                                     ? "Owner"
-                                    : columnId === "story_points"
-                                      ? "SP"
+                                    : columnId === "created_at"
+                                      ? "Created At"
                                       : columnId === "due_date"
                                         ? "Due Date"
                                         : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
@@ -1247,19 +1254,20 @@ const PMSDashboardSprints = () => {
                                       </option>
                                     ))}
                                   </select>
-                                ) : columnId === "story_points" ? (
-                                  <input
-                                    type="number"
+                                    ) : columnId === "created_at" ? (
+                                    <input
+                                    type="datetime-local"
                                     value={editValue}
                                     onChange={(e) => setEditValue(e.target.value)}
                                     onBlur={saveCellEdit}
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveCellEdit()
-                                      if (e.key === "Escape") cancelCellEdit()
-                                    }}
+                                    if (e.key === "Enter") saveCellEdit()
+                                    if (e.key === "Escape") cancelCellEdit()
+                                    }}  
                                     className="w-full p-1 border rounded"
                                     autoFocus
                                   />
+
                                 ) : columnId === "due_date" ? (
                                   <input
                                     type="date"
@@ -1308,7 +1316,7 @@ const PMSDashboardSprints = () => {
                                       {task.priority}
                                     </span>
                                   ) : columnId === "role" ? (
-                                    <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.role)}`}>
+                                    <span className={`px-2 py-1 rounded-full text-xs ${getRoleColor(task.role)}`}>
                                       {task.role || "Missing"}
                                     </span>
                                   ) : columnId === "due_date" ? (
@@ -1332,6 +1340,7 @@ const PMSDashboardSprints = () => {
                             <button
                               onClick={() => {
                                 console.log("Opening form for", task.id)
+                                console.log("All current tasks:", tasks);
                                 setEditingTask(task)
                                 setShowForm(true)
                               }}
@@ -1404,7 +1413,7 @@ const PMSDashboardSprints = () => {
                     <option value="date">Date</option>
                     <option value="status">Status</option>
                     <option value="priority">Priority</option>
-                    <option value="role">Type</option>
+                    <option value="role">Role</option>
                   </select>
                 </div>
 
@@ -1688,12 +1697,13 @@ const PMSDashboardSprints = () => {
                   onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="backlog">Backlog</option>
-                  <option value="Ready to start">Ready to Start</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Waiting for review">Waiting for Review</option>
-                  <option value="Done">Done</option>
-                  <option value="Stuck">Stuck</option>
+                  <option value="">Select status</option>
+                    <option value="backlog">Backlog</option>
+                    <option value="ready">Ready to Start</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="waiting_for_review">Waiting for Review</option>
+                    <option value="done">Done</option>
+                    <option value="stuck">Stuck</option>
                 </select>
               </div>
 
@@ -1704,25 +1714,25 @@ const PMSDashboardSprints = () => {
                   onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                  <option value="Critical">Critical</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                 <select
                   value={editingTask.role || ""}
                   onChange={(e) => setEditingTask({ ...editingTask, role: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select type</option>
-                  <option value="Bug">Bug</option>
-                  <option value="Feature">Feature</option>
+                  <option value="">Select Role</option>
+                  <option value="dev">Dev</option>
+                  <option value="design">Design</option>
                   <option value="Quality">Quality</option>
                   <option value="Security">Security</option>
                   <option value="Test">Test</option>
@@ -1730,11 +1740,11 @@ const PMSDashboardSprints = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
                 <input
-                  type="number"
-                  value={editingTask.story_points || 0}
-                  onChange={(e) => setEditingTask({ ...editingTask, story_points: Number(e.target.value) })}
+                  type="datetime-local"
+                  value={editingTask.created_at || 0}
+                  onChange={(e) => setEditingTask({ ...editingTask, created_at: Number(e.target.value) })}
                   min="0"
                   max="100"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1932,152 +1942,184 @@ const PMSDashboardSprints = () => {
 
       {/* Add Task Form */}
       {addingToSprint && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Add Task to {addingToSprint}</h2>
-              <button onClick={cancelAddingTask} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">
+          Add Task to {addingToSprint}
+        </h2>
+        <button onClick={cancelAddingTask} className="text-gray-400 hover:text-gray-600">
+          <X size={24} />
+        </button>
+      </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={newTask.name}
-                  onChange={handleTaskInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter task name"
-                />
-              </div>
+      <div className="space-y-4">
+        {/* Task Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Task Name *
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={newTask.name}
+            onChange={handleTaskInputChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter task name"
+          />
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={newTask.description}
-                  onChange={handleTaskInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter task description"
-                />
-              </div>
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <textarea
+            name="description"
+            value={newTask.description}
+            onChange={handleTaskInputChange}
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter task description"
+          />
+        </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    name="status"
-                    value={newTask.status}
-                    onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select status</option>
-                    <option value="backlog">Backlog</option>
-                    <option value="Ready to start">Ready to Start</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Waiting for review">Waiting for Review</option>
-                    <option value="Done">Done</option>
-                    <option value="Stuck">Stuck</option>
-                  </select>
-                </div>
+        {/* Status & Priority */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              name="status"
+              value={newTask.status}
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select status</option>
+              <option value="backlog">Backlog</option>
+              <option value="ready">Ready to Start</option>
+              <option value="in_progress">In Progress</option>
+              <option value="waiting_for_review">Waiting for Review</option>
+              <option value="done">Done</option>
+              <option value="stuck">Stuck</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                  <select
-                    name="priority"
-                    value={newTask.priority}
-                    onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select
-                    name="role"
-                    value={newTask.role}
-                    onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select type</option>
-                    <option value="Bug">Bug</option>
-                    <option value="Feature">Feature</option>
-                    <option value="Quality">Quality</option>
-                    <option value="Security">Security</option>
-                    <option value="Test">Test</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
-                  <input
-                    type="number"
-                    name="story_points"
-                    value={newTask.story_points}
-                    onChange={handleTaskInputChange}
-                    min="0"
-                    max="100"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
-                  <input
-                    type="text"
-                    name="assigned_to"
-                    value={newTask.assigned_to}
-                    onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter user ID"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    name="due_date"
-                    value={newTask.due_date}
-                    onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6">
-                <button
-                  type="button"
-                  onClick={cancelAddingTask}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={addTaskToSprint}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Add Task
-                </button>
-              </div>
-            </div>
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              name="priority"
+              value={newTask.priority}
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select priority</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
         </div>
-      )}
+
+        {/* Role & Created At */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              name="role"
+              value={newTask.role}
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select role</option>
+              <option value="Dev">Dev</option>
+              <option value="Design">Design</option>
+              <option value="Quality">Quality</option>
+              <option value="Security">Security</option>
+              <option value="Test">Test</option>
+            </select>
+          </div>
+
+          {/* Created At */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Created At
+            </label>
+            <input
+              type="datetime-local"
+              name="created_at"
+              value={newTask.created_at ? newTask.created_at.slice(0, 16) : ""}
+
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Assigned To & Due Date */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Assigned To */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Assigned To
+            </label>
+            <input
+              type="number"
+              name="assigned_to"
+              value={newTask.assigned_to}
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter user ID"
+            />
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Due Date
+            </label>
+            <input
+              type="date"
+              name="due_date"
+              value={newTask.due_date}
+              onChange={handleTaskInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <div className="flex justify-end space-x-3 pt-6">
+          <button
+            type="button"
+            onClick={cancelAddingTask}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={addTaskToSprint}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Add Task
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Task Update Form Modal */}
       <TaskUpdateForm />
