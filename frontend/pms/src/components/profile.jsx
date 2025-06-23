@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
+import axios from 'axios';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ const Profile = () => {
       navigate('/home'); // Fallback to home if no history
     }
   };
+
+  
 
   const initialPersonalInfo = {
     fullName: "Vivek Shinde",
@@ -25,6 +28,74 @@ const Profile = () => {
   const [personalInfo, setPersonalInfo] = useState(initialPersonalInfo);
   const [tempInfo, setTempInfo] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+//loading data of all users from backend
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  // Function to fetch all users
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await axios.get("http://localhost:8000/api/users/", {
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`, // Add auth token if needed
+          
+        }
+      });
+      
+      const fetchedUsers = response.data.users || response.data; // Handle different response structures
+      setUsers(fetchedUsers);
+      
+      // Store users in localStorage for other components to use
+      localStorage.setItem('users', JSON.stringify(fetchedUsers));
+      
+      console.log('Users fetched and stored successfully:', fetchedUsers);
+      
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError(err.response?.data?.message || 'Failed to fetch users');
+      
+      // Try to load users from localStorage as fallback
+      const storedUsers = localStorage.getItem('users');
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to get users from localStorage (utility for other components)
+  const getUsersFromStorage = () => {
+    try {
+      const storedUsers = localStorage.getItem('users');
+      return storedUsers ? JSON.parse(storedUsers) : [];
+    } catch (err) {
+      console.error('Error parsing users from localStorage:', err);
+      return [];
+    }
+  };
+
+  // Function to refresh users data
+  const refreshUsers = async () => {
+    await fetchUsers();
+  };
+
+  // UseEffect to fetch users on component mount
+  useEffect(() => {
+    // Check if users are already in localStorage
+    const storedUsers = getUsersFromStorage();
+    
+    if (storedUsers.length > 0) {
+      setUsers(storedUsers);
+      console.log('Loaded users from localStorage:', storedUsers);
+    }
+    
+    // Fetch fresh data from API
+    fetchUsers();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
