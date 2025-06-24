@@ -15,6 +15,9 @@ import {
   X,
 } from "lucide-react"
 
+import axios from "axios";
+import { useParams } from "react-router-dom";
+
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 
@@ -31,74 +34,52 @@ const RetrospectivesPage = () => {
 }
 
 const Retrospectivesmain = () => {
-  // Load data from localStorage if available
-  const [retrospectives, setRetrospectives] = useState(() => {
-    const savedRetros = localStorage.getItem("retrospectives")
-    return savedRetros
-      ? JSON.parse(savedRetros)
-      : [
-          {
-            id: "13455134",
-            feedback: "Unplanned Task",
-            responsible: "Vivek S.",
-            type: "Discussion",
-            repeating: false,
-            owner: "Karishma",
-            votes: 0,
-            hasVoted: false,
-            animating: false,
-          },
-          {
-            id: "12451545",
-            feedback: "Focus on path",
-            responsible: "Shriraj P.",
-            type: "Improve",
-            repeating: false,
-            owner: "Reyansh",
-            votes: 0,
-            hasVoted: false,
-            animating: false,
-          },
-          {
-            id: "3246151",
-            feedback: "Improve progress",
-            responsible: "Anand S.",
-            type: "Keep",
-            repeating: true,
-            owner: "Ananya",
-            votes: 0,
-            hasVoted: false,
-            animating: false,
-          },
-          {
-            id: "64135315",
-            feedback: "CSM Team",
-            responsible: "Riya S.",
-            type: "Improve",
-            repeating: false,
-            owner: "Rudra",
-            votes: 0,
-            hasVoted: false,
-            animating: false,
-          },
-          {
-            id: "1464135",
-            feedback: "Pending Bugs",
-            responsible: "Kalyani B.",
-            type: "Improve",
-            repeating: false,
-            owner: "Pranav",
-            votes: 0,
-            hasVoted: false,
-            animating: false,
-          },
-        ]
-  })
+  const [retrospectives, setRetrospectives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { projectId } = useParams();
 
   // Save retrospectives to localStorage whenever they change
+    // Fetch retrospectives from API
   useEffect(() => {
-    localStorage.setItem("retrospectives", JSON.stringify(retrospectives))
-  }, [retrospectives])
+    const fetchRetrospectives = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        setLoading(true);
+        
+        const response = await axios.get("http://localhost:8000/api/retrospectives/", {
+          headers: {
+            Authorization: `Token ${token}`,
+            'X-Project-ID': projectId || '1'
+          }
+        });
+
+        if (response.data && response.data.results) {
+          const transformedRetros = response.data.results.map((retro) => ({
+            id: retro.id,
+            feedback: retro.feedback,
+            responsible: retro.responsible ? retro.responsible.username : "Unassigned",
+            type: retro.type,
+            repeating: retro.repeating || false,
+            owner: retro.owner || "Unknown",
+            votes: retro.votes || 0,
+            hasVoted: retro.has_voted || false,
+            animating: false
+          }));
+          setRetrospectives(transformedRetros);
+        } else {
+          setError("Failed to fetch retrospectives. Invalid data format.");
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        setError(error.message || "Failed to fetch retrospectives.");
+      }
+    };
+    
+    fetchRetrospectives();
+  }, [projectId]);
 
   // Load columns from localStorage if available
   const [columns, setColumns] = useState(() => {
@@ -193,51 +174,113 @@ const Retrospectivesmain = () => {
     }
   }
 
-  const handleVote = (id) => {
-    setRetrospectives((prev) =>
-      prev.map((retro) =>
-        retro.id === id
-          ? {
-              ...retro,
-              votes: retro.hasVoted ? retro.votes - 1 : retro.votes + 1,
-              hasVoted: !retro.hasVoted,
-              animating: true,
-            }
-          : retro,
-      ),
-    )
+    const handleVote = async (id) => {
+    try {
+      const retroToUpdate = retrospectives.find(r => r.id === id);
+      const newVoteState = !retroToUpdate.hasVoted;
+      const token = localStorage.getItem("token");
+      
+      // Optimistic UI update
+      setRetrospectives(prev =>
+        prev.map(retro =>
+          retro.id === id
+            ? {
+                ...retro,
+                votes: newVoteState ? retro.votes + 1 : retro.votes - 1,
+                hasVoted: newVoteState,
+                animating: true
+              }
+            : retro
+        )
+      );
 
-    // Reset animation state after a delay
-    setTimeout(() => {
-      setRetrospectives((prev) => prev.map((retro) => (retro.id === id ? { ...retro, animating: false } : retro)))
-    }, 800)
-  }
+      // API call
+      await axios.patch(
+        `http://localhost:8000/api/retrospectives/${id}/vote/`,
+        { has_voted: newVoteState },
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+            'X-Project-ID': projectId || '1'
+          }
+        }
+      );
+
+      // Reset animation after delay
+      setTimeout(() => {
+        setRetrospectives(prev =>
+          prev.map(retro => (retro.id === id ? { ...retro, animating: false } : retro))
+        );
+      }, 800);
+    } catch (error) {
+      console.error("Error voting:", error);
+      // Revert optimistic update on error
+      setRetrospectives(prev =>
+        prev.map(retro =>
+          retro.id === id
+            ? {
+                ...retro,
+                votes: retro.hasVoted ? retro.votes - 1 : retro.votes + 1,
+                hasVoted: !retro.hasVoted,
+                animating: false
+              }
+            : retro
+        )
+      );
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setNewRetrospective((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleAddRetrospective = () => {
-    const newId = Math.floor(Math.random() * 10000000).toString()
+    const handleAddRetrospective = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const newRetro = {
+        feedback: newRetrospective.feedback,
+        responsible: newRetrospective.responsible,
+        type: newRetrospective.type,
+        repeating: newRetrospective.repeating,
+        owner: newRetrospective.owner,
+      };
 
-    const retrospectiveToAdd = {
-      ...newRetrospective,
-      id: newId,
-      votes: 0,
-      hasVoted: false,
+      const response = await axios.post(
+        "http://localhost:8000/api/retrospectives/",
+        newRetro,
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+            'X-Project-ID': projectId || '1',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      setRetrospectives(prev => [{
+        ...response.data,
+        id: response.data.id,
+        responsible: response.data.responsible || "Unassigned",
+        owner: response.data.owner || "Unknown",
+        votes: 0,
+        hasVoted: false,
+        animating: false
+      }, ...prev]);
+      
+      setNewRetrospective({
+        feedback: "",
+        responsible: "",
+        type: "Discussion",
+        repeating: false,
+        owner: "",
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error("Error creating retrospective:", error);
+      alert("Failed to create retrospective. Please try again.");
     }
-
-    setRetrospectives((prev) => [retrospectiveToAdd, ...prev])
-    setNewRetrospective({
-      feedback: "",
-      responsible: "",
-      type: "Discussion",
-      repeating: false,
-      owner: "",
-    })
-    setShowAddForm(false)
-  }
+  };
 
   const handleEditRetrospective = (retrospective) => {
     setEditingRetrospective(retrospective)
@@ -251,22 +294,50 @@ const Retrospectivesmain = () => {
     setShowAddForm(true)
   }
 
-  const handleSaveEdit = () => {
-    setRetrospectives((prev) =>
-      prev.map((retrospective) =>
-        retrospective.id === editingRetrospective.id ? { ...retrospective, ...newRetrospective } : retrospective,
-      ),
-    )
-    setNewRetrospective({
-      feedback: "",
-      responsible: "",
-      type: "Discussion",
-      repeating: false,
-      owner: "",
-    })
-    setEditingRetrospective(null)
-    setShowAddForm(false)
-  }
+    const handleSaveEdit = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const updatedData = {
+        feedback: newRetrospective.feedback,
+        responsible: newRetrospective.responsible,
+        type: newRetrospective.type,
+        repeating: newRetrospective.repeating,
+        owner: newRetrospective.owner
+      };
+
+      const response = await axios.put(
+        "http://localhost:8000/api/retrospectives/",
+        updatedData,
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+            // 'X-Project-ID': projectId || '1',
+            'Content-Type': 'application/json',
+            'X-Object-ID': projectId,
+          }
+        }
+      );
+
+      setRetrospectives(prev =>
+        prev.map(retro =>
+          retro.id === editingRetrospective.id
+            ? {
+                ...retro,
+                ...response.data,
+                responsible: response.data.responsible || "Unassigned",
+                owner: response.data.owner || "Unknown"
+              }
+            : retro
+        )
+      );
+      
+      setEditingRetrospective(null);
+      setShowAddForm(false);
+    } catch (error) {
+      console.error("Error updating retrospective:", error);
+      alert("Failed to update retrospective. Please try again.");
+    }
+  };
 
   const handleToggleSelectAll = () => {
     setSelectAll(!selectAll)
@@ -481,24 +552,40 @@ const Retrospectivesmain = () => {
     }
   }
 
-  // Sort columns by order
-  const sortedColumns = useMemo(() => {
-    return [...columns].sort((a, b) => a.order - b.order)
-  }, [columns])
+// Sort columns by order
+const sortedColumns = useMemo(() => {
+    return [...columns].sort((a, b) => a.order - b.order);
+}, [columns]);
 
-  return (
-    <div className="flex-1 overflow-auto w-full h-full">
-      <div className="p-4 bg-white">
-        <header className="flex justify-between items-center mb-6">
-          <div>
-            <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
-            <h1 className="text-2xl text-gray-700 font-bold">Retrospectives</h1>
-          </div>
-        </header>
-
-        <div className="flex items-center mb-4">
-          <div className="font-medium">Main Table</div>
-          <div className="relative">
+return (
+    loading ? (
+        <div className="flex-1 flex items-center justify-center">
+            <p className="text-gray-600">Loading retrospectives...</p>
+        </div>
+    ) : error ? (
+        <div className="flex-1 flex items-center justify-center">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <p>Error: {error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-2 bg-red-600 text-white px-4 py-2 rounded"
+                >
+                    Retry
+                </button>
+            </div>
+        </div>
+    ) : (
+        <div className="flex-1 overflow-auto w-full h-full">
+            <div className="p-4 bg-white">
+                <header className="flex justify-between items-center mb-6">
+                    <div>
+                        <div className="text-sm text-gray-500">Projects / Ronin's Project</div>
+                        <h1 className="text-2xl text-gray-700 font-bold">Retrospectives</h1>
+                    </div>
+                </header>
+                <div className="flex items-center mb-4">
+                    <div className="font-medium">Main Table</div>
+                    <div className="relative">
             <button className="ml-2" onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}>
               <MoreVertical size={16} />
             </button>
@@ -1109,6 +1196,7 @@ const Retrospectivesmain = () => {
       `}</style>
     </div>
   )
+)
 }
 
 export default RetrospectivesPage

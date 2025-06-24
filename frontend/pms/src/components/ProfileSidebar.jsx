@@ -38,7 +38,6 @@ const ProfileSidebar = ({ isOpen, onClose, openNotifications, openTeamChat, open
     // First close sidebar
     onClose();
     
-    // Then open notification popup with a small delay
     setTimeout(() => {
       openNotifications();
     }, 100);
@@ -48,7 +47,6 @@ const ProfileSidebar = ({ isOpen, onClose, openNotifications, openTeamChat, open
     // First close sidebar
     onClose();
     
-    // Then open team chat popup with a small delay
     setTimeout(() => {
       openTeamChat();
     }, 100);
@@ -57,15 +55,12 @@ const ProfileSidebar = ({ isOpen, onClose, openNotifications, openTeamChat, open
     // First close sidebar
     onClose();
     
-    // Then open update feed popup with a small delay
     setTimeout(() => {
       openUpdateFeed();
     }, 100);
   };
 const handleHelp = () => {
-  // For Help, you can keep the navigation as is
   onClose();
-  // Small delay before navigation for smooth transition
   setTimeout(() => {
     navigate('/Help');
   },100);
