@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from "lucide-react"
+import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from 'lucide-react'
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
@@ -93,7 +93,7 @@ const PMSDashboardSprints = () => {
           { id: "id", label: "Task ID", type: "text", visible: true, width: "1/12", order: 6 },
           { id: "created_at", label: "Created at", type: "number", visible: true, width: "1/12", order: 7 },
           { id: "due_date", label: "Due Date", type: "date", visible: true, width: "1/12", order: 8 },
-          { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 9 },
+          { id: "actions", label: "Actions", type : "actions", visible: true, width: "1/12", order: 9 },
         ]
   })
 
@@ -382,7 +382,7 @@ const PMSDashboardSprints = () => {
         }
 
         console.error("Error response status:", err.response?.status)
-        console.error("Error response headers:", err.response?.headers)
+        console.error("Error response headers:", err.response.headers)
         console.error("Request config:", err.config)
 
         let errorMessage = `Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`
@@ -1653,160 +1653,191 @@ const updateTask = (taskId, newTask, sprintName) => {
 
   // Task Update Form Modal
   const TaskUpdateForm = () => {
-    if (!showForm || !editingTask) return null
+  const [formData, setFormData] = useState({})
+  
+  // Initialize form data when editingTask changes
+  useEffect(() => {
+    if (editingTask) {
+      setFormData({
+        name: editingTask.name || "",
+        description: editingTask.description || "",
+        status: editingTask.status || "backlog",
+        priority: editingTask.priority || "Medium",
+        role: editingTask.role || "",
+        created_at: editingTask.created_at || "",
+        assigned_to: editingTask.assigned_to || "",
+        due_date: editingTask.due_date || ""
+      })
+    }
+  }, [editingTask])
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
-            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={24} />
-            </button>
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  if (!showForm || !editingTask) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
+          <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name || ""}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter task name"
+            />
           </div>
 
-          <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              name="description"
+              value={formData.description || ""}
+              onChange={handleInputChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter task description"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                name="status"
+                value={formData.status || "backlog"}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select status</option>
+                <option value="backlog">Backlog</option>
+                <option value="ready">Ready to Start</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_for_review">Waiting for Review</option>
+                <option value="done">Done</option>
+                <option value="stuck">Stuck</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <select
+                name="priority"
+                value={formData.priority || "Medium"}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                name="role"
+                value={formData.role || ""}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Role</option>
+                <option value="dev">Dev</option>
+                <option value="design">Design</option>
+                <option value="Quality">Quality</option>
+                <option value="Security">Security</option>
+                <option value="Test">Test</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
+              <input
+                type="datetime-local"
+                name="created_at"
+                value={formData.created_at || ""}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
               <input
                 type="text"
-                value={editingTask.name || ""}
-                onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })}
-                required
+                name="assigned_to"
+                value={formData.assigned_to || ""}
+                onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter task name"
+                placeholder="Enter user ID"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={editingTask.description || ""}
-                onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                rows={3}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input
+                type="date"
+                name="due_date"
+                value={formData.due_date || ""}
+                onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter task description"
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select
-                  value={editingTask.status || "backlog"}
-                  onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select status</option>
-                    <option value="backlog">Backlog</option>
-                    <option value="ready">Ready to Start</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="waiting_for_review">Waiting for Review</option>
-                    <option value="done">Done</option>
-                    <option value="stuck">Stuck</option>
-                </select>
-              </div>
+          <div className="flex justify-end space-x-3 pt-6">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                // Find which sprint this task belongs to
+                let taskSprint = ""
+                Object.entries(sprintData).forEach(([sprintName, tasks]) => {
+                  if (tasks.find((t) => t.id === editingTask.id)) {
+                    taskSprint = sprintName
+                  }
+                })
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  value={editingTask.priority || "Medium"}
-                  onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  value={editingTask.role || ""}
-                  onChange={(e) => setEditingTask({ ...editingTask, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Role</option>
-                  <option value="dev">Dev</option>
-                  <option value="design">Design</option>
-                  <option value="Quality">Quality</option>
-                  <option value="Security">Security</option>
-                  <option value="Test">Test</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
-                <input
-                  type="datetime-local"
-                  value={editingTask.created_at || 0}
-                  onChange={(e) => setEditingTask({ ...editingTask, created_at: Number(e.target.value) })}
-                  min="0"
-                  max="100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
-                <input
-                  type="text"
-                  value={editingTask.assigned_to || ""}
-                  onChange={(e) => setEditingTask({ ...editingTask, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter user ID"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  value={editingTask.due_date || ""}
-                  onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-6">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  // Find which sprint this task belongs to
-                  let taskSprint = ""
-                  Object.entries(sprintData).forEach(([sprintName, tasks]) => {
-                    if (tasks.find((t) => t.id === editingTask.id)) {
-                      taskSprint = sprintName
-                    }
-                  })
-
-                  updateTask(editingTask.id, editingTask, taskSprint)
-                  setShowForm(false)
-                  setEditingTask(null)
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Update Task
-              </button>
-            </div>
+                updateTask(editingTask.id, formData, taskSprint)
+                setShowForm(false)
+                setEditingTask(null)
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Update Task
+            </button>
           </div>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className="flex-1 overflow-auto w-full h-full">
@@ -1913,16 +1944,10 @@ const updateTask = (taskId, newTask, sprintName) => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setShowNewSprintForm(!showNewSprintForm)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Add Sprint
-            </button>
-          </div>
+</div>
+
         </header>
 
-        {showNewSprintForm && <NewSprintForm />}
       </div>
 
       {/* Sprint Tables */}
