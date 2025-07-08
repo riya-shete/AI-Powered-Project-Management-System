@@ -4,6 +4,8 @@ import NotificationsDemo from "./notitication";
 import Feed from "./update_feed"; // Ensure this path is correct
 import ProfileSidebar from './ProfileSidebar';
 import PopupChatWindow from "./inbox"; // Imported chat component
+import Invite from './invite'; 
+import { UserPlus } from 'lucide-react';
 
 
 
@@ -13,6 +15,7 @@ const Navbar = () => {
   const [isFeedOpen, setFeedOpen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
+  const [isInviteOpen, setInviteOpen] = useState(false);
 
 
   const handleNavigation = (path) => {
@@ -42,6 +45,14 @@ const Navbar = () => {
   const toggleChat = () => {
     setChatOpen(!isChatOpen);
   };
+  //invitation handkler
+  const handleInviteClick = () => {
+  setInviteOpen(true);
+  };
+  const closeInviteModal = () => {
+    setInviteOpen(false);
+  };
+
   return (
     <>
       <nav className="flex items-center justify-between w-full px-6 py-3 bg-blue-500 border-b border-gray-200 shadow-sm sticky top-0 z-10">
@@ -145,6 +156,15 @@ const Navbar = () => {
               />
             </svg>
           </button>
+
+          {/* Invite Button */}
+          <button 
+            className="text-white hover:text-blue-100 p-2 rounded-lg transition-colors duration-200"
+            onClick={handleInviteClick}
+            aria-label="Invite"
+          >
+            <UserPlus className="w-6 h-6" />
+          </button>
           
           <div className="border-l border-blue-400 h-8 mx-2"></div>
           
@@ -183,6 +203,8 @@ const Navbar = () => {
   openUpdateFeed={() => setFeedOpen(true)}
 />
       {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
+      {/* Render Invite Modal */}
+      <Invite isOpen={isInviteOpen} onClose={closeInviteModal} />
     </>
   );
 };
