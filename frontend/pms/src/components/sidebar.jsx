@@ -309,7 +309,7 @@ const getWorkspaceIcon = (workspace) => {
   return [
     {
       id: 1,
-      name: "PMS",
+      name: "Task dashboard",
       iconType: "FolderKanban",
       path: `/project/${actualProjectId}/taskdashboard`,
     },
