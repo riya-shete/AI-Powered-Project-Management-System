@@ -52,6 +52,15 @@ class Sprint(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     active = models.BooleanField(default=False)
+    description = models.TextField(blank=True)
+    goal = models.TextField(blank=True)
+    PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    )
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_sprints')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

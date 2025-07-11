@@ -65,9 +65,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'workspace', 'created_by', 'created_at', 'updated_at']
 
 class SprintSerializer(serializers.ModelSerializer):
+    owner = UserSerializer(read_only=True)
+    
     class Meta:
         model = Sprint
-        fields = ['id', 'name', 'project', 'start_date', 'end_date', 'active', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'project', 'start_date', 'end_date', 'active', 
+                 'description', 'goal', 'priority', 'owner', 'created_at', 'updated_at']
 
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)
