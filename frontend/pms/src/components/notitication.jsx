@@ -1,39 +1,21 @@
-import React, { useState } from 'react';
-import { Search, X, BellRing, List, UserCheck, Bookmark } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, X, BellRing, List, UserCheck, Bookmark, AlertCircle } from 'lucide-react';
 
-function MergedFeedNotifications({ isOpen, onClose }) {
+function NotificationsDemo({ isOpen = true, onClose = () => {}, userId = 44, baseUrl = 'http://localhost:3000' }) {
   const [activeTab, setActiveTab] = useState('ALL');
+  const [notifications, setNotifications] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sample notification data
-  const notifications = [
-    {
-      id: 1,
-      user: 'Riya Shete',
-      action: 'has assigned you to item "desktop UI/UX"',
-      time: 'yesterday 5:30 pm',
-      date: 'Yesterday',
-      avatar: 'https://t4.ftcdn.net/jpg/09/61/69/75/240_F_961697523_EFd1m8P4tdcwB0TYvlQAagqKR1xHSuwk.jpg',
-      type: 'assigned'
-    },
-    {
-      id: 2,
-      user: 'Team Project',
-      action: 'submitted a new design for review',
-      time: 'yesterday 3:45 pm',
-      date: 'Yesterday',
-      avatar: 'https://t3.ftcdn.net/jpg/13/25/15/64/240_F_1325156466_bPRvqDidjf0uquk7hXjJ7ujl9iiQhQbJ.jpg',
-      type: 'all'
-    },
-    {
-      id: 3,
-      user: 'Sarah Johnson',
-      action: 'bookmarked your post "React Best Practices"',
-      time: 'today 2:15 pm',
-      date: 'Today',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-      type: 'bookmark'
-    }
-  ];
+  // API endpoints based on your Postman screenshot
+  const API_ENDPOINTS = {
+    getNotificationById: `${baseUrl}/api/notifications/${userId}`,
+    getUnreadNotifications: `${baseUrl}/api/notifications/unread/${userId}`,
+    getBookmarkById: `${baseUrl}/api/bookmarks/${userId}`,
+    markAsRead: `${baseUrl}/api/notifications/mark-read`,
+  };
 
   // Tab configuration
   const tabs = [
@@ -43,32 +25,136 @@ function MergedFeedNotifications({ isOpen, onClose }) {
       icon: List 
     },
     { 
-      key: 'ASSIGNED', 
-      title: 'Assigned to me', 
+      key: 'UNREAD', 
+      title: 'Unread', 
       icon: UserCheck 
     },
     { 
       key: 'BOOKMARK', 
-      title: 'Bookmark', 
+      title: 'Bookmarks', 
       icon: Bookmark 
     }
   ];
 
-  // Filter notifications based on active tab
-  const filteredNotifications = notifications.filter(notification => {
-    if (activeTab === 'ALL') return true;
-    if (activeTab === 'ASSIGNED') return notification.type === 'assigned';
-    if (activeTab === 'BOOKMARK') return notification.type === 'bookmark';
-    return false;
+  // Fetch data from API
+  const fetchData = async (endpoint, setter) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`, // Assuming token storage
+          'X-Object-ID': '44', // Based on your Postman screenshot
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setter(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('API Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data based on active tab
+  useEffect(() => {
+    if (!isOpen || !userId) return;
+
+    switch (activeTab) {
+      case 'ALL':
+        fetchData(API_ENDPOINTS.getNotificationById, setNotifications);
+        break;
+      case 'UNREAD':
+        fetchData(API_ENDPOINTS.getUnreadNotifications, setNotifications);
+        break;
+      case 'BOOKMARK':
+        fetchData(API_ENDPOINTS.getBookmarkById, setBookmarks);
+        break;
+    }
+  }, [activeTab, isOpen, userId]);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      await fetch(API_ENDPOINTS.markAsRead, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({ notificationId }),
+      });
+      
+      // Refresh current tab data
+      if (activeTab === 'ALL' || activeTab === 'UNREAD') {
+        fetchData(
+          activeTab === 'ALL' 
+            ? API_ENDPOINTS.getNotificationById
+            : API_ENDPOINTS.getUnreadNotifications,
+          setNotifications
+        );
+      }
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.isRead);
+      await Promise.all(
+        unreadNotifications.map(notification => markAsRead(notification.id))
+      );
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
+  };
+
+  // Filter data based on search term
+  const getFilteredData = () => {
+    const currentData = activeTab === 'BOOKMARK' ? bookmarks : notifications;
+    
+    if (!searchTerm) return currentData;
+    
+    return currentData.filter(item => 
+      item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.user?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.action?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Format notification data (adapt based on your API response structure)
+  const formatNotificationData = (item) => ({
+    id: item.id,
+    user: item.user || item.sender || 'Unknown User',
+    action: item.message || item.action || item.title,
+    time: new Date(item.createdAt || item.timestamp).toLocaleString(),
+    date: new Date(item.createdAt || item.timestamp).toLocaleDateString(),
+    avatar: item.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user}`,
+    isRead: item.isRead || false,
+    type: item.type || 'notification'
   });
 
-  // Group notifications by date
-  const groupedNotifications = filteredNotifications.reduce((acc, notification) => {
-    const date = notification.date;
+  // Group data by date
+  const groupedData = getFilteredData().reduce((acc, item) => {
+    const formattedItem = formatNotificationData(item);
+    const date = formattedItem.date;
+    
     if (!acc[date]) {
       acc[date] = [];
     }
-    acc[date].push(notification);
+    acc[date].push(formattedItem);
     return acc;
   }, {});
 
@@ -92,20 +178,17 @@ function MergedFeedNotifications({ isOpen, onClose }) {
               <h2 className="text-2xl font-bold text-gray-800">Update Feed</h2>
             </div>
             <div className="flex items-center mt-2">
-              <p className="text-gray-600 text-sm">Customize what appears in your feed</p>
-              <a 
-                href="#" 
-                className="ml-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-              >
-                Learn More
-              </a>
+              <p className="text-gray-600 text-sm">
+                Updates for User ID: {userId}
+              </p>
             </div>
           </div>
           
           <div className="flex items-center space-x-2">
             <button 
-              onClick={() => {/* Add mark all as read functionality */}}
-              className="text-sm text-blue-600 hover:bg-blue-50 px-3 py-1 rounded"
+              onClick={markAllAsRead}
+              disabled={loading}
+              className="text-sm text-blue-600 hover:bg-blue-50 px-3 py-1 rounded disabled:opacity-50"
             >
               Mark all read
             </button>
@@ -150,6 +233,8 @@ function MergedFeedNotifications({ isOpen, onClose }) {
             <input
               type="text"
               placeholder="Search notifications"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
             />
           </div>
@@ -157,25 +242,52 @@ function MergedFeedNotifications({ isOpen, onClose }) {
         
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(80vh-220px)]">
-          {Object.keys(groupedNotifications).length === 0 ? (
+          {loading ? (
+            <div className="p-8 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">Loading...</span>
+            </div>
+          ) : error ? (
+            <div className="p-8 flex flex-col items-center justify-center">
+              <AlertCircle size={48} className="text-red-500 mb-4" />
+              <h3 className="text-lg font-semibold text-red-600 mb-2">Error Loading Data</h3>
+              <p className="text-gray-600 text-center mb-4">{error}</p>
+              <button 
+                onClick={() => {
+                  setError(null);
+                  // Retry loading based on active tab
+                  if (activeTab === 'ALL') {
+                    fetchData(API_ENDPOINTS.getNotificationById, setNotifications);
+                  } else if (activeTab === 'UNREAD') {
+                    fetchData(API_ENDPOINTS.getUnreadNotifications, setNotifications);
+                  } else if (activeTab === 'BOOKMARK') {
+                    fetchData(API_ENDPOINTS.getBookmarkById, setBookmarks);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : Object.keys(groupedData).length === 0 ? (
             <div className="p-8 flex flex-col items-center justify-center min-h-[300px]">
               {activeTab === 'ALL' && (
                 <div className="text-center">
                   <div className="bg-gray-100 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
                     <List size={64} className="text-gray-500" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-800">All Updates</h3>
-                  <p className="text-gray-600">A comprehensive view of all your recent updates</p>
+                  <h3 className="text-xl font-bold mb-2 text-gray-800">No Notifications</h3>
+                  <p className="text-gray-600">You're all caught up! No new notifications.</p>
                 </div>
               )}
               
-              {activeTab === 'ASSIGNED' && (
+              {activeTab === 'UNREAD' && (
                 <div className="text-center">
                   <div className="bg-green-50 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
                     <UserCheck size={64} className="text-green-500 fill-green-100 stroke-[1.5]" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-800">Assigned to Me</h3>
-                  <p className="text-gray-600">Tasks and items that have been assigned to you</p>
+                  <h3 className="text-xl font-bold mb-2 text-gray-800">All Caught Up!</h3>
+                  <p className="text-gray-600">No unread notifications at the moment.</p>
                 </div>
               )}
               
@@ -187,41 +299,53 @@ function MergedFeedNotifications({ isOpen, onClose }) {
                       className="text-blue-500 fill-blue-100 stroke-[1.5]" 
                     />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-800">Bookmark Important Updates</h3>
+                  <h3 className="text-xl font-bold mb-2 text-gray-800">No Bookmarks Yet</h3>
                   <p className="text-gray-600 max-w-md mx-auto">
-                    Save key updates to quickly access them later. Your bookmarks help you stay organized and informed.
+                    Start bookmarking important updates to access them quickly later.
                   </p>
-                  <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Manage Bookmarks
-                  </button>
                 </div>
               )}
             </div>
           ) : (
-            Object.entries(groupedNotifications).map(([date, items]) => (
+            Object.entries(groupedData).map(([date, items]) => (
               <div key={date}>
                 <div className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-50">
                   {date}
                 </div>
                 
-                {items.map(notification => (
+                {items.map(item => (
                   <div 
-                    key={notification.id} 
-                    className="p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    key={item.id} 
+                    className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                      !item.isRead ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                    }`}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="flex items-center">
+                      <div className="flex items-center flex-1">
                         <img 
-                          src={notification.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
-                          alt={`${notification.user}'s avatar`}
+                          src={item.avatar}
+                          alt={`${item.user}'s avatar`}
                           className="w-8 h-8 rounded-full mr-3 object-cover"
                         />
-                        <div className="text-sm">
-                          <span className="font-semibold text-gray-800">{notification.user}</span>{' '}
-                          <span className="text-gray-600">{notification.action}</span>
+                        <div className="text-sm flex-1">
+                          <span className="font-semibold text-gray-800">{item.user}</span>{' '}
+                          <span className="text-gray-600">{item.action}</span>
+                          {!item.isRead && (
+                            <span className="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                          )}
                         </div>
                       </div>
-                      <span className="text-xs text-gray-500">{notification.time}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">{item.time}</span>
+                        {!item.isRead && (
+                          <button
+                            onClick={() => markAsRead(item.id)}
+                            className="text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
+                          >
+                            Mark Read
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -234,4 +358,4 @@ function MergedFeedNotifications({ isOpen, onClose }) {
   );
 }
 
-export default MergedFeedNotifications;
+export default NotificationsDemo;
