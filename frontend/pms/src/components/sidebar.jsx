@@ -3,6 +3,8 @@
 import axios from 'axios'
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import { useWorkspace } from "../contexts/WorkspaceContexts";
+
 import {
   LogOut,
   Home,
@@ -20,6 +22,7 @@ import {
   Trash2,
   Pin,
 } from "lucide-react"
+
 
 const Sidebar = () => {
   const navigate = useNavigate()
@@ -750,21 +753,30 @@ const openDeleteProjectDialog = (project) => {
   setActiveProject(project)
   setIsDeleteProjectDialogOpen(true)
 }
+
+  //building current workspace context
+  const { setCurrentWorkspace } = useWorkspace();
 //Loading data on component mount
 useEffect(() => {
   const loadInitialData = async () => {
     setLoading(true)
     try {
-      // Load workspaces and projects from API
       const [workspacesData, projectsData] = await Promise.all([
         workspaceAPI.getAllWorkspaces(),
         projectAPI.getAllProjects()
       ])
-      // Update the workspaces state with fetched data
       setWorkspaces(workspacesData.results)
-
-      // setWorkspacesFromAPI(workspacesData)
       setProjects(projectsData)
+
+      // After loading, detect active workspace
+      const currentPath = location.pathname;
+      const currentWorkspace = workspacesData.results.find((workspace) =>
+        (workspace.pages || []).some((page) => page.path === currentPath)
+      );
+      if (currentWorkspace) {
+        setCurrentWorkspace(currentWorkspace);
+      }
+
     } catch (error) {
       setError('Failed to load data')
       console.error('Load data error:', error)
@@ -772,9 +784,8 @@ useEffect(() => {
       setLoading(false)
     }
   }
-
   loadInitialData()
-}, [])
+}, [location.pathname])
 
   const togglePin = (workspace, e) => {
     e.stopPropagation()
@@ -837,6 +848,7 @@ useEffect(() => {
     setWorkspaces(
       workspaces.map((w) => ({
         ...w,
+        pages: getStandardPages(w.id),
         isActive: w.id === activeId,
       })),
     )
@@ -917,6 +929,20 @@ useEffect(() => {
     setDialogAction("Delete")
     setIsDeleteDialogOpen(true)
   }
+
+  useEffect(() => {
+  
+  if (!workspaces || workspaces.length === 0) return; // Wait until workspaces are loaded
+  
+  const currentPath = location.pathname;
+  const currentWorkspace = workspaces.find((workspace) =>
+    (workspace.pages || []).some((page) => page.path === currentPath)
+  );
+
+  if (currentWorkspace) {
+    setCurrentWorkspace(currentWorkspace);
+  }
+}, [location.pathname, workspaces, setCurrentWorkspace]);
 
 // trying to_render workspace pages with proper state handling
   const renderWorkspacePages = (workspace) => {
@@ -1109,7 +1135,6 @@ const renderDialog = ({
       </div>
     )
   }
-
   return (
     <div className="w-64 h-full bg-white border-r border-gray-200 flex flex-col shadow-sm max-w-full">
       <div className="p-4 space-y-1">

@@ -5,11 +5,39 @@ const ProfileSidebar = ({ isOpen, onClose, openNotifications, openTeamChat, open
   const navigate = useNavigate();
   const sidebarRef = useRef(null);
 
+  const [currentUser, setCurrentUser] = useState({
+    id: null,
+    username: '',
+    email: ''
+  });
+  // Fetch current user data from localStorage 
+  useEffect(() => {
+    const fetchCurrentUser = () => {
+      // Get user data from localStorage (stored during login)
+      const userId = localStorage.getItem("user_id");
+      const username = localStorage.getItem("username"); 
+      const userEmail = localStorage.getItem("user-email");
+      
+      if (userId && username) {
+        setCurrentUser({
+          id: parseInt(userId),
+          username: username,
+          email: userEmail || ''
+        });
+        
+        console.log("Current user loaded:", { id: userId, username, email: userEmail });
+      } else {
+        console.error("User data not found in localStorage");
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
   const userData = {
-    name: "Vivek Shinde",
+    name: currentUser.username,
     role: "Software Developer",
     initials: "VS",
-    email: "vivek.651.2304@gmail.com",
+    email: currentUser.userEmail,
     location: "Banglore",
     isPremium: true,
     teams: 7,

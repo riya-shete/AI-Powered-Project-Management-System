@@ -45,11 +45,6 @@ const IssuesPage = () => {
 
         // Log the raw response data
         console.log("Raw API response:", response.data);
-        if (response.data.results.length > 0) {
-          console.log("First Issue Type:", response.data.results[0]?.type);
-        }
-
-        
         // Ensure the response contains JSON data
         if (response.data && response.data.results) {
           const transformedIssues = response.data.results.map((bug) => ({
@@ -141,17 +136,6 @@ const IssuesPage = () => {
       }
     };
     
-// // Pagination state
-// const [currentPage, setCurrentPage] = useState(1);
-// const [totalPages, setTotalPages] = useState(1);
-
-// useEffect(() => {
-//   if (issues.count) {
-//     const totalPages = Math.ceil(issues.count / 10); // Assuming 10 items per page
-//     setTotalPages(totalPages);
-//   }
-// }, [issues.count]);
-
   // Filter states
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProject, setSelectedProject] = useState("")
@@ -178,6 +162,52 @@ const IssuesPage = () => {
   const [draggedColumn, setDraggedColumn] = useState(null)
   const [dragOverColumn, setDragOverColumn] = useState(null)
 
+  //adding new state variables to manage editing issues
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState(null);
+
+  //openedit funtion to take all edit inputs from the userrr
+  const openEditIssueModal = (issue) => {
+  // Map backend format to form fields
+  const formattedIssue = {
+    id: issue.id,
+    key: issue.key,
+    summary: issue.summary,
+    type: issue.type,
+    status: issue.status.toLowerCase().replace(" ", "_"), // e.g., "Not Resolved" → "not_resolved"
+    priority: "medium", // fetch from backend or default
+    due_date: "", // fill if available
+    assignee: issue.assignee === "Unassigned" ? "" : issue.assignee, // map accordingly
+    reporter: issue.reporter === "Unknown" ? "" : issue.reporter,
+    
+  };
+
+  setSelectedIssue(formattedIssue);
+  setIsEditModalOpen(true);
+};
+
+//importing all users in the workspace
+const [users, setUsers] = useState({ results: [] });
+
+// Load users from localStorage on mount
+useEffect(() => {
+  const loadUsersFromStorage = () => {
+    try {
+      const storedUsers = localStorage.getItem("users");
+      if (storedUsers) {
+        const parsedUsers = JSON.parse(storedUsers);
+        setUsers(parsedUsers);
+      } else {
+        console.warn("No users found in localStorage.");
+      }
+    } catch (error) {
+      console.error("Failed to parse users from localStorage:", error);
+    }
+  };
+
+  loadUsersFromStorage();
+}, []);
+ 
   const issueTypeIcons = {
     bug: <Bug size={16} className="text-red-500" />, // Bug icon
     task: <CheckSquare size={16} className="text-blue-500" />, // Task icon
@@ -425,7 +455,7 @@ const [newIssue, setNewIssue] = useState({
   key: '' // If your backend expects this field
 });
 
-  // Fetch current user data from localStorage or API
+  // Fetch current user data from localStorage 
 useEffect(() => {
   const fetchCurrentUser = () => {
     // Get user data from localStorage (stored during login)
@@ -618,6 +648,76 @@ const handleAddIssue = async (e) => {
       </div>
     );
   }
+
+  //edit issues axios PUT request
+    const handleUpdateIssue = async (e) => {
+    e.preventDefault();
+
+    if (!selectedIssue.summary) {
+      alert("Please fill in the Summary field.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    try {
+    // Prepare the payload - match your backend expected format
+    const payload = {
+      key: selectedIssue.key,
+      summary: selectedIssue.summary,
+      type: selectedIssue.type,
+      status: selectedIssue.status,
+      assignee: parseInt(selectedIssue.assignee) || currentUser.id,
+      reporter: parseInt(selectedIssue.reporter) || currentUser.id,
+      due_date: selectedIssue.due_date || null,
+      priority: selectedIssue.priority,
+      project: parseInt(projectId), // Include the project ID here
+    };
+
+    console.log("Final payload being sent:", payload);
+
+    // Send the PUT request
+    const response = await axios.put(
+       "http://localhost:8000/api/bugs/",
+      payload,
+      {
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+          "X-Project-ID": projectId, // Use the selected project ID
+        },
+      }
+    );
+
+    console.log("Issue updated successfully:", response.data);
+
+      // Update local issues state
+      setIssues(prev => ({
+        ...prev,
+        results: prev.results.map(issue =>
+          issue.id === selectedIssue.id
+            ? {
+                ...issue,
+                key: response.data.key || selectedIssue.key,
+                summary: response.data.summary,
+                type: response.data.type,
+                assignee: response.data.assignee?.username || "Unassigned",
+                reporter: response.data.reporter?.username || "Unknown",
+                status:
+                  response.data.status.charAt(0).toUpperCase() +
+                  response.data.status.slice(1),
+                dueDate: response.data.due_date || "N/A",
+              }
+            : issue
+        ),
+      }));
+
+      setIsEditModalOpen(false);
+      alert("Issue updated successfully!");
+    } catch (error) {
+      console.error("Error updating issue:", error);
+      alert("Failed to update issue. Check console for details.");
+    }
+  };
   
     return (
       <div className="flex-1 overflow-auto w-full h-full">
@@ -998,12 +1098,9 @@ const handleAddIssue = async (e) => {
                         <div className="flex space-x-2">
                           <button 
                             className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all duration-200"
-                            onClick={() => {
-                              // You could implement edit functionality here
-                              alert(`Edit issue ${issue.id}`);
-                            }}
+                            onClick={() => openEditIssueModal(issue)} 
                           >
-                            <Edit2 size={16} />  
+                            <Edit2 size={16} /> 
                           </button>
                           
                           <button 
@@ -1166,6 +1263,141 @@ const handleAddIssue = async (e) => {
         </div>
       )}
 
+        {/*Edit Issue Modal */}
+        {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Edit Issue</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateIssue}>
+              {/* Example: Summary Field */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Issue Key</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.key}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, key: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Issue Type</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.type}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, type: e.target.value })}
+                  >
+                    <option value="bug">Bug</option>
+                    <option value="task">Task</option>
+                    <option value="feature">Feature</option>
+                    <option value="document">Document</option>
+                    <option value="wallet">Wallet</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Summary *</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.summary}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, summary: e.target.value })}
+                    required
+                  />
+                </div>
+                {/* Assignee Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assignee</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.assignee || ''}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, assignee: e.target.value })}
+                  >
+                    <option value="">Unassigned</option>
+                    {users.results?.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Reporter Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Reporter</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.reporter || ''}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, reporter: e.target.value })}
+                  >
+                    <option value="">Unknown</option>
+                    {users.results?.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.status}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, status: e.target.value })}
+                    required
+                  >
+                    <option value="to_do">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="not_resolved">Not Resolved</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.due_date || ''}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, due_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={selectedIssue.priority || 'medium'}
+                    onChange={(e) => setSelectedIssue({ ...selectedIssue, priority: e.target.value })}
+                    required
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded text-sm"
+                  onClick={() => setIsEditModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
         {/* Column Management Modal */}
         {showColumnModal && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

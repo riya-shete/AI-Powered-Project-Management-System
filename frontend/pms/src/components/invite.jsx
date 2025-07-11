@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, Plus, Check, XCircle, Trash2, Eye } from 'lucide-react';
+import { useWorkspace } from "../contexts/WorkspaceContexts";
 
 const Invite = ({ isOpen, onClose }) => {
 
@@ -20,18 +21,14 @@ const Invite = ({ isOpen, onClose }) => {
   // API base URL
   const API_BASE = 'http://localhost:8000/api';
 
-  // // Get auth headers
-  // const getAuthHeaders = () => {
-  //   const token = localStorage.getItem('token');
-  //   return {
-  //     'Content-Type': 'application/json',
-  //     token,
-  //     email: 'vivek.651.2304@gmail.com',
-  //     role: 'admin',
-  //     workspace: workspaceId
-  //   };
-  // };
-
+  const { currentWorkspace } = useWorkspace();
+  useEffect(() => {
+    if (currentWorkspace) {
+      console.log("Current workspace:", currentWorkspace);
+      console.log("Current workspace ID:", currentWorkspace.id);  
+    }
+  }, [currentWorkspace]);
+  
   // Load users from localStorage
   useEffect(() => {
     const storedUsers = localStorage.getItem('users');
@@ -135,6 +132,7 @@ const Invite = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
       const payload = {
+        token: token,
         email: selectedUser.email,
         role: selectedRole,
         workspace: workspaceId
@@ -148,6 +146,7 @@ const Invite = ({ isOpen, onClose }) => {
         },
         body: JSON.stringify(payload)
       });
+      console.log('the payload sent',payload);
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to create invitation');
       setSuccess('Invitation sent successfully!');
@@ -277,6 +276,14 @@ const Invite = ({ isOpen, onClose }) => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Invitation Management</h2>
+             <div>
+              {currentWorkspace ? (
+                <p>Inviting to workspace: <strong>{currentWorkspace.name}</strong></p>
+              ) : (
+                <p>No active workspace</p>
+              )}
+            </div>
+            
             <div className="flex gap-2">
               <button
                 onClick={() => setShowCreateModal(true)}

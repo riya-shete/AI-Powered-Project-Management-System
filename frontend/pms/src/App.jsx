@@ -23,11 +23,13 @@ import Profile from './components/profile';
 import PopupChatWindow from './components/inbox'
 import ChatbotWidget from "./components/chatbotwidget";
 import ExploreTemplates from "./components/tools"
-
+import { UserProvider } from "./contexts/UserContext";
 import WorkspaceName from "./pages/WorkspaceName";
+import { WorkspaceProvider } from './contexts/WorkspaceContexts';
 function App() {
     return (
-        
+        <WorkspaceProvider>
+        <UserProvider>
           <Routes>
           <Route path="/" element={<LandingPage/>} />
           <Route path="/Login" element={<Login/>} />
@@ -55,7 +57,8 @@ function App() {
           <Route path="/inbox" element ={<PopupChatWindow/>}/>
           <Route path="/tools" element ={<ExploreTemplates/>}/>
           </Routes>
-         
+        </UserProvider>
+        </WorkspaceProvider>
           
       );
   
