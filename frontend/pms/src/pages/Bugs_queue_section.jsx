@@ -5,7 +5,8 @@ import axios from 'axios';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 import { useParams } from 'react-router-dom'
-
+import { useContext } from "react";
+import { UserContext } from "../contexts/UserContext";
 
 
 const Bugs_queue_section = () => {
@@ -25,7 +26,6 @@ const IssuesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { projectId } = useParams()
-
   
   // Fetch bugs from the backend
   useEffect(() => {
@@ -186,8 +186,11 @@ const IssuesPage = () => {
   setIsEditModalOpen(true);
 };
 
-//importing all users in the workspace
-const [users, setUsers] = useState({ results: [] });
+//usercontext
+const { users, loading: usersLoading } = useContext(UserContext);
+
+// //importing all users in the workspace
+// const [users, setUsers] = useState({ results: [] });
 
 // Load users from localStorage on mount
 useEffect(() => {
@@ -1189,17 +1192,28 @@ const handleAddIssue = async (e) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Reporter</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      className="flex-1 border border-gray-300 rounded p-2 text-sm bg-gray-50"
-                      value={currentUser.username}
-                      readOnly
-                    />
-                    <span className="text-xs text-gray-500">(You)</span>
-                  </div>
-                  <input type="hidden" value={newIssue.reporter} />
+                  <label className="block text-sm font-medium mb-1">Reporter *</label>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={newIssue.reporter}
+                    onChange={(e) => setNewIssue({ ...newIssue, reporter: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Reporter</option>
+                    {usersLoading ? (
+                      <option value="" disabled>Loading users...</option>
+                    ) : (
+                      users.results && users.results.length > 0 ? (
+                        users.results.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.username} {user.id === currentUser.id ? "(You)" : ""}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>No users available</option>
+                      )
+                    )}
+                  </select>
                 </div>
 
                 <div>
@@ -1319,11 +1333,15 @@ const handleAddIssue = async (e) => {
                     onChange={(e) => setSelectedIssue({ ...selectedIssue, assignee: e.target.value })}
                   >
                     <option value="">Unassigned</option>
-                    {users.results?.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.username}
-                      </option>
-                    ))}
+                    {usersLoading ? (
+                      <option value="" disabled>Loading users...</option>
+                    ) : (
+                      (users.results || []).map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username} {user.id === currentUser.id ? "(You)" : ""}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 {/* Reporter Dropdown */}
@@ -1335,11 +1353,15 @@ const handleAddIssue = async (e) => {
                     onChange={(e) => setSelectedIssue({ ...selectedIssue, reporter: e.target.value })}
                   >
                     <option value="">Unknown</option>
-                    {users.results?.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.username}
-                      </option>
-                    ))}
+                    {usersLoading ? (
+                      <option value="" disabled>Loading users...</option>
+                    ) : (
+                      (users.results || []).map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username} {user.id === currentUser.id ? "(You)" : ""}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 <div>
@@ -1397,7 +1419,8 @@ const handleAddIssue = async (e) => {
             </form>
           </div>
         </div>
-      )}
+        )}
+        
         {/* Column Management Modal */}
         {showColumnModal && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

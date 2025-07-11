@@ -565,15 +565,15 @@ const updateTask = (taskId, newTask, sprintName) => {
   const getStatusColor = (status) => {
     switch (status) {
       case "Done":
-        return "bg-[#34C759] text-white"
+        return "bg-green-100 text-green-700"
       case "In Progress":
-        return "bg-[#FFA725] text-white"
+        return "bg-blue-100 text-blue-700"
       case "Waiting for review":
         return "bg-[#5AC8FA] text-gray-800"
       case "Ready to start":
         return "bg-[#AF52DE] text-white"
       case "Stuck":
-        return "bg-[#FF3B30] text-white"
+        return "bg-orange-100 text-orange-700"
       default:
         return "bg-[#8E8E93] text-white"
     }
@@ -1839,14 +1839,17 @@ const updateTask = (taskId, newTask, sprintName) => {
   )
 }
 
+ if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-600">Loading issues...</p>
+      </div>
+    );
+  }
+
+
   return (
     <div className="flex-1 overflow-auto w-full h-full">
-      {loading && (
-        <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
-          <div className="text-xl font-medium text-gray-700">Loading tasks...</div>
-        </div>
-      )}
-
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-8 mb-4">
           <strong className="font-bold">Error:</strong>

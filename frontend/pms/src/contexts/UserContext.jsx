@@ -14,9 +14,14 @@ export const UserProvider = ({ children }) => {
     setError(null);
 
     try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
       const response = await axios.get("http://localhost:8000/api/users/", {
         headers: {
-          Authorization: `Token ${localStorage.getItem("token")}`,
+          Authorization: `Token ${token}`,
         },
       });
 
@@ -26,21 +31,49 @@ export const UserProvider = ({ children }) => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch users");
 
+      // Trying to load from localStorage as fallback
       const storedUsers = localStorage.getItem("users");
-      if (storedUsers) setUsers(JSON.parse(storedUsers));
+      if (storedUsers) {
+        try {
+          const parsedUsers = JSON.parse(storedUsers);
+          if (Array.isArray(parsedUsers)) {
+            setUsers(parsedUsers);
+          }
+        } catch (parseError) {
+          console.error("Error parsing stored users:", parseError);
+          setUsers([]);
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Load users from localStorage first (for immediate display)
     const storedUsers = localStorage.getItem("users");
-    if (storedUsers) setUsers(JSON.parse(storedUsers));
+    if (storedUsers) {
+      try {
+        const parsedUsers = JSON.parse(storedUsers);
+        if (Array.isArray(parsedUsers)) {
+          setUsers(parsedUsers);
+        }
+      } catch (parseError) {
+        console.error("Error parsing stored users:", parseError);
+      }
+    }
+    
+    // Then fetch fresh data
     fetchUsers();
   }, []);
 
-  return (
-    <UserContext.Provider value={{ users, loading, error, refreshUsers: fetchUsers }}>
+return (
+    <UserContext.Provider value={{ 
+      users, 
+      loading, 
+      error, 
+      refreshUsers: fetchUsers 
+    }}>
       {children}
     </UserContext.Provider>
   );
