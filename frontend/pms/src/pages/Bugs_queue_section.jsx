@@ -715,6 +715,41 @@ const handleAddIssue = async (e) => {
     }
   };
   
+  //delete  issues from the main table - axios DELETE request
+  const handleDelete = async (issueId) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this issue?");
+  if (!confirmDelete) return;
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Authentication token not found. Please log in again.");
+    return;
+  }
+
+  try {
+    await axios.delete(`http://localhost:8000/api/bugs/`, {
+      headers: {
+        Authorization: `Token ${token}`,
+        "X-Object-ID": issueId,
+      },
+    });
+
+    // Remove deleted issue from local state
+    setIssues(prev => ({
+      ...prev,
+      results: prev.results.filter(item => item.id !== issueId)
+    }));
+
+    alert("Issue deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting issue:", error);
+    alert(
+      error.response?.data?.detail ||
+      "Failed to delete the issue. Please try again."
+    );
+  }
+};
+
     return (
       <div className="flex-1 overflow-auto w-full h-full">
         <div className="p-4 bg-white">
@@ -1112,10 +1147,7 @@ const handleAddIssue = async (e) => {
                           
                           <button 
                             className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-all duration-200"
-                            onClick={() => {
-                              // Filter out the deleted issue
-                              setIssues(issues.filter(item => item.id !== issue.id));
-                            }}
+                            onClick={() => handleDelete(issue.id)}
                           >
                             <Trash2 size={16} />
                           </button>
