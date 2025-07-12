@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect} from 'react';
 import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "lucide-react";
 import axios from 'axios';
+import Lottie from "lottie-react";
+import bughunting from '../assets/Bug Hunting.json';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 import { useParams } from 'react-router-dom'
@@ -32,7 +34,7 @@ const IssuesPage = () => {
     const fetchBugs = async () => {
       try {
         const token = localStorage.getItem("token");
-        console.log("Token used for fetching projects:", token);
+        // console.log("Token used for fetching projects:", token);
         console.log("Project ID from URL:", projectId); // Debug log
         setLoading(true);
         const response = await axios.get("http://localhost:8000/api/bugs/", {
@@ -187,7 +189,7 @@ const IssuesPage = () => {
 };
 
 //usercontext
-const { users, loading: usersLoading } = useContext(UserContext);
+const { users, setUsers, loading: usersLoading } = useContext(UserContext);
 
 // //importing all users in the workspace
 // const [users, setUsers] = useState({ results: [] });
@@ -625,15 +627,6 @@ const handleAddIssue = async (e) => {
     }
   }
 };
- 
-  // Show fallback UI when loading
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-600">Loading issues...</p>
-      </div>
-    );
-  }
 
   // Show error message if there's an error
   if (error) {
@@ -998,7 +991,8 @@ const handleAddIssue = async (e) => {
             </div>
           </div>
         </div>
-          
+
+
           {/* Issues main Table */}
           <div className="bg-white border overflow-hidden">
             <div className="overflow-x-auto">
@@ -1018,9 +1012,19 @@ const handleAddIssue = async (e) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIssues.map((issue) => (
+                    {loading || filteredIssues.length === 0 ? (
+                      <tr>
+                        <td colSpan="10">
+                          <div className="flex justify-center items-center h-[400px]">
+                            <div className="w-32 h-32">
+                              <Lottie animationData={bughunting} loop={true} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                  filteredIssues.map((issue) => (
                     <tr key={issue.id} className="border-t border-gray-200 hover:bg-blue-50">
-                      
                       <td className="p-2 text-center align-middle">
                         <div className="flex items-center justify-center h-full">
                           {issueTypeIcons[issue.type] || <FileText size={16} className="text-gray-500" />}
@@ -1118,12 +1122,13 @@ const handleAddIssue = async (e) => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-  
+
          
 
         {/* Issue Creation Modal */}
@@ -1420,7 +1425,7 @@ const handleAddIssue = async (e) => {
           </div>
         </div>
         )}
-        
+
         {/* Column Management Modal */}
         {showColumnModal && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
