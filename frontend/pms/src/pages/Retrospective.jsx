@@ -14,7 +14,8 @@ import {
   Settings,
   X,
 } from "lucide-react"
-
+import Lottie from "lottie-react";
+import glass from '../assets/search_retro.json';
 import axios from "axios";
 import { useParams } from "react-router-dom";
 
@@ -560,7 +561,7 @@ const sortedColumns = useMemo(() => {
 return (
     loading ? (
         <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-600">Loading retrospectives...</p>
+            <Lottie animationData={glass} className="w-48 h-48" />
         </div>
     ) : error ? (
         <div className="flex-1 flex items-center justify-center">
