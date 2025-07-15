@@ -60,10 +60,11 @@ class Sprint(models.Model):
         ('high', 'High'),
     )
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_sprints')
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_sprints')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sprints_assigned_by')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
         return f"{self.name} - {self.project.name}"
 
