@@ -1,0 +1,260 @@
+[33mcommit 459afcaba353e7ee2616fd87f20475f7989d4507[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: riyashete19 <riyashete2002@gmail.com>
+Date:   Thu Jun 12 01:12:45 2025 +0530
+
+    task_dashboard issues solved
+
+[33mcommit b5f0e98f48b535769b77eb42ae359d27b860b15d[m
+Author: riyashete19 <riyashete2002@gmail.com>
+Date:   Wed Jun 11 00:13:26 2025 +0530
+
+    task_dashboard_updated
+
+[33mcommit 9db0cbc5f05193391b2beddce4229308d16f01f8[m
+Merge: f1b9449 25249bb
+Author: riyashete19 <riyashete2002@gmail.com>
+Date:   Tue Jun 10 21:41:28 2025 +0530
+
+    PMS issues about id's solved
+
+[33mcommit f1b9449600ec79f8c53585bf9254f7e815065bf2[m
+Author: riyashete19 <riyashete2002@gmail.com>
+Date:   Sat Jun 7 08:49:39 2025 +0530
+
+    local changes
+
+[33mcommit 25249bbc2f1cc08dee25e0b8ca19822dffb95964[m
+Merge: 2a0795f 132bea1
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Fri Jun 6 16:55:47 2025 +0530
+
+    Merge branch 'main' of https://github.com/riyashete19/AI-Powered-Project-Management-System
+
+[33mcommit 2a0795f2e8e26292b8e367c5d230c14d646a45ca[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Fri Jun 6 16:55:27 2025 +0530
+
+    pages getting loaded on basis of  projectid
+
+[33mcommit 132bea1949474ac1ff987fe7cdd9392b6889fa32[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Sat May 31 22:56:52 2025 +0530
+
+    corrected workspace invitation
+
+[33mcommit fddc0125ccb2eda352177cacf3480a8db0ce93be[m
+Author: riyashete19 <riyashete2002@gmail.com>
+Date:   Sun May 25 23:42:15 2025 +0530
+
+    task_dashboard_crud
+
+[33mcommit 2af19d9e57eaa2b2bcf446777720c8b193593cf9[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Sun May 25 23:22:45 2025 +0530
+
+    1 line error-removed
+
+[33mcommit 847c53ac4156d86d31b0aa2d227f1e89b0ee5731[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Sun May 25 15:48:58 2025 +0530
+
+    fetching bugs from backend and mapping it to the main issue table
+
+[33mcommit f72c7d0832e00305df4d52522f6313e1e97224f2[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Sat May 24 20:27:35 2025 +0530
+
+    bugs queue type added
+
+[33mcommit aa4b2b2dad5a2ddd7a6a7c7f72dda6af95033b21[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Sat May 24 19:44:52 2025 +0530
+
+    account creation repair
+
+[33mcommit 8c3a8a1076e46747f98f0c6e7d14ee79d87a60d1[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Thu May 15 14:13:41 2025 +0530
+
+    fetching bugs using api
+
+[33mcommit 8832e88c09cc71c15c495d04b68795e98a1d9f0a[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Thu May 15 13:46:49 2025 +0530
+
+    fetchign bugs from backend
+
+[33mcommit d0ac94fa3c5a28dfcb99776df89ba5b7e8fb14b8[m
+Merge: 5fe2552 dcfc3bd
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Thu May 15 13:41:52 2025 +0530
+
+    Merge branch 'main' of https://github.com/riyashete19/AI-Powered-Project-Management-System
+
+[33mcommit 5fe2552ba30b32471f444b2c0af313873b816b54[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Thu May 15 13:16:17 2025 +0530
+
+    fetching bugs using API from backend
+
+[33mcommit dcfc3bdcc21b1c6a9d013e3fd368e13551ee5496[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Thu May 15 11:46:42 2025 +0530
+
+    new token while login
+
+[33mcommit 74e04a06f8cbd67c5b5f43d14d1f4b0eb56e6eef[m
+Author: Kalyanibonde <kalyanibonde05@gmail.com>
+Date:   Thu May 15 10:28:32 2025 +0530
+
+    customizable tables
+
+[33mcommit eb1ac346cbfc2dde1da5d32f4ef1b955dacbd91b[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Tue Apr 22 14:58:06 2025 +0530
+
+    updated the funtions to verify otp
+
+[33mcommit 619d3dec01b4944ef305daf129b171d4a5b79cec[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Tue Apr 22 10:17:22 2025 +0530
+
+    configured new signups
+
+[33mcommit 6970eca67e407e8610c4a2efda4ecb84f55ea8d0[m
+Merge: b9c54fd 21ded7c
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Tue Apr 22 09:35:36 2025 +0530
+
+    Merge branch 'main' of https://github.com/riyashete19/AI-Powered-Project-Management-System
+
+[33mcommit b9c54fdf8393da4347d9f3426c9110c9b619be27[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Tue Apr 22 09:35:08 2025 +0530
+
+    added functions login.jsx for OTP verification
+
+[33mcommit 21ded7c039c08243fdb628a7b38b813fc6446464[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Mon Apr 21 19:31:00 2025 +0530
+
+    Navigations
+
+[33mcommit b825161018e0825bc250c9d2831994902d9582a2[m
+Merge: 5dbbe28 4a2bd30
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Mon Apr 21 14:27:26 2025 +0530
+
+    Merge branch 'main' of https://github.com/riyashete19/AI-Powered-Project-Management-System
+
+[33mcommit 4a2bd30db7a9d359c7fe1fbcdac9df74a7e63924[m
+Merge: b75d8eb 00ab4ff
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Fri Apr 18 13:36:03 2025 +0530
+
+    Merge branch 'main' of https://github.com/riya-shete/AI-Powered-Project-Management-System
+
+[33mcommit b75d8eb4101252fce2e51b7dc2f2d390110938b7[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Fri Apr 18 13:35:40 2025 +0530
+
+    added email-otp authenication
+
+[33mcommit 5dbbe28fedcb0031f244a8104ed6d718935ac267[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Fri Apr 18 11:13:31 2025 +0530
+
+    Remove .env.example from tracking and respect .gitignore
+
+[33mcommit 00ab4ff6ac4508d66b6bc30c6724b8aa5264dc92[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Fri Apr 18 11:10:02 2025 +0530
+
+    models updated in backend + wrote POST APIs for bugs creation
+
+[33mcommit b3dd10b5faa5a911714287e048b7552ea2f731ba[m
+Author: Kalyanibonde <kalyanibonde05@gmail.com>
+Date:   Wed Apr 16 08:24:58 2025 +0530
+
+    sidebar
+
+[33mcommit e9316cabbef5e50c7914c455ae801dcbe6736d75[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Sun Apr 13 19:34:36 2025 +0530
+
+    Summary and colour Styling first draft
+
+[33mcommit 5060a95b4bb84893444460d260479fbc59a547ee[m
+Author: Shriraj Patil <121507176+shri-raj@users.noreply.github.com>
+Date:   Sat Apr 12 19:44:35 2025 +0530
+
+    Delete backend/runner.py
+
+[33mcommit 221706c641695122a72c501e17c442209136f75e[m
+Author: Shriraj Patil <121507176+shri-raj@users.noreply.github.com>
+Date:   Sat Apr 12 19:43:18 2025 +0530
+
+    Delete code_extraction.txt
+
+[33mcommit 24ecdd9d29f4499e5f7df258b94290ed5486e0f5[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Sat Apr 12 02:48:10 2025 +0530
+
+    collapse transition
+
+[33mcommit 9179bb1b4d71ec47e6bc1cd7c64ed818c3d4d95f[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Sat Apr 12 01:29:14 2025 +0530
+
+    PMS colour and design first draft
+
+[33mcommit 9f999db5bd3194958bf3c298ee4c1756eaeb6ef0[m
+Author: AnandS1807 <mranand0709@gmail.com>
+Date:   Fri Apr 11 17:07:38 2025 +0530
+
+    .
+
+[33mcommit e894be3ebb1663c52221c95a61723391c81f26bf[m
+Author: shri-raj <patilshriraj2602@gmail.com>
+Date:   Fri Apr 11 11:00:51 2025 +0530
+
+    ids in header
+
+[33mcommit ed8f8f1a0404019c9582ecc020412449357c0df3[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Fri Apr 11 02:45:13 2025 +0530
+
+    enabled search feature and filters
+
+[33mcommit 2781f444a7a12e7fcb534b5d8f2db191f2434d04[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Fri Apr 11 02:06:42 2025 +0530
+
+    modified pms
+
+[33mcommit 2f7fbe259cb62887cd396d06e1146b46506fd947[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Fri Apr 11 00:48:46 2025 +0530
+
+    Add Task Feature
+
+[33mcommit 3c8fd3352e342b80361b29ca96b1938c7638bc14[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Thu Apr 10 19:32:44 2025 +0530
+
+    Sprint structure updated
+
+[33mcommit 402aad7434f7fa12965faa29e9e9be9dcfa805df[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Thu Apr 10 01:05:57 2025 +0530
+
+    Profile Edit
+
+[33mcommit d9fefbc049f60c1c46be2f81eb35714a2e73b887[m
+Author: Vivek2304shinde <167517675+Vivek2304shinde@users.noreply.github.com>
+Date:   Thu Apr 10 00:11:40 2025 +0530
+
+    exit profile
+
+[33mcommit 4668d2616fe60d7fc8d8b0aabfae4af74625c091[m
+Autho

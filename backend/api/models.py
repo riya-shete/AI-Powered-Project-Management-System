@@ -65,7 +65,7 @@ class Sprint(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def __str__(self):
+    def _str_(self):
         return f"{self.name} - {self.project.name}"
 
 class Task(models.Model):

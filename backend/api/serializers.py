@@ -71,6 +71,7 @@ class SprintSerializer(serializers.ModelSerializer):
         model = Sprint
         fields = ['id', 'name', 'project', 'start_date', 'end_date', 'active', 
                 'description', 'goal', 'priority', 'assigned_to', 'assigned_by', 'created_at', 'updated_at']
+
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)
     reporter = UserSerializer(read_only=True)
