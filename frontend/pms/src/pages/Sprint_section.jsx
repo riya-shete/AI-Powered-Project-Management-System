@@ -5,6 +5,7 @@ import { Search, Filter, ArrowDownUp, EyeOff, Plus, Edit, Trash2, Check, X, User
 import { useParams } from "react-router-dom"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
+import Lottie from "lottie-react"
 
 const SprintsPage = () => {
   return (

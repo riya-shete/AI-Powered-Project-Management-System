@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect} from 'react';
 import { ChevronLeft, User, ChevronRight, Lock, Search, ChevronDown, MoreHorizontal,MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import { FileText, Wallet, Bug, CheckSquare, PlusCircle, AlertTriangle } from "lucide-react";
 import axios from 'axios';
+import Lottie from "lottie-react";
+import bughunting from '../assets/Bug_Hunting.json';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 import { useParams } from 'react-router-dom'
@@ -32,7 +34,7 @@ const IssuesPage = () => {
     const fetchBugs = async () => {
       try {
         const token = localStorage.getItem("token");
-        console.log("Token used for fetching projects:", token);
+        // console.log("Token used for fetching projects:", token);
         console.log("Project ID from URL:", projectId); // Debug log
         setLoading(true);
         const response = await axios.get("http://localhost:8000/api/bugs/", {
@@ -184,10 +186,14 @@ const IssuesPage = () => {
 
   setSelectedIssue(formattedIssue);
   setIsEditModalOpen(true);
+  setAssigneeSearch('');                
+  setReporterSearch('');
+  setIsAssigneeDropdownOpen(false);
+  setIsReporterDropdownOpen(false);
 };
 
 //usercontext
-const { users, loading: usersLoading } = useContext(UserContext);
+const { users, setUsers, loading: usersLoading } = useContext(UserContext);
 
 // //importing all users in the workspace
 // const [users, setUsers] = useState({ results: [] });
@@ -497,6 +503,10 @@ const openCreateIssueModal = () => {
     key: ''
   });
   setIsModalOpen(true);
+  setAssigneeSearch('');
+  setReporterSearch('');
+  setIsAssigneeDropdownOpen(false);
+  setIsReporterDropdownOpen(false);
 };
 
 // POST API to add new issue
@@ -595,6 +605,8 @@ const handleAddIssue = async (e) => {
     
     setIsModalOpen(false);
     alert("Issue created successfully!");
+    setIsAssigneeDropdownOpen(false);
+    setIsReporterDropdownOpen(false);
 
   } catch (error) {
     // Log and display any errors
@@ -625,15 +637,6 @@ const handleAddIssue = async (e) => {
     }
   }
 };
- 
-  // Show fallback UI when loading
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-600">Loading issues...</p>
-      </div>
-    );
-  }
 
   // Show error message if there's an error
   if (error) {
@@ -715,6 +718,8 @@ const handleAddIssue = async (e) => {
       }));
 
       setIsEditModalOpen(false);
+      setIsAssigneeDropdownOpen(false);
+      setIsReporterDropdownOpen(false);
       alert("Issue updated successfully!");
     } catch (error) {
       console.error("Error updating issue:", error);
@@ -722,6 +727,68 @@ const handleAddIssue = async (e) => {
     }
   };
   
+  //delete  issues from the main table - axios DELETE request
+  const handleDelete = async (issueId) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this issue?");
+  if (!confirmDelete) return;
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Authentication token not found. Please log in again.");
+    return;
+  }
+
+  try {
+    await axios.delete(`http://localhost:8000/api/bugs/`, {
+      headers: {
+        Authorization: `Token ${token}`,
+        "X-Object-ID": issueId,
+      },
+    });
+
+    // Remove deleted issue from local state
+    setIssues(prev => ({
+      ...prev,
+      results: prev.results.filter(item => item.id !== issueId)
+    }));
+
+    alert("Issue deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting issue:", error);
+    alert(
+      error.response?.data?.detail ||
+      "Failed to delete the issue. Please try again."
+    );
+  }
+};
+
+  //adding states to manage searchable dropdowns for all uysers 
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+  const [reporterSearch, setReporterSearch] = useState('');
+  const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+  const [isReporterDropdownOpen, setIsReporterDropdownOpen] = useState(false);
+  
+  // funtions that helps to search users : Filter the users array based on search input
+  const filteredUsersForAssignee = users.results?.filter(user => 
+    user.username.toLowerCase().includes(assigneeSearch.toLowerCase())
+  ) || [];
+
+  const filteredUsersForReporter = users.results?.filter(user => 
+    user.username.toLowerCase().includes(reporterSearch.toLowerCase())
+  ) || [];
+
+ //Filter the users array based on search input
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.searchable-dropdown')) {
+        setIsAssigneeDropdownOpen(false);
+        setIsReporterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+    
     return (
       <div className="flex-1 overflow-auto w-full h-full">
         <div className="p-4 bg-white">
@@ -998,7 +1065,8 @@ const handleAddIssue = async (e) => {
             </div>
           </div>
         </div>
-          
+
+
           {/* Issues main Table */}
           <div className="bg-white border overflow-hidden">
             <div className="overflow-x-auto">
@@ -1018,9 +1086,19 @@ const handleAddIssue = async (e) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIssues.map((issue) => (
+                    {loading || filteredIssues.length === 0 ? (
+                      <tr>
+                        <td colSpan="10">
+                          <div className="flex justify-center items-center h-[400px]">
+                            <div className="w-32 h-32">
+                              <Lottie animationData={bughunting} loop={true} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                  filteredIssues.map((issue) => (
                     <tr key={issue.id} className="border-t border-gray-200 hover:bg-blue-50">
-                      
                       <td className="p-2 text-center align-middle">
                         <div className="flex items-center justify-center h-full">
                           {issueTypeIcons[issue.type] || <FileText size={16} className="text-gray-500" />}
@@ -1108,22 +1186,20 @@ const handleAddIssue = async (e) => {
                           
                           <button 
                             className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-all duration-200"
-                            onClick={() => {
-                              // Filter out the deleted issue
-                              setIssues(issues.filter(item => item.id !== issue.id));
-                            }}
+                            onClick={() => handleDelete(issue.id)}
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-  
+
          
 
         {/* Issue Creation Modal */}
@@ -1177,44 +1253,69 @@ const handleAddIssue = async (e) => {
                   />
                 </div>
 
-                <div>
+                {/* Assignee Dropdown */}
+                <div className="relative searchable-dropdown">
                   <label className="block text-sm font-medium mb-1">Assignee</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      className="flex-1 border border-gray-300 rounded p-2 text-sm bg-gray-50"
-                      value={currentUser.username}
-                      readOnly
-                    />
-                    <span className="text-xs text-gray-500">(You)</span>
-                  </div>
-                  <input type="hidden" value={newIssue.assignee} />
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    value={currentUser.username||assigneeSearch} 
+                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                    onFocus={() => setIsAssigneeDropdownOpen(true)}
+                    placeholder="Search assignee..."
+                  />
+                  {isAssigneeDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {filteredUsersForAssignee.map(user => (
+                        <div
+                          key={user.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            setNewIssue({...newIssue, assignee: user.id});
+                            setAssigneeSearch(user.username);
+                            setIsAssigneeDropdownOpen(false);
+                          }}
+                        >
+                          {user.username} {user.id === currentUser.id ? (
+                            <span className="text-blue-600 font-medium">(You)</span>
+                          ) : ""}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Reporter *</label>
-                  <select
+                <div className="relative searchable-dropdown">
+                  <label className="block text-sm font-medium mb-1">Reporter</label>
+                  <input
+                    type="text"
                     className="w-full border border-gray-300 rounded p-2 text-sm"
-                    value={newIssue.reporter}
-                    onChange={(e) => setNewIssue({ ...newIssue, reporter: e.target.value })}
-                    required
-                  >
-                    <option value="">Select Reporter</option>
-                    {usersLoading ? (
-                      <option value="" disabled>Loading users...</option>
-                    ) : (
-                      users.results && users.results.length > 0 ? (
-                        users.results.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.username} {user.id === currentUser.id ? "(You)" : ""}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No users available</option>
-                      )
-                    )}
-                  </select>
+                    value={reporterSearch}
+                    onChange={(e) => setReporterSearch(e.target.value)}
+                    onFocus={() => setIsReporterDropdownOpen(true)}
+                    placeholder="Search reporter..."
+                  />
+                  {isReporterDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {filteredUsersForReporter.map(user => (
+                        <div
+                          key={user.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            setNewIssue({ ...newIssue, reporter: user.id });
+                            setReporterSearch(user.username);
+                            setIsReporterDropdownOpen(false);
+                          }}
+                        >
+                          {user.username} {user.id === currentUser.id ? (
+                            <span className="text-blue-600 font-medium">(You)</span>
+                          ) : ""}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Status</label>
@@ -1289,7 +1390,6 @@ const handleAddIssue = async (e) => {
             </div>
 
             <form onSubmit={handleUpdateIssue}>
-              {/* Example: Summary Field */}
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Issue Key</label>
@@ -1324,46 +1424,72 @@ const handleAddIssue = async (e) => {
                     required
                   />
                 </div>
-                {/* Assignee Dropdown */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assignee</label>
-                  <select
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                    value={selectedIssue.assignee || ''}
-                    onChange={(e) => setSelectedIssue({ ...selectedIssue, assignee: e.target.value })}
-                  >
-                    <option value="">Unassigned</option>
-                    {usersLoading ? (
-                      <option value="" disabled>Loading users...</option>
-                    ) : (
-                      (users.results || []).map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.username} {user.id === currentUser.id ? "(You)" : ""}
-                        </option>
-                      ))
+
+                {/* Assignee Dropdown in the edit issue modal */}
+                  <div className="relative searchable-dropdown">
+                    <label className="block text-sm font-medium mb-1">Assignee</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      value={assigneeSearch || selectedIssue.assignee}
+                      onChange={(e) => setAssigneeSearch(e.target.value)}
+                      onFocus={() => setIsAssigneeDropdownOpen(true)}
+                      placeholder="Search assignee..."
+                    />
+                    {isAssigneeDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                        {filteredUsersForAssignee.map(user => (
+                          <div
+                            key={user.id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                            onClick={() => {
+                              setSelectedIssue({ ...selectedIssue, assignee: user.id });
+                              setAssigneeSearch(user.username);
+                              setIsAssigneeDropdownOpen(false);
+                            }}
+                          >
+                            {user.username} {user.id === currentUser.id ? (
+                              <span className="text-blue-600 font-medium">(You)</span>
+                            ) : ""}
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </select>
-                </div>
+                  </div>
+
+                
                 {/* Reporter Dropdown */}
-                <div>
+                <div className="relative searchable-dropdown">
                   <label className="block text-sm font-medium mb-1">Reporter</label>
-                  <select
+                  <input
+                    type="text"
                     className="w-full border border-gray-300 rounded p-2 text-sm"
-                    value={selectedIssue.reporter || ''}
-                    onChange={(e) => setSelectedIssue({ ...selectedIssue, reporter: e.target.value })}
-                  >
-                    <option value="">Unknown</option>
-                    {usersLoading ? (
-                      <option value="" disabled>Loading users...</option>
-                    ) : (
-                      (users.results || []).map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.username} {user.id === currentUser.id ? "(You)" : ""}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    value={selectedIssue.reporter|| ''}
+                    onChange={(e) => setReporterSearch(e.target.value)}
+                    onFocus={() => setIsReporterDropdownOpen(true)}
+                    placeholder="Search reporter..."
+                  />
+                  {isReporterDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {filteredUsersForReporter.map(user => (
+                        <div
+                          key={user.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            selectedIssue({ ...selectedIssue, reporter: user.id });
+                            setReporterSearch(user.username);
+                            setIsReporterDropdownOpen(false);
+                          }}
+                        >
+                          {user.username} {user.id === currentUser.id ? (
+                            <span className="text-blue-600 font-medium">(You)</span>
+                          ) : ""}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Status</label>
                   <select
@@ -1420,7 +1546,7 @@ const handleAddIssue = async (e) => {
           </div>
         </div>
         )}
-        
+
         {/* Column Management Modal */}
         {showColumnModal && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
