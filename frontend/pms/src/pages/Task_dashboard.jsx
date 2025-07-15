@@ -5,8 +5,9 @@ import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from 'lucide-rea
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
+import Lottie from "lottie-react";
 import { useParams } from "react-router-dom"
-
+import man from '../assets/man_with_task_list.json';
 const BASE_URL = "http://localhost:8000"
 
 const Task_dashboard = () => {
@@ -1842,7 +1843,9 @@ const updateTask = (taskId, newTask, sprintName) => {
  if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-600">Loading issues...</p>
+        <div className="w-64 h-64">
+          <Lottie animationData={man} loop={true} />
+        </div>
       </div>
     );
   }

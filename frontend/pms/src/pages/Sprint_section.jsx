@@ -3,9 +3,10 @@
 import { useState, useMemo, useEffect } from "react"
 import { Search, Filter, ArrowDownUp, EyeOff, Plus, Edit, Trash2, Check, X } from "lucide-react"
 import { useParams } from "react-router-dom"
-
+import fast from '../assets/Fast.json';
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
+import Lottie from "lottie-react"
 
 const SprintsPage = () => {
   return (
@@ -370,7 +371,9 @@ const SprintMain = () => {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="p-8 text-center text-gray-500">
-                    Loading sprints...
+                    <div className="flex flex-col items-center justify-center">
+                      <Lottie animationData={fast} className="w-40 h-40" loop={false} speed={1} />
+                    </div>
                   </td>
                 </tr>
               ) : filteredSprints.length === 0 ? (
