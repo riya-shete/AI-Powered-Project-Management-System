@@ -94,7 +94,7 @@ const getWorkspaceIcon = (workspace) => {
 }
 
   const token = localStorage.getItem("token");
-  console.log("Token used for fetching projects:", token);
+ 
 
   //Workspace CRUD API functions
   const workspaceAPI = {

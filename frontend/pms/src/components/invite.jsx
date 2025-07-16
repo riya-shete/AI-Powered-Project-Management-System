@@ -183,7 +183,6 @@ const Invite = ({ isOpen, onClose }) => {
     const headers = {
       Authorization: `Token ${token}`,
       "X-Object-id": id,
-      "Content-Type": "application/json"
     };    
     console.log("Sending POST request to:", url);
     console.log("Headers:", headers)

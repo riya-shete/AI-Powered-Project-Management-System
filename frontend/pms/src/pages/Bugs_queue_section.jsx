@@ -195,9 +195,6 @@ const IssuesPage = () => {
 //usercontext
 const { users, setUsers, loading: usersLoading } = useContext(UserContext);
 
-// //importing all users in the workspace
-// const [users, setUsers] = useState({ results: [] });
-
 // Load users from localStorage on mount
 useEffect(() => {
   const loadUsersFromStorage = () => {
@@ -454,47 +451,25 @@ const [currentUser, setCurrentUser] = useState({
 });
 const [newIssue, setNewIssue] = useState({
   summary: '',
-  assignee: '', // This should be user ID, not username
-  reporter: '', // This should be user ID, not username  
-  status: 'to_do', // Using underscore format as shown in your fetch
+  assignee: '', 
+  reporter: '', 
+  status: 'to_do', 
   type: 'bug',
-  project: '1', // Project ID
+  project: '1', 
   priority: 'medium',
-  due_date: '', // Using underscore format
-  key: '' // If your backend expects this field
+  due_date: '', 
+  key: '' 
 });
 
-  // Fetch current user data from localStorage 
-useEffect(() => {
-  const fetchCurrentUser = () => {
-    // Get user data from localStorage (stored during login)
-    const userId = localStorage.getItem("user_id");
-    const username = localStorage.getItem("username"); 
-    const userEmail = localStorage.getItem("user-email");
-    
-    if (userId && username) {
-      setCurrentUser({
-        id: parseInt(userId),
-        username: username,
-        email: userEmail || ''
-      });
-      
-      console.log("Current user loaded:", { id: userId, username, email: userEmail });
-    } else {
-      console.error("User data not found in localStorage");
-    }
-  };
-  
-  fetchCurrentUser();
-}, []);
+
 
 // Function to open modal and set default values
 const openCreateIssueModal = () => {
   // Set the logged-in user as both assignee and reporter by default
   setNewIssue({
     summary: '',
-    assignee: currentUser.id || '', // Set current user as assignee
-    reporter: currentUser.id || '', // Set current user as reporter
+    assignee: '', // Set current user as assignee
+    reporter: '', // Set current user as reporter
     status: 'to_do',
     type: 'bug',
     project: '1',
@@ -539,8 +514,8 @@ const handleAddIssue = async (e) => {
       status: newIssue.status,
       priority: newIssue.priority,
       due_date: newIssue.due_date || null,
-      assignee: parseInt(newIssue.assignee) || currentUser.id, // Use current user if not specified
-      reporter: parseInt(newIssue.reporter) || currentUser.id, // Use current user if not specified
+      assignee: newIssue.assignee,
+      reporter: newIssue.reporter  
     };
 
     // Add key if provided
@@ -594,8 +569,8 @@ const handleAddIssue = async (e) => {
     // Reset the form and close the modal
     setNewIssue({
       summary: '',
-      assignee: currentUser.id || '',
-      reporter: currentUser.id || '',
+      assignee:  '',
+      reporter: '',
       status: 'to_do',
       type: '',
       priority: 'medium',
@@ -672,14 +647,14 @@ const handleAddIssue = async (e) => {
       summary: selectedIssue.summary,
       type: selectedIssue.type,
       status: selectedIssue.status,
-      assignee: parseInt(selectedIssue.assignee) || currentUser.id,
-      reporter: parseInt(selectedIssue.reporter) || currentUser.id,
+      assignee: (selectedIssue.assignee) ,
+      reporter: selectedIssue.reporter ,
       due_date: selectedIssue.due_date || null,
       priority: selectedIssue.priority,
       project: parseInt(projectId), // Include the project ID here
     };
 
-    console.log("Final payload being sent:", payload);
+    console.log("Final updated payload being sent:", payload);
 
     // Send the PUT request
     const response = await axios.put(

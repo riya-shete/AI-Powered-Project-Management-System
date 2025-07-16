@@ -9,7 +9,7 @@ import Task_dashboard from './pages/Task_dashboard'
 import Bugs_queue_section from './pages/Bugs_queue_section'
 import RetrospectiveComponent from './pages/Retrospective'
 import NotificationsDemo from './components/notitication'
-import Feed from './components/update_feed'
+import Feed from './components/notitication'
 import './index.css';
 import Login from './pages/Login';
 import SignIn from './pages/SignIn';

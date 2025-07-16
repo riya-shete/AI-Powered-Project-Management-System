@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useContext} from "react";
+import { UserContext } from "../contexts/UserContext";
 import {
   Search,
   User,
@@ -277,6 +278,10 @@ const Retrospectivesmain = () => {
         owner: "",
       });
       setShowAddForm(false);
+      setResponsibleSearch('');
+      setOwnerSearch('');
+      setIsResponsibleDropdownOpen(false);
+      setIsOwnerDropdownOpen(false);
     } catch (error) {
       console.error("Error creating retrospective:", error);
       alert("Failed to create retrospective. Please try again.");
@@ -292,8 +297,47 @@ const Retrospectivesmain = () => {
       repeating: retrospective.repeating,
       owner: retrospective.owner,
     })
-    setShowAddForm(true)
+    setShowAddForm(true);
+    setResponsibleSearch('');
+    setOwnerSearch('');
+    setIsResponsibleDropdownOpen(false);
+    setIsTypeDropdownOpen(false);
   }
+
+  //Initialize State for Dropdowns
+  const { users } = useContext(UserContext);
+  const [responsibleSearch, setResponsibleSearch] = useState('');
+  const [ownerSearch, setOwnerSearch] = useState('');
+  const [isResponsibleDropdownOpen, setIsResponsibleDropdownOpen] = useState(false);
+  const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
+
+  const [retrospectiveData, setRetrospectiveData] = useState({
+    responsible: null,
+    owner: null,
+  });
+
+  //Handle both arrays depending on whether users are stored as users.results or directly as users.
+  const userList = users.results || users || [];
+  const filteredResponsibleUsers = userList.filter(user =>
+    user.username.toLowerCase().includes(responsibleSearch.toLowerCase())
+  );
+
+  const filteredOwnerUsers = userList.filter(user =>
+    user.username.toLowerCase().includes(ownerSearch.toLowerCase())
+  );
+
+  //Click Outside to Close Dropdowns
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.searchable-dropdown')) {
+      setIsResponsibleDropdownOpen(false);
+      setIsOwnerDropdownOpen(false);
+    }
+  };
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
+
 
     const handleSaveEdit = async () => {
     try {
@@ -334,6 +378,9 @@ const Retrospectivesmain = () => {
       
       setEditingRetrospective(null);
       setShowAddForm(false);
+      
+      setIsResponsibleDropdownOpen(false);
+      setIsOwnerDropdownOpen(false);
     } catch (error) {
       console.error("Error updating retrospective:", error);
       alert("Failed to update retrospective. Please try again.");
@@ -1003,6 +1050,7 @@ return (
         </div>
       </div>
 
+      {/* creation modal*/}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
@@ -1019,19 +1067,38 @@ return (
                   placeholder="Feedback"
                 />
               </div>
-              <div>
+
+              {/* Responsible dropdown */}
+              <div className = "relative searchable-dropdown mt-4">
                 <label className="block text-sm font-medium mb-1">Responsible</label>
                 <input
                   type="text"
-                  name="responsible"
-                  value={newRetrospective.responsible}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Name"
+                  value={responsibleSearch}
+                  onChange={(e)=>setResponsibleSearch(e.target.value)}
+                  className="w-full px-3 py-2 border rounded text-sm"
+                  onFocus={() => setIsResponsibleDropdownOpen(true)}
+                  placeholder="Resonsible user"
                 />
+                {isResponsibleDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                    {filteredOwnerUsers.map(user => (
+                      <div
+                        key={user.id}
+                        className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => {
+                          setRetrospectiveData(prev => ({ ...prev, owner: user.id }));
+                          setOwnerSearch(user.username);
+                          setIsOwnerDropdownOpen(false);
+                        }}
+                      >
+                        {user.username}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
+                <label className="text-sm font-medium mb-1">Type</label>
                 <select
                   name="type"
                   value={newRetrospective.type}
@@ -1043,19 +1110,40 @@ return (
                   <option value="Keep">Keep</option>
                 </select>
               </div>
-              <div>
+
+              {/* Owner Dropdown */}
+              <div className ="relative searchable-dropdown mt-4">
                 <label className="block text-sm font-medium mb-1">Owner</label>
                 <input
                   type="text"
+                  className = "w-full border border-gray-300 rounded p-2 text-sm"
                   name="owner"
-                  value={newRetrospective.owner}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Owner Name"
+                  value={ownerSearch}
+                  onChange={(e) => setOwnerSearch(e.target.value)}
+                  onFocus={() => setIsOwnerDropdownOpen(true)}
+                  placeholder="Search owner..."
                 />
+                  {isOwnerDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {filteredOwnerUsers.map(user => (
+                        <div
+                          key={user.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            setRetrospectiveData(prev => ({ ...prev, owner: user.id }));
+                            setOwnerSearch(user.username);
+                            setIsOwnerDropdownOpen(false);
+                          }}
+                        >
+                          {user.username}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
+
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1 flex items-center">
+                <label className="text-sm font-medium mb-1 flex items-center">
                   <input
                     type="checkbox"
                     name="repeating"

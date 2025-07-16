@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const Profile = () => {
   const navigate = useNavigate();
-  
+  console.log( localStorage.getItem('token'));
   const handleClose = () => {
     if (window.history.length > 1) {
       navigate(-1); // Go back to previous page
