@@ -9,7 +9,7 @@ import Task_dashboard from './pages/Task_dashboard'
 import Bugs_queue_section from './pages/Bugs_queue_section'
 import RetrospectiveComponent from './pages/Retrospective'
 import NotificationsDemo from './components/notitication'
-import Feed from './components/notitication'
+
 import './index.css';
 import Login from './pages/Login';
 import SignIn from './pages/SignIn';
@@ -49,7 +49,7 @@ function App() {
           <Route path="/project/:projectId/taskdashboard" element={<Task_dashboard/>} />
 
           <Route path="/notification" element={<NotificationsDemo/>}/>
-          <Route path="/feed" element = {<Feed/>}/>
+          
           <Route path="/profile" element = {<Profile/>}/>
           <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
           <Route path="/Help" element = {<Help/>}/>

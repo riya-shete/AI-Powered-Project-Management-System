@@ -60,11 +60,12 @@ class Sprint(models.Model):
         ('high', 'High'),
     )
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_sprints')
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_sprints')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sprints_assigned_by')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
+    
+    def _str_(self):
         return f"{self.name} - {self.project.name}"
 
 class Task(models.Model):
@@ -91,7 +92,7 @@ class Task(models.Model):
     reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reported_tasks')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='backlog')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    role = models.CharField(max_length=50, blank=True)  # Dev, Design, Product, etc.
+    role = models.CharField(max_length=50, blank=True)
     item_id = models.CharField(max_length=20, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

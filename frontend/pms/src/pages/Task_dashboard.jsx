@@ -1,13 +1,13 @@
 "use client"
-
 import React, { useEffect, useState } from "react"
-import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from 'lucide-react'
+import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
-import Lottie from "lottie-react";
+import Lottie from "lottie-react"
 import { useParams } from "react-router-dom"
-import man from '../assets/man_with_task_list.json';
+import man from "../assets/man_with_task_list.json"
+
 const BASE_URL = "http://localhost:8000"
 
 const Task_dashboard = () => {
@@ -23,10 +23,7 @@ const Task_dashboard = () => {
 }
 
 const PMSDashboardSprints = () => {
-  
-  
   const { projectId } = useParams()
-  
   const [sprintId, setSprintId] = useState(null)
 
   // State hooks for component
@@ -36,14 +33,19 @@ const PMSDashboardSprints = () => {
     const savedData = localStorage.getItem("sprintData")
     return savedData ? JSON.parse(savedData) : {}
   })
+  const [backlogTasks, setBacklogTasks] = useState([]) // New state for backlog
   const [taskTables, setTaskTables] = useState([])
   const [customTableTasks, setCustomTableTasks] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPerson, setSelectedPerson] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
+  const [selectedRole, setSelectedRole] = useState("") // New role filter
+  const [selectedPriority, setSelectedPriority] = useState("") // New priority filter
   const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
-  const [currentView, setCurrentView] = useState("All Sprints")
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false) // New dropdown
+  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false) // New dropdown
+  const [currentView, setCurrentView] = useState("Active Sprints") // Changed to match tabs
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -69,17 +71,18 @@ const PMSDashboardSprints = () => {
 
   // Updated newTask state with all required fields
   const [newTask, setNewTask] = useState({
-  name: "",
-  description: "",
-  assigned_to: "",
-  role: "",
-  status: "",
-  priority: "",
-  due_date: "",
-  created_at: new Date().toISOString(),  // Automatically sets current timestamp
-  item_id: "",
-})
+    name: "",
+    description: "",
+    assigned_to: "",
+    role: "",
+    status: "",
+    priority: "",
+    due_date: "",
+    created_at: new Date().toISOString(),
+    item_id: "",
+  })
 
+  // Updated columns to hide ID column
   const [columns, setColumns] = useState(() => {
     const savedColumns = localStorage.getItem("tableColumns")
     return savedColumns
@@ -91,10 +94,10 @@ const PMSDashboardSprints = () => {
           { id: "status", label: "Status", type: "status", visible: true, width: "2/12", order: 3 },
           { id: "priority", label: "Priority", type: "priority", visible: true, width: "2/12", order: 4 },
           { id: "role", label: "Type", type: "role", visible: true, width: "2/12", order: 5 },
-          { id: "id", label: "Task ID", type: "text", visible: true, width: "1/12", order: 6 },
+          { id: "id", label: "Task ID", type: "text", visible: false, width: "1/12", order: 6 }, // Hidden by default
           { id: "created_at", label: "Created at", type: "number", visible: true, width: "1/12", order: 7 },
           { id: "due_date", label: "Due Date", type: "date", visible: true, width: "1/12", order: 8 },
-          { id: "actions", label: "Actions", type : "actions", visible: true, width: "1/12", order: 9 },
+          { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 9 },
         ]
   })
 
@@ -119,44 +122,54 @@ const PMSDashboardSprints = () => {
     console.log("printing project id", projectId)
   }, [])
 
+  // Function to check if task/sprint is expired and should go to backlog
+  const isTaskExpired = (task, sprint) => {
+    const currentDate = new Date()
+    const taskDueDate = task.due_date ? new Date(task.due_date) : null
+    const sprintEndDate = sprint?.end_date ? new Date(sprint.end_date) : null
+
+    // Task is expired if due date passed or sprint ended, and task is not done
+    return (
+      (taskDueDate && taskDueDate < currentDate && task.status?.toLowerCase() !== "done") ||
+      (sprintEndDate && sprintEndDate < currentDate && task.status?.toLowerCase() !== "done")
+    )
+  }
+
   useEffect(() => {
-  if (!sprints || sprints.length === 0) return;
+    if (!sprints || sprints.length === 0) return
 
-  axios
-    .get(`${BASE_URL}/api/tasks/`, {
-      headers: {
-        Authorization: `Token ${localStorage.getItem("token")}`,
-      },
-    })
-    .then((res) => {
-      const allTasks = res.data.results || res.data;
+    axios
+      .get(`${BASE_URL}/api/tasks/`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        const allTasks = res.data.results || res.data
+        const validSprintIds = sprints.map((s) => s.id)
+        const filteredTasks = allTasks.filter((task) => validSprintIds.includes(task.sprint))
 
-      // ✅ First, get the valid sprint IDs for the current project
-      const validSprintIds = sprints.map((s) => s.id);
+        // Separate tasks into active sprints and backlog
+        const bySprint = {}
+        const backlogTasksList = []
 
-      // ✅ Filter only tasks that belong to sprints of this project
-      const filteredTasks = allTasks.filter((task) =>
-        validSprintIds.includes(task.sprint)
-      );
+        allTasks.forEach((task) => {
+          const sprint = sprints.find((s) => s.id === task.sprint)
+          const sprintName = sprint?.name || `Sprint ${task.sprint}`
 
-      // ✅ Group tasks by sprint name
-      
-      const bySprint  = allTasks.reduce((acc, task) => {
-        const sprintName =
-          sprints.find((s) => s.id === task.sprint)?.name ||
-          `Sprint ${task.sprint}`;
+          if (isTaskExpired(task, sprint)) {
+            backlogTasksList.push(task)
+          } else {
+            bySprint[sprintName] = bySprint[sprintName] || []
+            bySprint[sprintName].push(task)
+          }
+        })
 
-        acc[sprintName] = acc[sprintName] || [];
-        acc[sprintName].push(task);
-        return acc;
-      }, {});
-
-       setSprintData(prev => ({ ...prev, ...bySprint }))
-    })
-    .catch((err) => console.error("Failed to load tasks:", err));
-}, [sprints]);
-
-
+        setSprintData((prev) => ({ ...prev, ...bySprint }))
+        setBacklogTasks(backlogTasksList)
+      })
+      .catch((err) => console.error("Failed to load tasks:", err))
+  }, [sprints])
 
   const getSprintId = (sprintName) => {
     if (!Array.isArray(sprints) || sprints.length === 0) {
@@ -176,94 +189,80 @@ const PMSDashboardSprints = () => {
   }
 
   const addNewSprint = async () => {
-  if (!newSprintName.trim()) return;
-
-  try {
-    // 1) Create the sprint (including project FK in the body)
-    const { data: created } = await axios.post(
-      `${BASE_URL}/api/sprints/`,
-      {
-        name: newSprintName,
-        goal: newSprintGoal,
-        start_date: newSprintStartDate,
-        end_date: newSprintEndDate,
-        active: newSprintActive,
-        project: projectId,
-      },
-      {
-        headers: {
-          Authorization: `Token ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-          // Only include this if your DRF view is wired to read it:
-          "X-Project-ID": projectId,
+    if (!newSprintName.trim()) return
+    try {
+      const { data: created } = await axios.post(
+        `${BASE_URL}/api/sprints/`,
+        {
+          name: newSprintName,
+          goal: newSprintGoal,
+          start_date: newSprintStartDate,
+          end_date: newSprintEndDate,
+          active: newSprintActive,
+          project: projectId,
         },
-      }
-    );
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+            "X-Project-ID": projectId,
+          },
+        },
+      )
 
-    // 2) Append to `sprints` list
-    setSprints((prev) => [...prev, created]);
+      setSprints((prev) => [...prev, created])
+      setSprintData((prev) => ({ ...prev, [created.id]: [] }))
+      setSprintVisibility((prev) => ({ ...prev, [created.id]: true }))
 
-    // 3) Initialize an empty tasks array under the *id* key
-    setSprintData((prev) => ({ ...prev, [created.id]: [] }));
-    setSprintVisibility((prev) => ({ ...prev, [created.id]: true }));
-
-    // 4) Clear the “new sprint” form
-    setNewSprintName("");
-    setNewSprintGoal("");
-    setNewSprintStartDate("");
-    setNewSprintEndDate("");
-    setNewSprintActive(true);
-  } catch (err) {
-    console.error("Failed to create sprint:", err.response?.data || err.message);
+      setNewSprintName("")
+      setNewSprintGoal("")
+      setNewSprintStartDate("")
+      setNewSprintEndDate("")
+      setNewSprintActive(true)
+    } catch (err) {
+      console.error("Failed to create sprint:", err.response?.data || err.message)
+    }
   }
-};
 
-  const accessToken = localStorage.getItem('access_token'); // or sessionStorage
-
+  const accessToken = localStorage.getItem("access_token")
 
   const deleteSprint = async (sprintId) => {
-  if (window.confirm(`Are you sure you want to delete sprint ID ${sprintId} and all its tasks?`)) {
-    const accessToken = localStorage.getItem('access_token'); // Adjust if stored elsewhere
-
-    if (!accessToken) {
-      alert("User not authenticated. Please log in again.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:8000/api/sprints/${sprintId}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Token ${accessToken}`,  // ✅ Correct format
-          'X-Object-ID': '1',                        // ✅ Based on your Postman test
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete sprint from the backend');
+    if (window.confirm(`Are you sure you want to delete sprint ID ${sprintId} and all its tasks?`)) {
+      const accessToken = localStorage.getItem("access_token")
+      if (!accessToken) {
+        alert("User not authenticated. Please log in again.")
+        return
       }
+      try {
+        const response = await fetch(`http://localhost:8000/api/sprints/${sprintId}/`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Token ${accessToken}`,
+            "X-Object-ID": "1",
+            "Content-Type": "application/json",
+          },
+        })
+        if (!response.ok) {
+          throw new Error("Failed to delete sprint from the backend")
+        }
 
-      // Frontend state update
-      setSprintData((prevData) => {
-        const newData = { ...prevData };
-        delete newData[sprintId];
-        return newData;
-      });
-
-      setSprintVisibility((prev) => {
-        const newVisibility = { ...prev };
-        delete newVisibility[sprintId];
-        return newVisibility;
-      });
-
-      alert(`Sprint ${sprintId} deleted successfully`);
-    } catch (error) {
-      console.error(error);
-      alert('An error occurred while deleting the sprint.');
+        setSprintData((prevData) => {
+          const newData = { ...prevData }
+          delete newData[sprintId]
+          return newData
+        })
+        setSprintVisibility((prev) => {
+          const newVisibility = { ...prev }
+          delete newVisibility[sprintId]
+          return newVisibility
+        })
+        alert(`Sprint ${sprintId} deleted successfully`)
+      } catch (error) {
+        console.error(error)
+        alert("An error occurred while deleting the sprint.")
+      }
     }
   }
-};
 
   const startAddingTask = (tableName) => {
     setAddingToSprint(tableName)
@@ -287,22 +286,18 @@ const PMSDashboardSprints = () => {
   const validateTaskData = (taskData) => {
     const requiredFields = ["name", "description", "project", "sprint"]
     const missingFields = requiredFields.filter((field) => !taskData[field])
-
     if (missingFields.length > 0) {
       console.error("Missing required fields:", missingFields)
       return false
     }
-
     if (taskData.project && isNaN(taskData.project)) {
       console.error("Project ID must be a number:", taskData.project)
       return false
     }
-
     if (taskData.sprint && isNaN(taskData.sprint)) {
       console.error("Sprint ID must be a number:", taskData.sprint)
       return false
     }
-
     return true
   }
 
@@ -313,24 +308,22 @@ const PMSDashboardSprints = () => {
     }
 
     const itemId = `T${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`
-    const sprintId = getSprintId(addingToSprint)
+    const sprintId = addingToSprint === "Backlog" ? null : getSprintId(addingToSprint)
 
     const taskToAdd = {
-  name: newTask.name,
-  description: newTask.description,
-  project: Number(projectId),
-  sprint: sprintId,
-  assigned_to: Number.parseInt(newTask.assigned_to, 10),
-  reporter: Number.parseInt(localStorage.getItem("user_id"), 10),
-  status: newTask.status,
-  priority: newTask.priority,
-  role: newTask.role,
-  due_date: newTask.due_date,
-  created_at: newTask.created_at,   // pulled from newTask state
-  item_id: itemId,
-}
-
-
+      name: newTask.name,
+      description: newTask.description,
+      project: Number(projectId),
+      sprint: sprintId,
+      assigned_to: Number.parseInt(newTask.assigned_to, 10),
+      reporter: Number.parseInt(localStorage.getItem("user_id"), 10),
+      status: newTask.status,
+      priority: newTask.priority,
+      role: newTask.role,
+      due_date: newTask.due_date,
+      created_at: newTask.created_at,
+      item_id: itemId,
+    }
 
     if (!validateTaskData(taskToAdd)) {
       setError("Invalid task data. Please check all required fields.")
@@ -356,17 +349,21 @@ const PMSDashboardSprints = () => {
       })
       .then((res) => {
         console.log("Task created successfully:", res.data)
-        setSprintData((prevData) => ({
-          ...prevData,
-          [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
-        }))
+
+        if (addingToSprint === "Backlog") {
+          setBacklogTasks((prev) => [...prev, res.data])
+        } else {
+          setSprintData((prevData) => ({
+            ...prevData,
+            [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
+          }))
+        }
 
         setTasks((prevTasks) => {
           console.log("prevTasks in updater:", prevTasks)
           const safePrev = Array.isArray(prevTasks) ? prevTasks : []
           return [...safePrev, res.data]
         })
-
         setError(null)
       })
       .catch((err) => {
@@ -374,20 +371,16 @@ const PMSDashboardSprints = () => {
         console.error("Full error object:", err)
         console.error("Error response:", err.response)
         console.error("Error response data:", err.response?.data)
-
         if (err.response?.data && typeof err.response.data === "object") {
           console.error("=== DETAILED VALIDATION ERRORS ===")
           Object.entries(err.response.data).forEach(([field, errors]) => {
             console.error(`${field}:`, errors)
           })
         }
-
         console.error("Error response status:", err.response?.status)
         console.error("Error response headers:", err.response.headers)
         console.error("Request config:", err.config)
-
         let errorMessage = `Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`
-
         if (err.response?.data) {
           if (typeof err.response.data === "object") {
             const validationErrors = Object.entries(err.response.data)
@@ -398,10 +391,8 @@ const PMSDashboardSprints = () => {
             errorMessage += ` - ${err.response.data}`
           }
         }
-
         setError(errorMessage)
       })
-
     cancelAddingTask()
   }
 
@@ -417,12 +408,16 @@ const PMSDashboardSprints = () => {
           },
         })
         .then(() => {
-          setSprintData((prevData) => ({
-            ...prevData,
-            [sprintName]: prevData[sprintName].filter((task) => task.id !== taskId),
-          }))
+          if (sprintName === "Backlog") {
+            setBacklogTasks((prev) => prev.filter((task) => task.id !== taskId))
+          } else {
+            setSprintData((prevData) => ({
+              ...prevData,
+              [sprintName]: prevData[sprintName].filter((task) => task.id !== taskId),
+            }))
+          }
           setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
-          console.log(`✅ Task ${taskId} deleted from sprint "${sprintName}"`);
+          console.log(`✅ Task ${taskId} deleted from sprint "${sprintName}"`)
         })
         .catch((err) => {
           console.error("Failed to delete task:", err)
@@ -432,30 +427,35 @@ const PMSDashboardSprints = () => {
   }
 
   const buildTaskUpdatePayload = (newTask, existingTask, projectId, sprintId, itemId) => {
-  return {
-    name:        newTask.name        || existingTask.name        || "Task name",
-    description: newTask.description || existingTask.description || "Details",
-    project:     Number(projectId)   || existingTask.project,
-    sprint:      sprintId            || existingTask.sprint,
-    assigned_to: Number.parseInt(localStorage.getItem("user_id")) || existingTask.assigned_to,
-    reporter:    Number.parseInt(localStorage.getItem("user_id")) || existingTask.reporter,
-    status:      newTask.status      || existingTask.status      || "backlog",
-    priority:    newTask.priority    || existingTask.priority    || "medium",
-    due_date:    newTask.due_date    || existingTask.due_date    || new Date().toISOString().split("T")[0],
-    created_at:  newTask.created_at  || existingTask.created_at  || new Date().toISOString(),
-    item_id:     itemId              || existingTask.item_id,
+    return {
+      name: newTask.name || existingTask.name || "Task name",
+      description: newTask.description || existingTask.description || "Details",
+      project: Number(projectId) || existingTask.project,
+      sprint: sprintId || existingTask.sprint,
+      assigned_to: Number.parseInt(localStorage.getItem("user_id")) || existingTask.assigned_to,
+      reporter: Number.parseInt(localStorage.getItem("user_id")) || existingTask.reporter,
+      status: newTask.status || existingTask.status || "backlog",
+      priority: newTask.priority || existingTask.priority || "medium",
+      due_date: newTask.due_date || existingTask.due_date || new Date().toISOString().split("T")[0],
+      created_at: newTask.created_at || existingTask.created_at || new Date().toISOString(),
+      item_id: itemId || existingTask.item_id,
+    }
   }
-}
 
-const updateTask = (taskId, newTask, sprintName) => {
-  // look in the sprintData for this sprint
-  const list = sprintData[sprintName] || [];
-  const existingTask = list.find(t => t.id === taskId);
+  const updateTask = (taskId, newTask, sprintName) => {
+    // Look in the sprintData or backlogTasks for this task
+    let existingTask
+    if (sprintName === "Backlog") {
+      existingTask = backlogTasks.find((t) => t.id === taskId)
+    } else {
+      const list = sprintData[sprintName] || []
+      existingTask = list.find((t) => t.id === taskId)
+    }
 
-  if (!existingTask) {
-    console.error("Task not found in sprintData!", sprintName, list);
-    return;
-  }
+    if (!existingTask) {
+      console.error("Task not found!", sprintName, taskId)
+      return
+    }
 
     const backendData = buildTaskUpdatePayload(
       newTask,
@@ -479,11 +479,16 @@ const updateTask = (taskId, newTask, sprintName) => {
       })
       .then((res) => {
         setTasks((ts) => ts.map((t) => (t.id === taskId ? res.data : t)))
-        setSprintData((sd) => ({
-          ...sd,
-          [sprintName]: sd[sprintName].map((t) => (t.id === taskId ? res.data : t)),
-        }))
-        console.log("✅ Task updated!", res.data);
+
+        if (sprintName === "Backlog") {
+          setBacklogTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)))
+        } else {
+          setSprintData((sd) => ({
+            ...sd,
+            [sprintName]: sd[sprintName].map((t) => (t.id === taskId ? res.data : t)),
+          }))
+        }
+        console.log("✅ Task updated!", res.data)
       })
       .catch((err) => {
         console.error("Update failed:", err.response?.data || err)
@@ -506,6 +511,9 @@ const updateTask = (taskId, newTask, sprintName) => {
         if (task.assigned_to) owners.add(task.assigned_to)
       })
     })
+    backlogTasks.forEach((task) => {
+      if (task.assigned_to) owners.add(task.assigned_to)
+    })
     Object.values(customTableTasks).forEach((tasks) => {
       tasks.forEach((task) => {
         if (task.assigned_to) owners.add(task.assigned_to)
@@ -521,6 +529,9 @@ const updateTask = (taskId, newTask, sprintName) => {
         if (task.status) statuses.add(task.status)
       })
     })
+    backlogTasks.forEach((task) => {
+      if (task.status) statuses.add(task.status)
+    })
     Object.values(customTableTasks).forEach((tasks) => {
       tasks.forEach((task) => {
         if (task.status) statuses.add(task.status)
@@ -529,71 +540,135 @@ const updateTask = (taskId, newTask, sprintName) => {
     return Array.from(statuses)
   }
 
+  // New function to get all roles
+  const getAllRoles = () => {
+    const roles = new Set()
+    Object.values(sprintData).forEach((tasks) => {
+      tasks.forEach((task) => {
+        if (task.role) roles.add(task.role)
+      })
+    })
+    backlogTasks.forEach((task) => {
+      if (task.role) roles.add(task.role)
+    })
+    Object.values(customTableTasks).forEach((tasks) => {
+      tasks.forEach((task) => {
+        if (task.role) roles.add(task.role)
+      })
+    })
+    return Array.from(roles)
+  }
+
+  // New function to get all priorities
+  const getAllPriorities = () => {
+    const priorities = new Set()
+    Object.values(sprintData).forEach((tasks) => {
+      tasks.forEach((task) => {
+        if (task.priority) priorities.add(task.priority)
+      })
+    })
+    backlogTasks.forEach((task) => {
+      if (task.priority) priorities.add(task.priority)
+    })
+    Object.values(customTableTasks).forEach((tasks) => {
+      tasks.forEach((task) => {
+        if (task.priority) priorities.add(task.priority)
+      })
+    })
+    return Array.from(priorities)
+  }
+
+  // Updated filter function to include new filters
   const filterTasks = (tasks) => {
-  return tasks.filter((task) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.id && task.id.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.assigned_to && task.assigned_to.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.created_at && task.created_at.toLowerCase().includes(searchTerm.toLowerCase()));
+    return tasks.filter((task) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.id && task.id.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.assigned_to && task.assigned_to.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.created_at && task.created_at.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson;
-    const matchesStatus = selectedStatus === "" || task.status === selectedStatus;
+      const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson
+      const matchesStatus = selectedStatus === "" || task.status === selectedStatus
+      const matchesRole = selectedRole === "" || task.role === selectedRole
+      const matchesPriority = selectedPriority === "" || task.priority === selectedPriority
 
-    return matchesSearch && matchesPerson && matchesStatus;
-  });
-}
+      return matchesSearch && matchesPerson && matchesStatus && matchesRole && matchesPriority
+    })
+  }
 
+  // Sort tasks by due date and priority
+  const sortTasks = (tasks) => {
+    return [...tasks].sort((a, b) => {
+      // First sort by due date (overdue tasks first)
+      const currentDate = new Date()
+      const dateA = a.due_date ? new Date(a.due_date) : null
+      const dateB = b.due_date ? new Date(b.due_date) : null
 
+      if (dateA && dateB) {
+        const isAOverdue = dateA < currentDate
+        const isBOverdue = dateB < currentDate
+
+        if (isAOverdue && !isBOverdue) return -1
+        if (!isAOverdue && isBOverdue) return 1
+        if (isAOverdue && isBOverdue) return dateA - dateB
+        return dateA - dateB
+      }
+
+      // Then by priority
+      const priorityOrder = { High: 3, Medium: 2, Low: 1 }
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
+    })
+  }
+
+  // Fixed color functions with case-insensitive matching
   const getPriorityColor = (priority) => {
-    switch (priority) {
-      
-      case "High":
-        return "bg-[#FF9500] text-white"
-      case "Medium":
-        return "bg-indigo-400 text-white"
-      case "Low":
-        return "bg-[#34C759] text-white"
+    switch (priority?.toLowerCase()) {
+      case "high":
+        return "bg-red-100 text-red-700 border border-red-200"
+      case "medium":
+        return "bg-yellow-100 text-yellow-700 border border-yellow-200"
+      case "low":
+        return "bg-green-100 text-green-700 border border-green-200"
       default:
-        return "bg-[#8E8E93] text-white"
+        return "bg-gray-100 text-gray-700 border border-gray-200"
     }
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Done":
-        return "bg-green-100 text-green-700"
-      case "In Progress":
-        return "bg-blue-100 text-blue-700"
-      case "Waiting for review":
-        return "bg-[#5AC8FA] text-gray-800"
-      case "Ready to start":
-        return "bg-[#AF52DE] text-white"
-      case "Stuck":
-        return "bg-orange-100 text-orange-700"
+    switch (status?.toLowerCase()) {
+      case "done":
+        return "bg-green-100 text-green-700 border border-green-200"
+      case "in progress":
+        return "bg-blue-100 text-blue-700 border border-blue-200"
+      case "waiting for review":
+        return "bg-purple-100 text-purple-700 border border-purple-200"
+      case "ready to start":
+        return "bg-gray-100 text-gray-700 border border-gray-200"
+      case "stuck":
+        return "bg-red-100 text-red-700 border border-red-200"
       default:
-        return "bg-[#8E8E93] text-white"
+        return "bg-gray-100 text-gray-700 border border-gray-200"
     }
   }
 
   const getRoleColor = (role) => {
-    switch (role) {
-      case "Dev":
-        return "bg-[#FF3B30] text-white"
-      case "Design":
-        return "bg-[#007AFF] text-white"
-      case "Quality":
-        return "bg-[#5856D6] text-white"
-      case "Security":
-        return "bg-[#FFCC00] text-gray-800"
-      case "Test":
-        return "bg-[#34C759] text-white"
+    switch (role?.toLowerCase()) {
+      case "dev":
+        return "bg-blue-100 text-blue-700 border border-blue-200"
+      case "design":
+        return "bg-purple-100 text-purple-700 border border-purple-200"
+      case "quality":
+        return "bg-green-100 text-green-700 border border-green-200"
+      case "security":
+        return "bg-red-100 text-red-700 border border-red-200"
+      case "test":
+        return "bg-yellow-100 text-yellow-700 border border-yellow-200"
       default:
-        return "bg-[#8E8E93] text-white"
+        return "bg-gray-100 text-gray-700 border border-gray-200"
     }
   }
 
@@ -641,68 +716,67 @@ const updateTask = (taskId, newTask, sprintName) => {
     }))
   }
 
-  
-
   useEffect(() => {
-  const token = localStorage.getItem("token");
-  setLoading(true);
+    const token = localStorage.getItem("token")
+    setLoading(true)
+    const sprintHeaders = {
+      Authorization: `Token ${token}`,
+      "X-Project-ID": projectId,
+    }
+    console.log("📦 Fetching sprints for project:", projectId, "→ with headers:", sprintHeaders)
 
-  const sprintHeaders = {
-    Authorization: `Token ${token}`,
-    "X-Project-ID": projectId,
-  };
+    axios
+      .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
+      .then((res) => {
+        const mySprints = res.data.results || res.data
+        setSprints(mySprints)
 
-  console.log("📦 Fetching sprints for project:", projectId, "→ with headers:", sprintHeaders);
-
-  // 1) Fetch only the sprints for this project
-  axios
-  .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
-  .then((res) => {
-    const mySprints = res.data.results || res.data;
-    setSprints(mySprints);
-
-    // 2) For each sprint, fetch only its tasks, but keep the sprint name with it
-    return Promise.all(
-      mySprints.map((s) => {
-        const taskHeaders = {
-          Authorization: `Token ${token}`,
-          "X-Sprint-ID": s.id,
-        };
-
-        console.log("📝 Fetching tasks for sprint:", s.id, "→ with headers:", taskHeaders);
-
-        return axios
-          .get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders })
-          .then((r) => ({
-            sprintName: s.name,                     // carry the name
-            tasks: r.data.results || r.data,
-          }));
+        return Promise.all(
+          mySprints.map((s) => {
+            const taskHeaders = {
+              Authorization: `Token ${token}`,
+              "X-Sprint-ID": s.id,
+            }
+            console.log("📝 Fetching tasks for sprint:", s.id, "→ with headers:", taskHeaders)
+            return axios.get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders }).then((r) => ({
+              sprintName: s.name,
+              tasks: r.data.results || r.data,
+            }))
+          }),
+        )
       })
-    );
-  })
-  .then((allSprintTasks) => {
-    // 3) Build up your sprintData & visibility maps using the carried sprintName
-    const dataBySprint = {};
-    const visibilityBySprint = {};
+      .then((allSprintTasks) => {
+        const dataBySprint = {}
+        const visibilityBySprint = {}
+        const backlogTasksList = []
 
-    allSprintTasks.forEach(({ sprintName, tasks }) => {
-      dataBySprint[sprintName] = tasks;
-      visibilityBySprint[sprintName] = true;
-    });
+        allSprintTasks.forEach(({ sprintName, tasks }) => {
+          const activeTasks = []
 
-    setSprintData(dataBySprint);
-    setSprintVisibility(visibilityBySprint);
-    setLoading(false);
-  })
-  .catch((err) => {
-    console.error("❌ Failed to fetch data:", err);
-    setError(
-      `Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`
-    );
-    setLoading(false);
-  });
-}, [projectId]);
+          tasks.forEach((task) => {
+            const sprint = sprints.find((s) => s.name === sprintName)
+            if (isTaskExpired(task, sprint)) {
+              backlogTasksList.push(task)
+            } else {
+              activeTasks.push(task)
+            }
+          })
 
+          dataBySprint[sprintName] = activeTasks
+          visibilityBySprint[sprintName] = true
+        })
+
+        setSprintData(dataBySprint)
+        setBacklogTasks(backlogTasksList)
+        setSprintVisibility(visibilityBySprint)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error("❌ Failed to fetch data:", err)
+        setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`)
+        setLoading(false)
+      })
+  }, [projectId])
 
   useEffect(() => {
     localStorage.setItem("sprintData", JSON.stringify(sprintData))
@@ -735,7 +809,6 @@ const updateTask = (taskId, newTask, sprintName) => {
       const newColumns = [...prevColumns]
       const [movedColumn] = newColumns.splice(fromIndex, 1)
       newColumns.splice(toIndex, 0, movedColumn)
-
       return newColumns.map((col, idx) => ({
         ...col,
         order: idx,
@@ -803,7 +876,6 @@ const updateTask = (taskId, newTask, sprintName) => {
 
   const getSortedItems = (items) => {
     if (!sortConfig.key) return items
-
     return [...items].sort((a, b) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
         return sortConfig.direction === "ascending" ? -1 : 1
@@ -837,12 +909,12 @@ const updateTask = (taskId, newTask, sprintName) => {
             status: "15%",
             priority: "10%",
             role: "10%",
-            id: "8%",
             created_at: "7%",
             due_date: "10%",
             actions: "5%",
           }
     })
+
     const [visibleColumns, setVisibleColumns] = useState(() => {
       const saved = localStorage.getItem(`visibleColumns-${sprintName}`)
       return saved
@@ -853,16 +925,18 @@ const updateTask = (taskId, newTask, sprintName) => {
             status: true,
             priority: true,
             role: true,
-            id: true,
+            id: false, // Hide ID column by default
             created_at: true,
             due_date: true,
             actions: true,
           }
     })
+
     const [sortConfig, setSortConfig] = useState(() => {
       const saved = localStorage.getItem(`sortConfig-${sprintName}`)
       return saved ? JSON.parse(saved) : { key: null, direction: "asc" }
     })
+
     const [editingCell, setEditingCell] = useState(null)
     const [editValue, setEditValue] = useState("")
     const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false)
@@ -893,18 +967,8 @@ const updateTask = (taskId, newTask, sprintName) => {
     }, [sortConfig, sprintName])
 
     const sortedTasks = React.useMemo(() => {
-      if (!sortConfig.key) return tasks
-
-      return [...tasks].sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? -1 : 1
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "asc" ? 1 : -1
-        }
-        return 0
-      })
-    }, [tasks, sortConfig])
+      return sortTasks(tasks) // Use the new sorting function
+    }, [tasks])
 
     const requestSort = (key) => {
       let direction = "asc"
@@ -924,26 +988,21 @@ const updateTask = (taskId, newTask, sprintName) => {
     const startColumnResize = (e, columnId) => {
       e.preventDefault()
       e.stopPropagation()
-
       const startX = e.clientX
       const startWidth = Number.parseFloat(columnWidths[columnId].replace("%", ""))
-
       const handleMouseMove = (moveEvent) => {
         const deltaX = moveEvent.clientX - startX
         const tableWidth = document.querySelector("table")?.offsetWidth || 1000
         const newWidthPercent = Math.max(5, startWidth + (deltaX / tableWidth) * 100)
-
         setColumnWidths((prev) => ({
           ...prev,
           [columnId]: `${newWidthPercent}%`,
         }))
       }
-
       const handleMouseUp = () => {
         document.removeEventListener("mousemove", handleMouseMove)
         document.removeEventListener("mouseup", handleMouseUp)
       }
-
       document.addEventListener("mousemove", handleMouseMove)
       document.addEventListener("mouseup", handleMouseUp)
     }
@@ -955,16 +1014,13 @@ const updateTask = (taskId, newTask, sprintName) => {
 
     const saveCellEdit = () => {
       if (!editingCell) return
-
       const { taskId, columnId } = editingCell
       const taskToUpdate = tasks.find((task) => task.id === taskId)
       if (!taskToUpdate) return
-
       const updatedTaskData = {
         ...taskToUpdate,
         [columnId]: editValue,
       }
-
       updateTask(taskId, updatedTaskData, sprintName)
       setEditingCell(null)
     }
@@ -999,26 +1055,21 @@ const updateTask = (taskId, newTask, sprintName) => {
 
     const addNewColumn = () => {
       if (!newColumnInfo.label) return
-
       setVisibleColumns((prev) => ({
         ...prev,
         [newColumnInfo.id]: true,
       }))
-
       setColumnWidths((prev) => ({
         ...prev,
         [newColumnInfo.id]: newColumnInfo.width,
       }))
-
       const updatedTasks = tasks.map((task) => ({
         ...task,
         [newColumnInfo.id]: "",
       }))
-
       const updatedSprintData = { ...sprintData }
       updatedSprintData[sprintName] = updatedTasks
       setSprintData(updatedSprintData)
-
       closeAddColumnModal()
     }
 
@@ -1029,19 +1080,16 @@ const updateTask = (taskId, newTask, sprintName) => {
           delete newVisibility[columnId]
           return newVisibility
         })
-
         setColumnWidths((prev) => {
           const newWidths = { ...prev }
           delete newWidths[columnId]
           return newWidths
         })
-
         const updatedTasks = tasks.map((task) => {
           const newTask = { ...task }
           delete newTask[columnId]
           return newTask
         })
-
         const updatedSprintData = { ...sprintData }
         updatedSprintData[sprintName] = updatedTasks
         setSprintData(updatedSprintData)
@@ -1050,12 +1098,12 @@ const updateTask = (taskId, newTask, sprintName) => {
 
     const availableColumns = Object.keys(visibleColumns).filter((col) => col !== "checkbox" && col !== "actions")
     const statusOptions = ["Done", "In Progress", "Waiting for review", "Ready to start", "Stuck"]
-    const priorityOptions = [ "High", "Medium", "Low"]
+    const priorityOptions = ["High", "Medium", "Low"]
     const roleOptions = ["Bug", "Feature", "Quality", "Security", "Test"]
 
     return (
       <div
-        className={`mb-8 mx-8 w-auto ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? "bg-gray-100" : ""}  overflow-visible`}
+        className={`mb-8 mx-8 w-auto ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? "bg-gray-100" : ""} overflow-visible`}
         onMouseLeave={() => setIsSelected(false)}
       >
         <div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
@@ -1071,7 +1119,6 @@ const updateTask = (taskId, newTask, sprintName) => {
               {sprintName === "Sprint 1" && "Feb 17 - Mar 2"}
               {sprintName === "sprint 2" && "Mar 1 - April15"}
             </span>
-
             <div className="relative overflow-visible">
               <button
                 onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}
@@ -1079,7 +1126,6 @@ const updateTask = (taskId, newTask, sprintName) => {
               >
                 <Settings size={16} />
               </button>
-
               {isColumnMenuOpen && (
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 py-1">
                   <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b">Table Options</div>
@@ -1100,7 +1146,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                 </div>
               )}
             </div>
-
             <button
               onClick={() => addTask(sprintName)}
               className="text-blue-600 flex items-center text-sm hover:text-blue-800"
@@ -1110,7 +1155,6 @@ const updateTask = (taskId, newTask, sprintName) => {
             </button>
           </div>
         </div>
-
         <div
           className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? "max-h-screen opacity-100 scale-y-100" : "max-h-0 opacity-0 scale-y-0"}`}
         >
@@ -1122,7 +1166,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                     <th className="p-2 border-b text-left w-10">
                       <input type="checkbox" className="mr-2" />
                     </th>
-
                     {availableColumns.map(
                       (columnId) =>
                         visibleColumns[columnId] && (
@@ -1143,12 +1186,10 @@ const updateTask = (taskId, newTask, sprintName) => {
                                       : columnId === "due_date"
                                         ? "Due Date"
                                         : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
-
                                 {sortConfig.key === columnId && (
                                   <span className="ml-1">{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
                                 )}
                               </div>
-
                               {selectedColumnId === columnId && (
                                 <div className="flex items-center">
                                   <button
@@ -1160,7 +1201,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                                   >
                                     {sortConfig.key === columnId && sortConfig.direction === "asc" ? "↓" : "↑"}
                                   </button>
-
                                   <button
                                     className="text-gray-500 hover:text-gray-700 p-1"
                                     onClick={(e) => {
@@ -1170,7 +1210,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                                   >
                                     <X size={14} />
                                   </button>
-
                                   {!["name", "id"].includes(columnId) && (
                                     <button
                                       className="text-gray-500 hover:text-red-500 p-1"
@@ -1185,7 +1224,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                                 </div>
                               )}
                             </div>
-
                             <div
                               className="absolute top-0 right-0 h-full w-1 cursor-col-resize"
                               onMouseDown={(e) => startColumnResize(e, columnId)}
@@ -1193,7 +1231,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                           </th>
                         ),
                     )}
-
                     {visibleColumns.actions && (
                       <th className="p-2 border-b text-left relative" style={{ width: columnWidths.actions || "10%" }}>
                         <div className="flex items-center">Actions</div>
@@ -1202,166 +1239,171 @@ const updateTask = (taskId, newTask, sprintName) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedTasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-gray-100 bg-opacity-70 text-sm">
-                      <td className="p-2 border-b w-10">
-                        <input type="checkbox" className="mr-2" />
-                      </td>
+                  {sortedTasks.map((task) => {
+                    const isOverdue =
+                      task.due_date && new Date(task.due_date) < new Date() && task.status?.toLowerCase() !== "done"
 
-                      {availableColumns.map(
-                        (columnId) =>
-                          visibleColumns[columnId] && (
-                            <td key={columnId} className="p-2 border-b">
-                              {editingCell && editingCell.taskId === task.id && editingCell.columnId === columnId ? (
-                                columnId === "status" ? (
-                                  <select
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                  >
-                                    {statusOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : columnId === "priority" ? (
-                                  <select
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                  >
-                                    {priorityOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : columnId === "role" ? (
-                                  <select
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                  >
-                                    {roleOptions.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                    ) : columnId === "created_at" ? (
-                                    <input
-                                    type="datetime-local"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    onKeyDown={(e) => {
-                                    if (e.key === "Enter") saveCellEdit()
-                                    if (e.key === "Escape") cancelCellEdit()
-                                    }}  
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                  />
-
-                                ) : columnId === "due_date" ? (
-                                  <input
-                                    type="date"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveCellEdit()
-                                      if (e.key === "Escape") cancelCellEdit()
-                                    }}
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onBlur={saveCellEdit}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveCellEdit()
-                                      if (e.key === "Escape") cancelCellEdit()
-                                    }}
-                                    className="w-full p-1 border rounded"
-                                    autoFocus
-                                    readOnly={columnId === "id"}
-                                  />
-                                )
-                              ) : (
-                                <div
-                                  className={`truncate max-w-full cursor-pointer hover:bg-gray-200 p-1 rounded ${columnId === "assigned_to" ? "text-blue-600" : ""}`}
-                                  onClick={() => {
-                                    if (columnId !== "id") {
-                                      startCellEdit(task.id, columnId, task[columnId])
-                                    }
-                                  }}
-                                >
-                                  {columnId === "status" ? (
-                                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
-                                      {task.status}
-                                    </span>
-                                  ) : columnId === "priority" ? (
-                                    <span
-                                      className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}
-                                    >
-                                      {task.priority}
-                                    </span>
-                                  ) : columnId === "role" ? (
-                                    <span className={`px-2 py-1 rounded-full text-xs ${getRoleColor(task.role)}`}>
-                                      {task.role || "Missing"}
-                                    </span>
-                                  ) : columnId === "due_date" ? (
-                                    task.due_date ? (
-                                      new Date(task.due_date).toLocaleDateString()
-                                    ) : (
-                                      "-"
-                                    )
-                                  ) : (
-                                    task[columnId] || "-"
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          ),
-                      )}
-
-                      {visibleColumns.actions && (
-                        <td className="p-2 border-b">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => {
-                                console.log("Opening form for", task.id)
-                                console.log("All current tasks:", tasks);
-                                setEditingTask(task)
-                                setShowForm(true)
-                              }}
-                              className="text-blue-500 hover:text-blue-700"
-                            >
-                              <Edit size={16} />
-                            </button>
-
-                            <button
-                              onClick={() => deleteTask(sprintName, task.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                    return (
+                      <tr
+                        key={task.id}
+                        className={`hover:bg-gray-100 bg-opacity-70 text-sm ${isOverdue ? "bg-red-50" : ""}`}
+                      >
+                        <td className="p-2 border-b w-10">
+                          <input type="checkbox" className="mr-2" />
                         </td>
-                      )}
-                    </tr>
-                  ))}
-
+                        {availableColumns.map(
+                          (columnId) =>
+                            visibleColumns[columnId] && (
+                              <td key={columnId} className="p-2 border-b">
+                                {editingCell && editingCell.taskId === task.id && editingCell.columnId === columnId ? (
+                                  columnId === "status" ? (
+                                    <select
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                    >
+                                      {statusOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                          {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : columnId === "priority" ? (
+                                    <select
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                    >
+                                      {priorityOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                          {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : columnId === "role" ? (
+                                    <select
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                    >
+                                      {roleOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                          {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : columnId === "created_at" ? (
+                                    <input
+                                      type="datetime-local"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveCellEdit()
+                                        if (e.key === "Escape") cancelCellEdit()
+                                      }}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                    />
+                                  ) : columnId === "due_date" ? (
+                                    <input
+                                      type="date"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveCellEdit()
+                                        if (e.key === "Escape") cancelCellEdit()
+                                      }}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onBlur={saveCellEdit}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") saveCellEdit()
+                                        if (e.key === "Escape") cancelCellEdit()
+                                      }}
+                                      className="w-full p-1 border rounded"
+                                      autoFocus
+                                      readOnly={columnId === "id"}
+                                    />
+                                  )
+                                ) : (
+                                  <div
+                                    className={`truncate max-w-full cursor-pointer hover:bg-gray-200 p-1 rounded ${columnId === "assigned_to" ? "text-blue-600" : ""} ${isOverdue && columnId === "name" ? "text-red-600 font-medium" : ""}`}
+                                    onClick={() => {
+                                      if (columnId !== "id") {
+                                        startCellEdit(task.id, columnId, task[columnId])
+                                      }
+                                    }}
+                                  >
+                                    {columnId === "status" ? (
+                                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
+                                        {task.status}
+                                      </span>
+                                    ) : columnId === "priority" ? (
+                                      <span
+                                        className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}
+                                      >
+                                        {task.priority}
+                                      </span>
+                                    ) : columnId === "role" ? (
+                                      <span className={`px-2 py-1 rounded-full text-xs ${getRoleColor(task.role)}`}>
+                                        {task.role || "Missing"}
+                                      </span>
+                                    ) : columnId === "due_date" ? (
+                                      task.due_date ? (
+                                        <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                          {new Date(task.due_date).toLocaleDateString()}
+                                        </span>
+                                      ) : (
+                                        "-"
+                                      )
+                                    ) : (
+                                      task[columnId] || "-"
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            ),
+                        )}
+                        {visibleColumns.actions && (
+                          <td className="p-2 border-b">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => {
+                                  console.log("Opening form for", task.id)
+                                  console.log("All current tasks:", tasks)
+                                  setEditingTask(task)
+                                  setShowForm(true)
+                                }}
+                                className="text-blue-500 hover:text-blue-700"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => deleteTask(sprintName, task.id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
                   <tr className="text-sm">
                     <td colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="p-2 border-b">
                       <button
@@ -1377,7 +1419,6 @@ const updateTask = (taskId, newTask, sprintName) => {
             </div>
           </div>
         </div>
-
         {isAddColumnModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
             <div className="bg-white rounded-md shadow-lg p-4 w-full max-w-lg">
@@ -1387,7 +1428,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                   <X size={20} />
                 </button>
               </div>
-
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Column Name</label>
@@ -1400,7 +1440,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                     className="w-full px-3 py-2 border rounded-md"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Column Type</label>
                   <select
@@ -1417,7 +1456,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                     <option value="role">Role</option>
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Column Width</label>
                   <select
@@ -1432,7 +1470,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                     <option value="25%">Extra Wide (25%)</option>
                   </select>
                 </div>
-
                 <div className="flex justify-end space-x-2 pt-4">
                   <button
                     onClick={closeAddColumnModal}
@@ -1482,7 +1519,6 @@ const updateTask = (taskId, newTask, sprintName) => {
               <X size={20} />
             </button>
           </div>
-
           <div className="space-y-4">
             {!editingColumn ? (
               <div>
@@ -1524,7 +1560,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                 </div>
               </div>
             )}
-
             {!editingColumn && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Column Type</label>
@@ -1543,7 +1578,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                 </select>
               </div>
             )}
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Column Width</label>
               <select
@@ -1558,7 +1592,6 @@ const updateTask = (taskId, newTask, sprintName) => {
                 <option value="4/12">Extra Wide (4/12)</option>
               </select>
             </div>
-
             <div className="flex justify-between space-x-2 pt-4">
               {editingColumn && !["checkbox", "name", "id"].includes(editingColumn.id) && (
                 <button
@@ -1615,7 +1648,6 @@ const updateTask = (taskId, newTask, sprintName) => {
             Add
           </button>
         </div>
-
         <input
           type="text"
           value={newSprintGoal}
@@ -1623,7 +1655,6 @@ const updateTask = (taskId, newTask, sprintName) => {
           placeholder="Goal"
           className="w-full px-3 py-1.5 text-sm border rounded"
         />
-
         <div className="flex space-x-2">
           <input
             type="date"
@@ -1638,7 +1669,6 @@ const updateTask = (taskId, newTask, sprintName) => {
             className="flex-1 px-3 py-1.5 text-sm border rounded"
           />
         </div>
-
         <label className="inline-flex items-center space-x-2 text-sm">
           <input
             type="checkbox"
@@ -1654,503 +1684,580 @@ const updateTask = (taskId, newTask, sprintName) => {
 
   // Task Update Form Modal
   const TaskUpdateForm = () => {
-  const [formData, setFormData] = useState({})
-  
-  // Initialize form data when editingTask changes
-  useEffect(() => {
-    if (editingTask) {
-      setFormData({
-        name: editingTask.name || "",
-        description: editingTask.description || "",
-        status: editingTask.status || "backlog",
-        priority: editingTask.priority || "Medium",
-        role: editingTask.role || "",
-        created_at: editingTask.created_at || "",
-        assigned_to: editingTask.assigned_to || "",
-        due_date: editingTask.due_date || ""
-      })
+    const [formData, setFormData] = useState({})
+
+    // Initialize form data when editingTask changes
+    useEffect(() => {
+      if (editingTask) {
+        setFormData({
+          name: editingTask.name || "",
+          description: editingTask.description || "",
+          status: editingTask.status || "backlog",
+          priority: editingTask.priority || "Medium",
+          role: editingTask.role || "",
+          created_at: editingTask.created_at || "",
+          assigned_to: editingTask.assigned_to || "",
+          due_date: editingTask.due_date || "",
+        })
+      }
+    }, [editingTask])
+
+    const handleInputChange = (e) => {
+      const { name, value } = e.target
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }))
     }
-  }, [editingTask])
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+    if (!showForm || !editingTask) return null
 
-  if (!showForm || !editingTask) return null
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
-          <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name || ""}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter task name"
-            />
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
+            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              name="description"
-              value={formData.description || ""}
-              onChange={handleInputChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter task description"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                name="status"
-                value={formData.status || "backlog"}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select status</option>
-                <option value="backlog">Backlog</option>
-                <option value="ready">Ready to Start</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting_for_review">Waiting for Review</option>
-                <option value="done">Done</option>
-                <option value="stuck">Stuck</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select
-                name="priority"
-                value={formData.priority || "Medium"}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-              <select
-                name="role"
-                value={formData.role || ""}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Role</option>
-                <option value="dev">Dev</option>
-                <option value="design">Design</option>
-                <option value="Quality">Quality</option>
-                <option value="Security">Security</option>
-                <option value="Test">Test</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
-              <input
-                type="datetime-local"
-                name="created_at"
-                value={formData.created_at || ""}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
               <input
                 type="text"
-                name="assigned_to"
-                value={formData.assigned_to || ""}
+                name="name"
+                value={formData.name || ""}
                 onChange={handleInputChange}
+                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter user ID"
+                placeholder="Enter task name"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-              <input
-                type="date"
-                name="due_date"
-                value={formData.due_date || ""}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                name="description"
+                value={formData.description || ""}
                 onChange={handleInputChange}
+                rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter task description"
               />
             </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  name="status"
+                  value={formData.status || "backlog"}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select status</option>
+                  <option value="backlog">Backlog</option>
+                  <option value="ready">Ready to Start</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="waiting_for_review">Waiting for Review</option>
+                  <option value="done">Done</option>
+                  <option value="stuck">Stuck</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <select
+                  name="priority"
+                  value={formData.priority || "Medium"}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  name="role"
+                  value={formData.role || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Role</option>
+                  <option value="dev">Dev</option>
+                  <option value="design">Design</option>
+                  <option value="Quality">Quality</option>
+                  <option value="Security">Security</option>
+                  <option value="Test">Test</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
+                <input
+                  type="datetime-local"
+                  name="created_at"
+                  value={formData.created_at || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
+                <input
+                  type="text"
+                  name="assigned_to"
+                  value={formData.assigned_to || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter user ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  name="due_date"
+                  value={formData.due_date || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 pt-6">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Find which sprint this task belongs to
+                  let taskSprint = ""
+                  Object.entries(sprintData).forEach(([sprintName, tasks]) => {
+                    if (tasks.find((t) => t.id === editingTask.id)) {
+                      taskSprint = sprintName
+                    }
+                  })
 
-          <div className="flex justify-end space-x-3 pt-6">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                // Find which sprint this task belongs to
-                let taskSprint = ""
-                Object.entries(sprintData).forEach(([sprintName, tasks]) => {
-                  if (tasks.find((t) => t.id === editingTask.id)) {
-                    taskSprint = sprintName
+                  // Check if task is in backlog
+                  if (!taskSprint && backlogTasks.find((t) => t.id === editingTask.id)) {
+                    taskSprint = "Backlog"
                   }
-                })
 
-                updateTask(editingTask.id, formData, taskSprint)
-                setShowForm(false)
-                setEditingTask(null)
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Update Task
-            </button>
+                  updateTask(editingTask.id, formData, taskSprint)
+                  setShowForm(false)
+                  setEditingTask(null)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Update Task
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
- if (loading) {
+  if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="w-64 h-64">
           <Lottie animationData={man} loop={true} />
         </div>
       </div>
-    );
+    )
   }
 
-
   return (
-    <div className="flex-1 overflow-auto w-full h-full">
+    <div className="flex-1 bg-gray-50 min-h-screen">
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-8 mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-4 mb-4">
           <strong className="font-bold">Error:</strong>
           <span className="block sm:inline"> {error}</span>
         </div>
       )}
 
-      {/* Header section */}
-      <div className="p-4 bg-white">
-        <header className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-900">Task Dashboard</h1>
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="relative">
-                <button
-                  onClick={() => setIsPersonDropdownOpen(!isPersonDropdownOpen)}
-                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  {selectedPerson || "All People"}
-                  <ChevronDown size={16} className="ml-1" />
-                </button>
-                {isPersonDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-                    <button
-                      onClick={() => {
-                        setSelectedPerson("")
-                        setIsPersonDropdownOpen(false)
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                    >
-                      All People
-                    </button>
-                    {getAllOwners().map((owner) => (
-                      <button
-                        key={owner}
-                        onClick={() => {
-                          setSelectedPerson(owner)
-                          setIsPersonDropdownOpen(false)
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                      >
-                        {owner}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative">
-                <button
-                  onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  {selectedStatus || "All Status"}
-                  <ChevronDown size={16} className="ml-1" />
-                </button>
-                {isFilterDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-                    <button
-                      onClick={() => {
-                        setSelectedStatus("")
-                        setIsFilterDropdownOpen(false)
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                    >
-                      All Status
-                    </button>
-                    {getAllStatuses().map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => {
-                          setSelectedStatus(status)
-                          setIsFilterDropdownOpen(false)
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <nav className="text-sm text-gray-500 mb-2">Projects / Project {projectId}</nav>
+            <h1 className="text-2xl font-semibold text-gray-900">PMS</h1>
           </div>
-
-          <div className="flex items-center space-x-2">
-</div>
-
-        </header>
-
+          <div className="flex items-center space-x-3">
+            <button className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center">
+              Export Issues
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </button>
+            <button className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center">
+              Show all issues
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Sprint Tables */}
-      <div className="p-4">
-        {Object.entries(sprintData).map(([sprintName, tasks]) => (
+      {/* Filters */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Add Task Button */}
+            <button
+              onClick={() => {
+                setAddingToSprint(currentView === "Backlog" ? "Backlog" : "Main Sprint")
+                setShowForm(false)
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </button>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search issues"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              />
+            </div>
+
+            {/* Project Filter */}
+            <div className="relative">
+              <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
+                Project: Current
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Type/Role Filter */}
+            <div className="relative">
+              <button
+                onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+              >
+                Type: {selectedRole || "All"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+              {isRoleDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <button
+                    onClick={() => {
+                      setSelectedRole("")
+                      setIsRoleDropdownOpen(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  >
+                    All Types
+                  </button>
+                  {getAllRoles().map((role) => (
+                    <button
+                      key={role}
+                      onClick={() => {
+                        setSelectedRole(role)
+                        setIsRoleDropdownOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <div className="relative">
+              <button
+                onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+              >
+                Status: {selectedStatus || "All"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+              {isFilterDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <button
+                    onClick={() => {
+                      setSelectedStatus("")
+                      setIsFilterDropdownOpen(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  >
+                    All Statuses
+                  </button>
+                  {getAllStatuses().map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        setSelectedStatus(status)
+                        setIsFilterDropdownOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Assignee Filter */}
+            <div className="relative">
+              <button
+                onClick={() => setIsPersonDropdownOpen(!isPersonDropdownOpen)}
+                className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+              >
+                Assignee: {selectedPerson ? `User ${selectedPerson}` : "All"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+              {isPersonDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <button
+                    onClick={() => {
+                      setSelectedPerson("")
+                      setIsPersonDropdownOpen(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  >
+                    All Assignees
+                  </button>
+                  {getAllOwners().map((owner) => (
+                    <button
+                      key={owner}
+                      onClick={() => {
+                        setSelectedPerson(owner)
+                        setIsPersonDropdownOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      User {owner}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* View Toggle */}
+      <div className="bg-white px-6 py-2 border-b border-gray-200">
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setCurrentView("Active Sprints")}
+            className={`px-4 py-2 text-sm font-medium rounded-md ${
+              currentView === "Active Sprints" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Active Sprints
+          </button>
+          <button
+            onClick={() => setCurrentView("Backlog")}
+            className={`px-4 py-2 text-sm font-medium rounded-md ${
+              currentView === "Backlog" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Backlog
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        {currentView === "Active Sprints" ? (
+          <div className="space-y-6">
+            {Object.entries(sprintData).map(([sprintName, tasks]) => (
+              <SprintTable
+                key={sprintName}
+                title={sprintName}
+                tasks={sortTasks(filterTasks(tasks))}
+                isExpanded={sprintVisibility[sprintName]}
+                toggleExpand={() => toggleSprintVisibility(sprintName)}
+                addTask={startAddingTask}
+                sprintName={sprintName}
+              />
+            ))}
+            {Object.keys(sprintData).length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No active sprints found</p>
+              </div>
+            )}
+          </div>
+        ) : (
           <SprintTable
-            key={sprintName}
-            title={sprintName}
-            tasks={filterTasks(tasks)}
-            isExpanded={sprintVisibility[sprintName]}
-            toggleExpand={() => toggleSprintVisibility(sprintName)}
+            title="Backlog"
+            tasks={sortTasks(filterTasks(backlogTasks))}
+            isExpanded={true}
+            toggleExpand={() => {}}
             addTask={startAddingTask}
-            sprintName={sprintName}
+            sprintName="Backlog"
           />
-        ))}
+        )}
       </div>
 
       {/* Add Task Form */}
       {addingToSprint && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Add Task to {addingToSprint}
-        </h2>
-        <button onClick={cancelAddingTask} className="text-gray-400 hover:text-gray-600">
-          <X size={24} />
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        {/* Task Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Task Name *
-          </label>
-          <input
-            type="text"
-            name="name"
-            value={newTask.name}
-            onChange={handleTaskInputChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter task name"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <textarea
-            name="description"
-            value={newTask.description}
-            onChange={handleTaskInputChange}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter task description"
-          />
-        </div>
-
-        {/* Status & Priority */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              name="status"
-              value={newTask.status}
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select status</option>
-              <option value="backlog">Backlog</option>
-              <option value="ready">Ready to Start</option>
-              <option value="in_progress">In Progress</option>
-              <option value="waiting_for_review">Waiting for Review</option>
-              <option value="done">Done</option>
-              <option value="stuck">Stuck</option>
-            </select>
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Priority
-            </label>
-            <select
-              name="priority"
-              value={newTask.priority}
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select priority</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Role & Created At */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              name="role"
-              value={newTask.role}
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select role</option>
-              <option value="Dev">Dev</option>
-              <option value="Design">Design</option>
-              <option value="Quality">Quality</option>
-              <option value="Security">Security</option>
-              <option value="Test">Test</option>
-            </select>
-          </div>
-
-          {/* Created At */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Created At
-            </label>
-            <input
-              type="datetime-local"
-              name="created_at"
-              value={newTask.created_at ? newTask.created_at.slice(0, 16) : ""}
-
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Assigned To & Due Date */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Assigned To */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned To
-            </label>
-            <input
-              type="number"
-              name="assigned_to"
-              value={newTask.assigned_to}
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter user ID"
-            />
-          </div>
-
-          {/* Due Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date
-            </label>
-            <input
-              type="date"
-              name="due_date"
-              value={newTask.due_date}
-              onChange={handleTaskInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Add Task to {addingToSprint}</h2>
+              <button onClick={cancelAddingTask} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {/* Task Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={newTask.name}
+                  onChange={handleTaskInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter task name"
+                />
+              </div>
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  name="description"
+                  value={newTask.description}
+                  onChange={handleTaskInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter task description"
+                />
+              </div>
+              {/* Status & Priority */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    name="status"
+                    value={newTask.status}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select status</option>
+                    <option value="backlog">Backlog</option>
+                    <option value="ready">Ready to Start</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="waiting_for_review">Waiting for Review</option>
+                    <option value="done">Done</option>
+                    <option value="stuck">Stuck</option>
+                  </select>
+                </div>
+                {/* Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    name="priority"
+                    value={newTask.priority}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select priority</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+              {/* Role & Created At */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Role */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    name="role"
+                    value={newTask.role}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select role</option>
+                    <option value="Dev">Dev</option>
+                    <option value="Design">Design</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Security">Security</option>
+                    <option value="Test">Test</option>
+                  </select>
+                </div>
+                {/* Created At */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
+                  <input
+                    type="datetime-local"
+                    name="created_at"
+                    value={newTask.created_at ? newTask.created_at.slice(0, 16) : ""}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              {/* Assigned To & Due Date */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Assigned To */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
+                  <input
+                    type="number"
+                    name="assigned_to"
+                    value={newTask.assigned_to}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter user ID"
+                  />
+                </div>
+                {/* Due Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    name="due_date"
+                    value={newTask.due_date}
+                    onChange={handleTaskInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-3 pt-6">
+                <button
+                  type="button"
+                  onClick={cancelAddingTask}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addTaskToSprint}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Add Task
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-6">
-          <button
-            type="button"
-            onClick={cancelAddingTask}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={addTaskToSprint}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Add Task
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
 
       {/* Task Update Form Modal */}
       <TaskUpdateForm />
