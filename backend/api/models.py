@@ -65,7 +65,7 @@ class Sprint(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def _str_(self):
+    def __str__(self):
         return f"{self.name} - {self.project.name}"
 
 class Task(models.Model):
@@ -93,7 +93,7 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='backlog')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     role = models.CharField(max_length=50, blank=True)
-    item_id = models.CharField(max_length=20, unique=True)
+    item_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateField(null=True, blank=True)
@@ -103,14 +103,11 @@ class Task(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.item_id:
-            # Generate a unique item ID
-            last_task = Task.objects.order_by('-id').first()
-            if last_task:
-                self.item_id = str(int(last_task.id) + 1000000)
-            else:
-                self.item_id = '10000000'
+        is_new = self._state.adding
         super().save(*args, **kwargs)
+        if is_new and not self.item_id:
+            self.item_id = str(self.pk + 1000000)
+            super().save(update_fields=['item_id'])
 
 class Bug(models.Model):
     STATUS_CHOICES = (
@@ -142,7 +139,7 @@ class Bug(models.Model):
     assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_bugs')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_do')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    key = models.CharField(max_length=20, unique=True)
+    key = models.CharField(max_length=20, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateField(null=True, blank=True)
@@ -152,16 +149,12 @@ class Bug(models.Model):
         return self.summary
 
     def save(self, *args, **kwargs):
-        if not self.key:
-            # Generate a unique key
-            project_prefix = self.project.name[:3].upper()
-            last_bug = Bug.objects.filter(project=self.project).order_by('-id').first()
-            if last_bug and last_bug.key.startswith(project_prefix):
-                num = int(last_bug.key.split('-')[1]) + 1
-                self.key = f"{project_prefix}-{num}"
-            else:
-                self.key = f"{project_prefix}-1"
+        is_new = self._state.adding
         super().save(*args, **kwargs)
+        if is_new and not self.key:
+            project_prefix = self.project.name[:3].upper()
+            self.key = f"{project_prefix}-{self.pk}"
+            super().save(update_fields=['key'])
 
 class Retrospective(models.Model):
     TYPE_CHOICES = (
@@ -177,23 +170,34 @@ class Retrospective(models.Model):
     responsible = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='responsible_retrospectives')
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='discussion')
     repeating = models.BooleanField(default=False)
-    votes = models.IntegerField(default=0)
-    voted_users = models.TextField(blank=True, default='[]')
     owner = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    voted_by = models.ManyToManyField(User, related_name='voted_retrospectives', blank=True)
 
     def __str__(self):
         return self.feedback
 
 class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('invitation', 'Invitation'),
+        ('assignment', 'Assignment'),
+        ('mention', 'Mention'),
+        ('comment', 'Comment'),
+        ('status_change', 'Status Change'),
+        ('deadline', 'Deadline'),
+        ('system', 'System'),
+    )
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
     message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='system')
     item_type = models.CharField(max_length=50)
     item_id = models.CharField(max_length=20)
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    url = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.message[:30]}"
@@ -258,10 +262,12 @@ class ActivityLog(models.Model):
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
-    content_type = models.CharField(max_length=50)  # Task, Bug, Sprint, etc.
+    content_type = models.CharField(max_length=50)
     object_id = models.CharField(max_length=50)
     details = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    workspace = models.ForeignKey(Workspace, on_delete=models.SET_NULL, null=True, blank=True, related_name='activities')
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True, related_name='activities')
 
     def __str__(self):
         return f"{self.user.username} {self.action} {self.content_type} at {self.created_at}"

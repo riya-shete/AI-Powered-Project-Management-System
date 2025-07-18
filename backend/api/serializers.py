@@ -65,7 +65,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'workspace', 'created_by', 'created_at', 'updated_at']
 
 class SprintSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)
+    assigned_to = UserSerializer(read_only=True)
     
     class Meta:
         model = Sprint
@@ -99,21 +99,48 @@ class BugSerializer(serializers.ModelSerializer):
 class RetrospectiveSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
     responsible = UserSerializer(read_only=True)
-    
+    voted_by = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    votes = serializers.IntegerField(source='voted_by.count', read_only=True)
+
     class Meta:
         model = Retrospective
         fields = [
             'id', 'feedback', 'description', 'project', 'created_by', 
-            'responsible', 'type', 'repeating', 'votes', 'voted_users', 'owner', 
+            'responsible', 'type', 'repeating', 'votes', 'voted_by', 'owner', 
             'created_at', 'updated_at'
         ]
 
 class NotificationSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
+    time_since = serializers.SerializerMethodField()
     
     class Meta:
         model = Notification
-        fields = ['id', 'user', 'sender', 'message', 'item_type', 'item_id', 'read', 'created_at']
+        fields = ['id', 'user', 'sender', 'message', 'notification_type', 'item_type', 
+                 'item_id', 'read', 'created_at', 'time_since', 'url']
+    
+    def get_time_since(self, obj):
+        """Return a human-readable time difference"""
+        now = timezone.now()
+        diff = now - obj.created_at
+        
+        if diff.days > 0:
+            if diff.days == 1:
+                return "yesterday"
+            elif diff.days < 7:
+                return f"{diff.days} days ago"
+            else:
+                return obj.created_at.strftime("%b %d, %Y")
+        else:
+            hours = diff.seconds // 3600
+            if hours > 0:
+                return f"{hours} hour{'s' if hours > 1 else ''} ago"
+            
+            minutes = (diff.seconds % 3600) // 60
+            if minutes > 0:
+                return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+            
+            return "just now"
 
 class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:

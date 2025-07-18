@@ -7,27 +7,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def log_activity(user, action, content_type, object_id, details=None):
+def log_activity(user, action, content_type, object_id, details=None, workspace=None, project=None):
     """
     Utility function to log user activities
-    
-    Args:
-        user: User performing the action
-        action: One of 'create', 'update', 'delete', 'assign', 'status', 'comment', 'mention'
-        content_type: Model name like 'task', 'bug', etc.
-        object_id: ID or key of the object
-        details: JSON serializable dictionary with additional details
     """
     log = ActivityLog.objects.create(
         user=user,
         action=action,
         content_type=content_type,
-        object_id=object_id,
-        details=json.dumps(details) if details else ''
+        object_id=str(object_id),
+        details=json.dumps(details) if details else '',
+        workspace=workspace,
+        project=project,
     )
     return log
 
-def create_notification(user, sender, message, item_type, item_id):
+def create_notification(user, sender, message, item_type, item_id, notification_type='system', url=None):
     """
     Create a notification for a user
     
@@ -37,13 +32,17 @@ def create_notification(user, sender, message, item_type, item_id):
         message: Notification message
         item_type: Type of item (task, bug, etc.)
         item_id: ID of the item
+        notification_type: Type of notification (invitation, assignment, etc.)
+        url: Optional URL to redirect to when clicking the notification
     """
     notification = Notification.objects.create(
         user=user,
         sender=sender,
         message=message,
+        notification_type=notification_type,
         item_type=item_type,
-        item_id=item_id
+        item_id=item_id,
+        url=url
     )
     return notification
 

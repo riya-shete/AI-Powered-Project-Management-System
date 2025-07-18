@@ -9,23 +9,20 @@ from .views import (
 from . import views
 from django.views.decorators.csrf import csrf_exempt
 
-# Custom router that allows PUT/DELETE on list endpoints
 class CustomRouter(DefaultRouter):
     routes = [
-        # List route with PUT/DELETE support
         Route(
             url=r'^{prefix}{trailing_slash}$',
             mapping={
                 'get': 'list',
                 'post': 'create',
-                'put': 'update_with_header',  # Custom action for PUT on list endpoint
-                'delete': 'destroy_with_header'  # Custom action for DELETE on list endpoint
+                'put': 'update_with_header',
+                'delete': 'destroy_with_header'
             },
             name='{basename}-list',
             detail=False,
             initkwargs={'suffix': 'List'}
         ),
-        # Detail route (unchanged)
         Route(
             url=r'^{prefix}/{lookup}{trailing_slash}$',
             mapping={
@@ -38,7 +35,6 @@ class CustomRouter(DefaultRouter):
             detail=True,
             initkwargs={'suffix': 'Instance'}
         ),
-        # Dynamically generated routes (unchanged)
         DynamicRoute(
             url=r'^{prefix}/{lookup}/{url_path}{trailing_slash}$',
             name='{basename}-{url_name}',
@@ -70,10 +66,6 @@ router.register(r'activities', ActivityLogViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', csrf_exempt(views.register_user), name='register'),
-    path('auth/', include('rest_framework.urls')),
-    # Remove or comment out the old token endpoint
-    # path('auth/token/', csrf_exempt(CustomAuthToken.as_view()), name='api_token_auth'),
-    # Keep the OTP endpoints
     path('auth/request-otp/', views.request_otp, name='request_otp'),
     path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
 ]

@@ -74,7 +74,7 @@ class UserViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         return Response([])
 
 class UserProfileViewSet(HeaderIDMixin, viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
+    queryset = UserProfile.objects.all().select_related('user')
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
     
@@ -84,18 +84,17 @@ class UserProfileViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(profile)
         return Response(serializer.data)
 
-    def update(self, request, *args, **kwargs):
-        print(f"UserProfileViewSet.update: Handling PUT request with kwargs={kwargs}")
-        return super().update(request, *args, **kwargs)
+    # def update(self, request, *args, **kwargs):
+    #     print(f"UserProfileViewSet.update: Handling PUT request with kwargs={kwargs}")
+    #     return super().update(request, *args, **kwargs)
         
-    # Override put method for list endpoint to handle X-Object-ID header
-    def put(self, request, *args, **kwargs):
-        print(f"UserProfileViewSet.put: Handling PUT request to list endpoint")
-        if hasattr(request, 'object_id') and request.object_id:
-            self.kwargs['pk'] = request.object_id
-            return self.update(request, *args, **kwargs)
-        return Response({"detail": "Object ID is required in X-Object-ID header"}, 
-                       status=status.HTTP_400_BAD_REQUEST)
+    # def put(self, request, *args, **kwargs):
+    #     print(f"UserProfileViewSet.put: Handling PUT request to list endpoint")
+    #     if hasattr(request, 'object_id') and request.object_id:
+    #         self.kwargs['pk'] = request.object_id
+    #         return self.update(request, *args, **kwargs)
+    #     return Response({"detail": "Object ID is required in X-Object-ID header"}, 
+    #                    status=status.HTTP_400_BAD_REQUEST)
 
 class WorkspaceViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Workspace.objects.all()
@@ -103,7 +102,8 @@ class WorkspaceViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Workspace.objects.filter(members=self.request.user)
+        return Workspace.objects.filter(members=self.request.user).prefetch_related('members')
+
     
     def perform_create(self, serializer):
         workspace = serializer.save(owner=self.request.user)
@@ -120,11 +120,15 @@ class ProjectViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace', None)
+        workspace_id = self.request.META.get('HTTP_X_WORKSPACE_ID') or self.request.query_params.get('workspace')
+        
+        # Base queryset scoped to the user
+        queryset = Project.objects.filter(workspace__members=self.request.user)
         
         if workspace_id:
-            return Project.objects.filter(workspace_id=workspace_id, workspace__members=self.request.user)
-        return Project.objects.filter(workspace__members=self.request.user)
+            queryset = queryset.filter(workspace_id=workspace_id)
+        
+        return queryset.select_related('created_by', 'workspace')
     
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -146,7 +150,7 @@ class SprintViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         if active == 'true':
             queryset = queryset.filter(active=True)
             
-        return queryset
+        return queryset.select_related('project', 'assigned_to', 'assigned_by')
     
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
@@ -181,25 +185,17 @@ class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         
         if status_param:
             queryset = queryset.filter(status=status_param)  
-        return queryset
+        return queryset.select_related('project', 'sprint', 'assigned_to', 'reporter')
     
     def perform_create(self, serializer):
         task = serializer.save(reporter=self.request.user)
-        
-        # Log activity
         log_activity(
-            user=self.request.user,
-            action='create',
-            content_type='task',
-            object_id=task.item_id,
-            details={
-                'task_name': task.name,
-                'project_id': task.project.id,
-                'project_name': task.project.name
-            }
+            user=self.request.user, action='create', content_type='task', object_id=task.item_id,
+            workspace=task.project.workspace, project=task.project,
+            details={'task_name': task.name}
         )
-        
         return task
+
     
     @action(detail=True, methods=['post'])
     def assign(self, request, pk=None):
@@ -216,15 +212,7 @@ class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
                            status=status.HTTP_400_BAD_REQUEST)
         
         task.assigned_to = user
-        task.save()
-        
-        create_notification(
-            user=user,
-            sender=request.user,
-            message=f"{request.user.username} has assigned you to task '{task.name}'",
-            item_type='task',
-            item_id=task.item_id
-        )
+        task.save(update_fields=['assigned_to'])  # Add update_fields to trigger the signal correctly
         
         log_activity(
             user=request.user,
@@ -252,7 +240,7 @@ class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         
         old_status = task.status
         task.status = new_status
-        task.save()
+        task.save(update_fields=['status'])
         
         log_activity(
             user=request.user,
@@ -266,16 +254,7 @@ class TaskViewSet(HeaderIDMixin, viewsets.ModelViewSet):
                 'new_status': new_status
             }
         )
-        
-        if task.assigned_to and task.assigned_to != request.user:
-            create_notification(
-                user=task.assigned_to,
-                sender=request.user,
-                message=f"Task '{task.name}' status changed from {old_status} to {new_status}",
-                item_type='task',
-                item_id=task.item_id
-            )
-        
+
         serializer = self.get_serializer(task)
         return Response(serializer.data)
 
@@ -331,7 +310,7 @@ class BugViewSet(HeaderIDMixin, viewsets.ModelViewSet):
                            status=status.HTTP_400_BAD_REQUEST)
         
         bug.assignee = user
-        bug.save()
+        bug.save(update_fields=['assignee'])  # Add update_fields to trigger the signal correctly
         log_activity(
             user=request.user,
             action='assign',
@@ -365,7 +344,7 @@ class BugViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         
         old_status = bug.status
         bug.status = new_status
-        bug.save()
+        bug.save(update_fields=['status'])  # Add update_fields to trigger the signal correctly
         
         log_activity(
             user=request.user,
@@ -410,7 +389,7 @@ class RetrospectiveViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         if type_param:
             queryset = queryset.filter(type=type_param)
             
-        return queryset
+        return queryset.select_related('project', 'created_by', 'responsible').prefetch_related('voted_by')
     
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -419,29 +398,18 @@ class RetrospectiveViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     def vote(self, request, pk=None):
         retro = self.get_object()
         
-        try:
-            voted_users = json.loads(retro.voted_users)
-        except (json.JSONDecodeError, TypeError):
-            voted_users = []
-        
-        if request.user.id in voted_users:
-            return Response({"error": "You have already voted on this retrospective"}, 
-                           status=status.HTTP_400_BAD_REQUEST)
-        
-        retro.votes += 1
-        voted_users.append(request.user.id)
-        retro.voted_users = json.dumps(voted_users)
-        retro.save()
+        if retro.voted_by.filter(pk=request.user.id).exists():
+            return Response({"error": "You have already voted on this retrospective"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        retro.voted_by.add(request.user)        
         log_activity(
             user=request.user,
             action='vote',
             content_type='retrospective',
             object_id=retro.id,
-            details={
-                'retrospective_id': retro.id,
-                'project_id': retro.project.id,
-                'feedback': retro.feedback
-            }
+            workspace=retro.project.workspace,
+            project=retro.project,
+            details={'feedback': retro.feedback}
         )
         serializer = self.get_serializer(retro)
         return Response(serializer.data)
@@ -452,14 +420,24 @@ class NotificationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+        queryset = Notification.objects.filter(user=self.request.user).order_by('-created_at')
+        
+        notification_type = self.request.query_params.get('type')
+        if notification_type:
+            queryset = queryset.filter(notification_type=notification_type)
+            
+        read_status = self.request.query_params.get('read')
+        if read_status is not None:
+            is_read = read_status.lower() == 'true'
+            queryset = queryset.filter(read=is_read)
+            
+        return queryset
     
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):
         Notification.objects.filter(user=request.user, read=False).update(read=True)
         return Response({"status": "All notifications marked as read"})
     
-    # In actions that use get_object():
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
         try:
@@ -469,7 +447,32 @@ class NotificationViewSet(HeaderIDMixin, viewsets.ModelViewSet):
             return Response({"status": "Notification marked as read"})
         except NotFound:
             return Response({"error": "Notification ID is required. Please provide it in the X-Object-ID header."}, 
-                            status=status.HTTP_400_BAD_REQUEST)
+                           status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['delete'])
+    def clear_all(self, request):
+        """Delete all read notifications for the current user"""
+        Notification.objects.filter(user=request.user, read=True).delete()
+        return Response({"status": "All read notifications cleared"})
+    
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get the count of unread notifications"""
+        count = Notification.objects.filter(user=request.user, read=False).count()
+        return Response({"count": count})
+    
+    @action(detail=False, methods=['get'])
+    def by_type(self, request):
+        """Get notifications grouped by type"""
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        
+        result = {}
+        for notification_type, _ in Notification.NOTIFICATION_TYPES:
+            type_notifications = notifications.filter(notification_type=notification_type)
+            serializer = self.get_serializer(type_notifications, many=True)
+            result[notification_type] = serializer.data
+            
+        return Response(result)
 
 class BookmarkViewSet(HeaderIDMixin, viewsets.ModelViewSet):
     queryset = Bookmark.objects.all()
@@ -566,38 +569,14 @@ class ActivityLogViewSet(HeaderIDMixin, viewsets.ReadOnlyModelViewSet):
         project_id = self.request.META.get('HTTP_X_PROJECT_ID') or self.request.query_params.get('project', None)
         
         queryset = ActivityLog.objects.filter(
-            user__workspaces__in=self.request.user.workspaces.all()
-        ).order_by('-created_at')
-        
-        if workspace_id:
-            queryset = queryset.filter(
-                user__workspaces__id=workspace_id,
-                user__workspaces__members=self.request.user
-            )
-        
+            workspace__members=self.request.user
+        )
         if project_id:
-            project_activities = queryset.filter(
-                content_type='project',
-                object_id=project_id
-            )
+            queryset = queryset.filter(project_id=project_id)
+        elif workspace_id:
+            queryset = queryset.filter(workspace_id=workspace_id)
             
-            task_activities = queryset.filter(
-                content_type__in=['task', 'bug', 'sprint']
-            )
-            
-            related_activities = []
-            for activity in task_activities:
-                try:
-                    details = json.loads(activity.details)
-                    if details and isinstance(details, dict) and details.get('project_id') == int(project_id):
-                        related_activities.append(activity.id)
-                except (json.JSONDecodeError, ValueError, TypeError) as e:
-                    continue
-            
-            related_queryset = ActivityLog.objects.filter(id__in=related_activities)
-            queryset = project_activities | related_queryset
-        
-        return queryset
+        return queryset.select_related('user', 'workspace', 'project').order_by('-created_at')
     
     @action(detail=False, methods=['get'])
     def mentions(self, request):
