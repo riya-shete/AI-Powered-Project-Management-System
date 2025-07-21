@@ -24,15 +24,18 @@ const SprintMain = () => {
 
   // Sprint data state
   const [sprints, setSprints] = useState([])
-  const [users, setUsers] = useState([]) // For assigned_to and assigned_by dropdowns
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [sortBy, setSortBy] = useState("end_date") // Default sort by due date
+  const [sortBy, setSortBy] = useState("end_date")
   const [sortOrder, setSortOrder] = useState("asc")
 
   useEffect(() => {
     if (projectId) {
+      console.log("Project ID found:", projectId)
       fetchSprints()
       fetchUsers()
+    } else {
+      console.log("No project ID found")
     }
   }, [projectId])
 
@@ -41,10 +44,12 @@ const SprintMain = () => {
       setLoading(true)
       const token = localStorage.getItem("token")
       if (!token) {
+        console.log("No token found")
         alert("User not authenticated. Please log in again.")
         return
       }
 
+      console.log("Fetching sprints for project:", projectId)
       const response = await fetch(`http://localhost:8000/api/sprints/`, {
         headers: {
           Authorization: `Token ${token}`,
@@ -53,11 +58,33 @@ const SprintMain = () => {
         },
       })
 
+      console.log("Sprints response status:", response.status)
+
       if (response.ok) {
         const data = await response.json()
-        setSprints(data.results || [])
+        console.log("Raw sprints data received:", data)
+
+        // Handle different response structures
+        let sprintsArray = []
+        if (Array.isArray(data)) {
+          sprintsArray = data
+        } else if (data.results && Array.isArray(data.results)) {
+          sprintsArray = data.results
+        } else if (data.data && Array.isArray(data.data)) {
+          sprintsArray = data.data
+        } else {
+          console.log("Unexpected data structure:", data)
+          sprintsArray = []
+        }
+
+        console.log("Processed sprints array:", sprintsArray)
+        console.log("Number of sprints:", sprintsArray.length)
+
+        setSprints(sprintsArray)
       } else {
         console.error("Failed to fetch sprints", response.status)
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
       }
     } catch (error) {
       console.error("Error fetching sprints:", error)
@@ -69,8 +96,12 @@ const SprintMain = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      if (!token) return
+      if (!token) {
+        console.log("No token found for fetching users")
+        return
+      }
 
+      console.log("Fetching users...")
       const response = await fetch(`http://localhost:8000/api/users/`, {
         headers: {
           Authorization: `Token ${token}`,
@@ -78,16 +109,49 @@ const SprintMain = () => {
         },
       })
 
+      console.log("Users response status:", response.status)
+
       if (response.ok) {
         const data = await response.json()
-        setUsers(data.results || [])
+        console.log("Users data received:", data)
+
+        // Handle different response structures
+        let usersArray = []
+        if (Array.isArray(data)) {
+          usersArray = data
+        } else if (data.results && Array.isArray(data.results)) {
+          usersArray = data.results
+        } else if (data.data && Array.isArray(data.data)) {
+          usersArray = data.data
+        } else {
+          console.log("Unexpected users data structure:", data)
+          usersArray = []
+        }
+
+        setUsers(usersArray)
+      } else {
+        console.error("Failed to fetch users", response.status)
+        const errorText = await response.text()
+        console.error("Users error response:", errorText)
       }
     } catch (error) {
       console.error("Error fetching users:", error)
     }
   }
 
-  // Enhanced sprint form state - matching your SprintSerializer
+  // Monitor sprints state changes
+  useEffect(() => {
+    console.log("Sprints state updated:", sprints)
+    console.log("Sprints count:", sprints.length)
+  }, [sprints])
+
+  // Monitor users state changes
+  useEffect(() => {
+    console.log("Users state updated:", users)
+    console.log("Users count:", users.length)
+  }, [users])
+
+  // Enhanced sprint form state
   const [newSprint, setNewSprint] = useState({
     name: "",
     start_date: "",
@@ -105,7 +169,7 @@ const SprintMain = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeFilter, setActiveFilter] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState("") // active, expired, backlog
+  const [statusFilter, setStatusFilter] = useState("")
   const [isActiveDropdownOpen, setIsActiveDropdownOpen] = useState(false)
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false)
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
@@ -190,13 +254,14 @@ const SprintMain = () => {
         project: Number.parseInt(projectId),
       }
 
-      // Only include assigned fields if selected
       if (newSprint.assigned_to) {
         sprintData.assigned_to = Number.parseInt(newSprint.assigned_to)
       }
       if (newSprint.assigned_by) {
         sprintData.assigned_by = Number.parseInt(newSprint.assigned_by)
       }
+
+      console.log("Creating sprint with data:", sprintData)
 
       const response = await fetch("http://localhost:8000/api/sprints/", {
         method: "POST",
@@ -210,6 +275,7 @@ const SprintMain = () => {
 
       if (response.ok) {
         const createdSprint = await response.json()
+        console.log("Sprint created successfully:", createdSprint)
         setSprints((prev) => [...prev, createdSprint])
         resetForm()
         setShowAddForm(false)
@@ -259,7 +325,6 @@ const SprintMain = () => {
         priority: newSprint.priority,
       }
 
-      // Only include assigned fields if selected
       if (newSprint.assigned_to) {
         sprintData.assigned_to = Number.parseInt(newSprint.assigned_to)
       } else {
@@ -330,7 +395,6 @@ const SprintMain = () => {
     }
   }
 
-  // Move expired sprints to backlog
   const moveToBacklog = async (sprintId) => {
     try {
       const token = localStorage.getItem("token")
@@ -362,22 +426,54 @@ const SprintMain = () => {
     }
   }
 
-  // Enhanced filtered and sorted sprints
+  // Enhanced filtered and sorted sprints with better debugging
   const filteredAndSortedSprints = useMemo(() => {
+    console.log("Filtering sprints. Total sprints:", sprints.length)
+    console.log("Search query:", searchQuery)
+    console.log("Active filter:", activeFilter)
+    console.log("Priority filter:", priorityFilter)
+    console.log("Status filter:", statusFilter)
+
+    if (!Array.isArray(sprints)) {
+      console.log("Sprints is not an array:", sprints)
+      return []
+    }
+
     const filtered = sprints.filter((sprint) => {
-      const matchesSearch = searchQuery ? sprint.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
+      if (!sprint) {
+        console.log("Found null/undefined sprint")
+        return false
+      }
+
+      const matchesSearch = searchQuery
+        ? sprint.name && sprint.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : true
+
       const matchesActive = activeFilter === "" ? true : activeFilter === "active" ? sprint.active : !sprint.active
+
       const matchesPriority = priorityFilter === "" ? true : sprint.priority === priorityFilter
 
-      // Status filter logic
       let matchesStatus = true
       if (statusFilter) {
         const status = getSprintStatus(sprint)
         matchesStatus = status === statusFilter
       }
 
-      return matchesSearch && matchesActive && matchesPriority && matchesStatus
+      const result = matchesSearch && matchesActive && matchesPriority && matchesStatus
+
+      if (!result) {
+        console.log(`Sprint ${sprint.name} filtered out:`, {
+          matchesSearch,
+          matchesActive,
+          matchesPriority,
+          matchesStatus,
+        })
+      }
+
+      return result
     })
+
+    console.log("Filtered sprints count:", filtered.length)
 
     // Sort the filtered results
     filtered.sort((a, b) => {
@@ -409,6 +505,7 @@ const SprintMain = () => {
       }
     })
 
+    console.log("Final sorted sprints:", filtered)
     return filtered
   }, [sprints, searchQuery, activeFilter, priorityFilter, statusFilter, sortBy, sortOrder])
 
@@ -464,8 +561,15 @@ const SprintMain = () => {
   }
 
   const getUserName = (userId) => {
-    const user = users.find((u) => u.id === userId)
-    return user ? `${user.first_name} ${user.last_name}`.trim() || user.username : "Unassigned"
+    if (!userId) return "Unassigned"
+
+    const user = users.find((u) => u.id === userId || u.id === Number.parseInt(userId))
+    if (!user) {
+      return "Unassigned"
+    }
+
+    const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim()
+    return fullName || user.username || user.email || `User ${user.id}`
   }
 
   const handleSort = (field) => {
@@ -492,6 +596,9 @@ const SprintMain = () => {
           <div className="font-medium">Sprints Table</div>
           <div className="ml-4 text-sm text-gray-500">
             Sorted by: {sortOptions.find((opt) => opt.value === sortBy)?.label} ({sortOrder === "asc" ? "↑" : "↓"})
+          </div>
+          <div className="ml-4 text-sm text-blue-600">
+            Total: {sprints.length} | Filtered: {filteredAndSortedSprints.length}
           </div>
         </div>
 
@@ -669,7 +776,9 @@ const SprintMain = () => {
               ) : filteredAndSortedSprints.length === 0 ? (
                 <tr>
                   <td colSpan="10" className="p-8 text-center text-gray-500">
-                    No sprints found for this project.
+                    {sprints.length === 0
+                      ? "No sprints found for this project."
+                      : `No sprints match the current filters. Total sprints: ${sprints.length}`}
                   </td>
                 </tr>
               ) : (
@@ -831,11 +940,22 @@ const SprintMain = () => {
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Assignee (Optional)</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {`${user.first_name} ${user.last_name}`.trim() || user.username}
-                    </option>
-                  ))}
+                  {users && users.length > 0 ? (
+                    users.map((user) => {
+                      const displayName =
+                        `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                        user.username ||
+                        user.email ||
+                        `User ${user.id}`
+                      return (
+                        <option key={user.id} value={user.id}>
+                          {displayName}
+                        </option>
+                      )
+                    })
+                  ) : (
+                    <option disabled>Loading users...</option>
+                  )}
                 </select>
               </div>
 
@@ -848,11 +968,22 @@ const SprintMain = () => {
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Assigner (Optional)</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {`${user.first_name} ${user.last_name}`.trim() || user.username}
-                    </option>
-                  ))}
+                  {users && users.length > 0 ? (
+                    users.map((user) => {
+                      const displayName =
+                        `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                        user.username ||
+                        user.email ||
+                        `User ${user.id}`
+                      return (
+                        <option key={user.id} value={user.id}>
+                          {displayName}
+                        </option>
+                      )
+                    })
+                  ) : (
+                    <option disabled>Loading users...</option>
+                  )}
                 </select>
               </div>
 
