@@ -151,6 +151,12 @@ class SprintViewSet(HeaderIDMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(active=True)
             
         return queryset.select_related('project', 'assigned_to', 'assigned_by')
+
+    def perform_create(self, serializer):
+        """
+        Automatically sets the assigned_by field to the current user upon sprint creation.
+        """
+        serializer.save(assigned_by=self.request.user)
     
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
@@ -278,7 +284,7 @@ class BugViewSet(HeaderIDMixin, viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-            bug = serializer.save(reporter=self.request.user)
+            bug = serializer.save(assignee=self.request.user)
             
             # Add activity logging
             log_activity(
