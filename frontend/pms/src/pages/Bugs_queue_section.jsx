@@ -30,54 +30,68 @@ const IssuesPage = () => {
   const { projectId } = useParams()
   
   // Fetch bugs from the backend
-  useEffect(() => {
-    const fetchBugs = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        // console.log("Token used for fetching projects:", token);
-        console.log("Project ID from URL:", projectId); // Debug log
-        setLoading(true);
-        const response = await axios.get("http://localhost:8000/api/bugs/", {
-          headers: {
-            Authorization: `Token ${token}`,
-            'X-Project-ID': projectId || '1'
-          },
-          
-        });
+  // Replace your existing fetchBugs function with this fixed version
+useEffect(() => {
+  const fetchBugs = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      console.log("Project ID from URL:", projectId);
+      setLoading(true);
+      
+      const response = await axios.get("http://localhost:8000/api/bugs/", {
+        headers: {
+          Authorization: `Token ${token}`,
+          'X-Project-ID': projectId || '1'
+        },
+      });
 
-        // Log the raw response data
-        console.log("Raw API response:", response.data);
-        // Ensure the response contains JSON data
-        if (response.data && response.data.results) {
-          const transformedIssues = response.data.results.map((bug) => ({
+      console.log("Raw API response:", response.data);
+      
+      // FIXED: Handle different response structures like your projectAPI example
+      if (response.data && typeof response.data === "object") {
+        // Check if response has results property, or if it's a direct array, or if it's an object with data property
+        const bugsArray = response.data.results || 
+                          (Array.isArray(response.data) ? response.data : []) ||
+                          response.data.data || 
+                          [];
+        
+        console.log("Extracted bugs array:", bugsArray);
+        
+        // Transform the bugs data
+        const transformedIssues = bugsArray.map((bug) => ({
           id: bug.id,
-          key: bug.key || bug.summary, // Use `key` if available; fallback to `summary`
+          key: bug.key || bug.summary,
           summary: bug.summary,
           type: bug.type,
-          assignee: bug.assignee ? bug.assignee.username : "Unassigned", // Extract username or default to "Unassigned"
-          reporter: bug.reporter ? bug.reporter.username : "Unknown", // Extract username or default to "Unknown"
-          status: bug.status.charAt(0).toUpperCase() + bug.status.slice(1), // Format status (e.g., "resolved" → "Resolved")
-          createdDate: formatDate(bug.created_at), // Format date
-          updatedDate: formatDate(bug.updated_at), // Format date
-          dueDate: bug.due_date || "N/A", // Handle missing due date
-          
+          assignee: bug.assignee ? bug.assignee.username : "Unassigned",
+          reporter: bug.reporter ? bug.reporter.username : "Unknown",
+          status: bug.status.charAt(0).toUpperCase() + bug.status.slice(1),
+          createdDate: formatDate(bug.created_at),
+          updatedDate: formatDate(bug.updated_at),
+          dueDate: bug.due_date || "N/A",
         }));
-        setIssues({ results: transformedIssues });
-        } else {
-          console.error("Unexpected response format:", response);
-          setError("Failed to fetch bugs. Please try again.");
-        }
         
-        setLoading(false);
-      } catch (error) {
-        setLoading(false);
-        console.error("Error fetching bugs:", error);
-        console.error("Error details:", error.response ? error.response.data : error.message);
-        setError(error.message || "Failed to fetch bugs.");
+        // FIXED: Always set results in the expected format
+        setIssues({ results: transformedIssues });
+      } else {
+        console.error("Unexpected response format:", response);
+        // FIXED: Set empty results instead of error when response format is unexpected
+        setIssues({ results: [] });
       }
-    };
-    fetchBugs();
-  }, [projectId]);
+      
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error fetching bugs:", error);
+      console.error("Error details:", error.response ? error.response.data : error.message);
+      setError(error.message || "Failed to fetch bugs.");
+      // FIXED: Set empty results on error
+      setIssues({ results: [] });
+    }
+  };
+  
+  fetchBugs();
+}, [projectId]);
 
     // Helper function to format dates
     function formatDate(dateString) {
