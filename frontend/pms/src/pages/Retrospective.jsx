@@ -56,8 +56,15 @@ const Retrospectivesmain = () => {
           }
         });
 
-        if (response.data && response.data.results) {
-          const transformedRetros = response.data.results.map((retro) => ({
+        if (response.data && typeof response.data === "object") {
+
+          const results =
+          response.data.results ||
+          response.data.data ||
+          (Array.isArray(response.data) ? response.data : []);
+
+        if (Array.isArray(results)) {
+          const transformedRetros = results.map((retro) => ({
             id: retro.id,
             feedback: retro.feedback,
             responsible: retro.responsible ? retro.responsible.username : "Unassigned",
@@ -72,9 +79,13 @@ const Retrospectivesmain = () => {
         } else {
           setError("Failed to fetch retrospectives. Invalid data format.");
         }
+        } else{
+          setError("Failed to fetch retrospectives. Invalid data format.");
+        }
         
         setLoading(false);
       } catch (error) {
+        console.log("Error fetching retrospective",error);
         setLoading(false);
         setError(error.message || "Failed to fetch retrospectives.");
       }
@@ -233,9 +244,12 @@ const Retrospectivesmain = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setNewRetrospective((prev) => ({ ...prev, [name]: value }))
-  }
+  const { name, value, type, checked } = e.target
+  setNewRetrospective((prev) => ({
+    ...prev,
+    [name]: type === "checkbox" ? checked : value,
+  }))
+}
 
     const handleAddRetrospective = async () => {
     try {
@@ -298,8 +312,8 @@ const Retrospectivesmain = () => {
       owner: retrospective.owner,
     })
     setShowAddForm(true);
-    setResponsibleSearch('');
-    setOwnerSearch('');
+    setResponsibleSearch(retrospective.responsible);
+    setOwnerSearch(retrospective.owner);
     setIsResponsibleDropdownOpen(false);
     setIsTypeDropdownOpen(false);
   }
@@ -356,9 +370,8 @@ const Retrospectivesmain = () => {
         {
           headers: {
             Authorization: `Token ${token}`,
-            // 'X-Project-ID': projectId || '1',
             'Content-Type': 'application/json',
-            'X-Object-ID': projectId,
+            'X-Object-ID': projectId || 1,
           }
         }
       );
@@ -679,6 +692,8 @@ return (
                 repeating: false,
                 owner: "",
               })
+              setResponsibleSearch('')
+              setOwnerSearch('')
               setShowAddForm(true)
             }}
           >
@@ -1077,18 +1092,18 @@ return (
                   onChange={(e)=>setResponsibleSearch(e.target.value)}
                   className="w-full px-3 py-2 border rounded text-sm"
                   onFocus={() => setIsResponsibleDropdownOpen(true)}
-                  placeholder="Resonsible user"
+                  placeholder="Responsible user"
                 />
                 {isResponsibleDropdownOpen && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-40 overflow-y-auto">
-                    {filteredOwnerUsers.map(user => (
+                    {filteredResponsibleUsers.map(user => (
                       <div
                         key={user.id}
                         className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                         onClick={() => {
-                          setRetrospectiveData(prev => ({ ...prev, owner: user.id }));
-                          setOwnerSearch(user.username);
-                          setIsOwnerDropdownOpen(false);
+                          setRetrospectiveData(prev => ({ ...prev, responsible: user.username })); 
+                          setResponsibleSearch(user.username);
+                          setIsResponsibleDropdownOpen(false);
                         }}
                       >
                         {user.username}
@@ -1130,7 +1145,7 @@ return (
                           key={user.id}
                           className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                           onClick={() => {
-                            setRetrospectiveData(prev => ({ ...prev, owner: user.id }));
+                            setNewRetrospective(prev => ({ ...prev, owner: user.username })); 
                             setOwnerSearch(user.username);
                             setIsOwnerDropdownOpen(false);
                           }}
@@ -1156,7 +1171,13 @@ return (
               </div>
             </div>
             <div className="mt-4 flex justify-end space-x-2">
-              <button className="px-4 py-2 border rounded hover:bg-gray-100" onClick={() => setShowAddForm(false)}>
+              <button className="px-4 py-2 border rounded hover:bg-gray-100" onClick={() => {
+                    setShowAddForm(false)
+                    setResponsibleSearch("") //  Reset
+                    setOwnerSearch("")       //  Reset
+                    setIsResponsibleDropdownOpen(false) 
+                    setIsOwnerDropdownOpen(false)       
+                  }}>
                 Cancel
               </button>
               <button
