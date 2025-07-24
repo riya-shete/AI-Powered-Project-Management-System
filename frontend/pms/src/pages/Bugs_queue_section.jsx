@@ -30,12 +30,10 @@ const IssuesPage = () => {
   const { projectId } = useParams()
   
   // Fetch bugs from the backend
-  // Replace your existing fetchBugs function with this fixed version
 useEffect(() => {
   const fetchBugs = async () => {
     try {
       const token = localStorage.getItem("token");
-      console.log("Project ID from URL:", projectId);
       setLoading(true);
       
       const response = await axios.get("http://localhost:8000/api/bugs/", {
@@ -45,17 +43,14 @@ useEffect(() => {
         },
       });
 
-      console.log("Raw API response:", response.data);
       
-      // FIXED: Handle different response structures like your projectAPI example
+      // FIXED: Handle different response structures
       if (response.data && typeof response.data === "object") {
-        // Check if response has results property, or if it's a direct array, or if it's an object with data property
+        // here Checking if response has results property, or if it's a direct array, or if it's an object with data property
         const bugsArray = response.data.results || 
                           (Array.isArray(response.data) ? response.data : []) ||
                           response.data.data || 
                           [];
-        
-        console.log("Extracted bugs array:", bugsArray);
         
         // Transform the bugs data
         const transformedIssues = bugsArray.map((bug) => ({
@@ -181,6 +176,12 @@ useEffect(() => {
   //adding new state variables to manage editing issues
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
+
+  //adding states to manage searchable dropdowns for all uysers 
+  const [assigneeSearch, setAssigneeSearch] = useState('');
+  const [reporterSearch, setReporterSearch] = useState('');
+  const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+  const [isReporterDropdownOpen, setIsReporterDropdownOpen] = useState(false);
 
   //openedit funtion to take all edit inputs from the userrr
   const openEditIssueModal = (issue) => {
@@ -453,7 +454,6 @@ useEffect(() => {
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode)
-    console.log("View Mode Changed:", mode) // Debugging output
   }
 
        // Modal state declarations
@@ -483,7 +483,7 @@ const openCreateIssueModal = () => {
   setNewIssue({
     summary: '',
     assignee: '', // Set current user as assignee
-    reporter: '', // Set current user as reporter
+    reporter:  currentUser.id || "", // Set current user as reporter
     status: 'to_do',
     type: 'bug',
     project: '1',
@@ -751,18 +751,14 @@ const handleAddIssue = async (e) => {
   }
 };
 
-  //adding states to manage searchable dropdowns for all uysers 
-  const [assigneeSearch, setAssigneeSearch] = useState('');
-  const [reporterSearch, setReporterSearch] = useState('');
-  const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
-  const [isReporterDropdownOpen, setIsReporterDropdownOpen] = useState(false);
+
   
   // funtions that helps to search users : Filter the users array based on search input
-  const filteredUsersForAssignee = users.results?.filter(user => 
+  const filteredUsersForAssignee = users?.filter(user => 
     user.username.toLowerCase().includes(assigneeSearch.toLowerCase())
   ) || [];
 
-  const filteredUsersForReporter = users.results?.filter(user => 
+  const filteredUsersForReporter = users.filter(user => 
     user.username.toLowerCase().includes(reporterSearch.toLowerCase())
   ) || [];
 
@@ -1279,7 +1275,7 @@ const handleAddIssue = async (e) => {
                   <input
                     type="text"
                     className="w-full border border-gray-300 rounded p-2 text-sm"
-                    value={reporterSearch}
+                    value={reporterSearch || currentUser.username || ""}
                     onChange={(e) => setReporterSearch(e.target.value)}
                     onFocus={() => setIsReporterDropdownOpen(true)}
                     placeholder="Search reporter..."
@@ -1465,7 +1461,7 @@ const handleAddIssue = async (e) => {
                           key={user.id}
                           className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                           onClick={() => {
-                            selectedIssue({ ...selectedIssue, reporter: user.id });
+                            setSelectedIssue({ ...selectedIssue, reporter: user.id });
                             setReporterSearch(user.username);
                             setIsReporterDropdownOpen(false);
                           }}

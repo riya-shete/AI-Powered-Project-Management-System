@@ -94,7 +94,6 @@ const Sidebar = () => {
             Authorization: `Token ${token}`,
           },
         })
-        console.log("fetched workspaces:", response.data)
 
         // FIXED: Handle different response structures
         if (response.data && typeof response.data === "object") {
@@ -192,7 +191,6 @@ const Sidebar = () => {
             Authorization: `Token ${token}`,
           },
         })
-        console.log("fetched projects", response.data)
 
         // FIXED: Handle different response structures
         if (response.data && typeof response.data === "object") {

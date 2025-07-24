@@ -22,26 +22,27 @@ const Invite = ({ isOpen, onClose }) => {
   const API_BASE = 'http://localhost:8000/api';
 
   const { currentWorkspace } = useWorkspace();
-  useEffect(() => {
-    if (currentWorkspace) {
-      console.log("Current workspace:", currentWorkspace);
-      console.log("Current workspace ID:", currentWorkspace.id);  
-    }
-  }, [currentWorkspace]);
-  
-  // Load users from localStorage
-  useEffect(() => {
+useEffect(() => {
     const storedUsers = localStorage.getItem('users');
     if (storedUsers) {
       try {
         const userData = JSON.parse(storedUsers);
-        setUsers(userData.results || []);
+        
+        // FIXED: Handle both array and object with results property
+        if (Array.isArray(userData)) {
+          setUsers(userData);
+        } else if (userData.results && Array.isArray(userData.results)) {
+          setUsers(userData.results);
+        } else {
+          console.error('Invalid user data format:', userData);
+          setUsers([]);
+        }
       } catch (error) {
         console.error('Error parsing users from localStorage:', error);
+        setUsers([]);
       }
     }
   }, []);
-
   // Load invitations on component mount
     useEffect(() => {
     if (isOpen && workspaceId) {
@@ -72,14 +73,15 @@ const Invite = ({ isOpen, onClose }) => {
     }
   }, [isOpen, workspaceId]);
 
-    // Don't render if not open
+
   if (!isOpen) return null;
 
   // Filter users based on search term
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
   // Retrieve the token from localStorage
   const token = localStorage.getItem("token");
