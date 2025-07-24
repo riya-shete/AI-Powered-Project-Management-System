@@ -6,6 +6,10 @@ import { useParams } from "react-router-dom"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 
+/**
+ * Main Sprints Page Component
+ * Renders the complete sprints management interface with navbar and sidebar
+ */
 const SprintsPage = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -18,17 +22,27 @@ const SprintsPage = () => {
   )
 }
 
+/**
+ * Sprint Main Component
+ * Contains all sprint management functionality including CRUD operations,
+ * filtering, sorting, and data visualization
+ */
 const SprintMain = () => {
-  // Get project ID from URL params or context
+  // Get project ID from URL parameters
   const { projectId } = useParams()
 
-  // Sprint data state
+  // Core state management for sprints and users data
   const [sprints, setSprints] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Sorting configuration
   const [sortBy, setSortBy] = useState("end_date")
   const [sortOrder, setSortOrder] = useState("asc")
 
+  /**
+   * Initialize data fetching when component mounts or projectId changes
+   */
   useEffect(() => {
     if (projectId) {
       console.log("Project ID found:", projectId)
@@ -39,6 +53,10 @@ const SprintMain = () => {
     }
   }, [projectId])
 
+  /**
+   * Fetch sprints data from API
+   * Handles different response structures and provides comprehensive error handling
+   */
   const fetchSprints = async () => {
     try {
       setLoading(true)
@@ -64,7 +82,7 @@ const SprintMain = () => {
         const data = await response.json()
         console.log("Raw sprints data received:", data)
 
-        // Handle different response structures
+        // Handle different API response structures
         let sprintsArray = []
         if (Array.isArray(data)) {
           sprintsArray = data
@@ -93,6 +111,10 @@ const SprintMain = () => {
     }
   }
 
+  /**
+   * Fetch users data for assignment dropdowns
+   * Handles different response structures for user data
+   */
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
@@ -115,7 +137,7 @@ const SprintMain = () => {
         const data = await response.json()
         console.log("Users data received:", data)
 
-        // Handle different response structures
+        // Handle different API response structures for users
         let usersArray = []
         if (Array.isArray(data)) {
           usersArray = data
@@ -139,19 +161,18 @@ const SprintMain = () => {
     }
   }
 
-  // Monitor sprints state changes
+  // Debug logging for state changes
   useEffect(() => {
     console.log("Sprints state updated:", sprints)
     console.log("Sprints count:", sprints.length)
   }, [sprints])
 
-  // Monitor users state changes
   useEffect(() => {
     console.log("Users state updated:", users)
     console.log("Users count:", users.length)
   }, [users])
 
-  // Enhanced sprint form state
+  // Form state for creating/editing sprints
   const [newSprint, setNewSprint] = useState({
     name: "",
     start_date: "",
@@ -164,17 +185,23 @@ const SprintMain = () => {
     assigned_by: "",
   })
 
+  // UI state management
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingSprint, setEditingSprint] = useState(null)
+
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("")
   const [activeFilter, setActiveFilter] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+
+  // Dropdown states
   const [isActiveDropdownOpen, setIsActiveDropdownOpen] = useState(false)
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false)
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
 
+  // Configuration arrays
   const priorityOptions = [
     { value: "low", label: "Low", color: "text-green-600 bg-green-100" },
     { value: "medium", label: "Medium", color: "text-yellow-600 bg-yellow-100" },
@@ -189,7 +216,9 @@ const SprintMain = () => {
     { value: "created_at", label: "Created Date" },
   ]
 
-  // Helper function to check if sprint is expired
+  /**
+   * Check if a sprint has expired (past due date and still active)
+   */
   const isSprintExpired = (sprint) => {
     if (!sprint.end_date) return false
     const today = new Date()
@@ -197,7 +226,9 @@ const SprintMain = () => {
     return endDate < today && sprint.active
   }
 
-  // Helper function to get sprint status
+  /**
+   * Determine sprint status based on dates and active state
+   */
   const getSprintStatus = (sprint) => {
     if (!sprint.active) return "inactive"
     if (isSprintExpired(sprint)) return "expired"
@@ -211,6 +242,9 @@ const SprintMain = () => {
     return "completed"
   }
 
+  /**
+   * Handle form input changes for sprint creation/editing
+   */
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     setNewSprint((prev) => ({
@@ -219,6 +253,9 @@ const SprintMain = () => {
     }))
   }
 
+  /**
+   * Reset form to initial state
+   */
   const resetForm = () => {
     setNewSprint({
       name: "",
@@ -233,6 +270,9 @@ const SprintMain = () => {
     })
   }
 
+  /**
+   * Create a new sprint via API
+   */
   const addNewSprint = async () => {
     if (!newSprint.name.trim() || !newSprint.start_date || !newSprint.end_date) return
 
@@ -254,14 +294,36 @@ const SprintMain = () => {
         project: Number.parseInt(projectId),
       }
 
-      if (newSprint.assigned_to) {
-        sprintData.assigned_to = Number.parseInt(newSprint.assigned_to)
-      }
-      if (newSprint.assigned_by) {
-        sprintData.assigned_by = Number.parseInt(newSprint.assigned_by)
+      // Enhanced debugging for assignment fields
+      console.log("Form assigned_to value:", newSprint.assigned_to)
+      console.log("Form assigned_by value:", newSprint.assigned_by)
+
+      // Replace the assignment field handling with this more robust version:
+      if (newSprint.assigned_to && newSprint.assigned_to !== "" && newSprint.assigned_to !== "null") {
+        const assignedToId = Number.parseInt(newSprint.assigned_to)
+        if (!isNaN(assignedToId) && assignedToId > 0) {
+          sprintData.assigned_to = assignedToId
+          console.log("Setting assigned_to to:", assignedToId)
+        } else {
+          console.log("Invalid assigned_to value, skipping:", newSprint.assigned_to)
+        }
+      } else {
+        console.log("No assigned_to value provided")
       }
 
-      console.log("Creating sprint with data:", sprintData)
+      if (newSprint.assigned_by && newSprint.assigned_by !== "" && newSprint.assigned_by !== "null") {
+        const assignedById = Number.parseInt(newSprint.assigned_by)
+        if (!isNaN(assignedById) && assignedById > 0) {
+          sprintData.assigned_by = assignedById
+          console.log("Setting assigned_by to:", assignedById)
+        } else {
+          console.log("Invalid assigned_by value, skipping:", newSprint.assigned_by)
+        }
+      } else {
+        console.log("No assigned_by value provided")
+      }
+
+      console.log("Final sprint data being sent:", JSON.stringify(sprintData, null, 2))
 
       const response = await fetch("http://localhost:8000/api/sprints/", {
         method: "POST",
@@ -273,17 +335,27 @@ const SprintMain = () => {
         body: JSON.stringify(sprintData),
       })
 
+      console.log("Response status:", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
         const createdSprint = await response.json()
-        console.log("Sprint created successfully:", createdSprint)
+        console.log("Sprint created successfully - FULL RESPONSE:", JSON.stringify(createdSprint, null, 2))
+
+        // Check if assigned_to was preserved
+        if (sprintData.assigned_to && !createdSprint.assigned_to) {
+          console.error("WARNING: assigned_to was lost during creation!")
+          console.error("Sent:", sprintData.assigned_to, "Received:", createdSprint.assigned_to)
+        }
+
         setSprints((prev) => [...prev, createdSprint])
         resetForm()
         setShowAddForm(false)
         alert("Sprint created successfully!")
       } else {
         const errorData = await response.json()
-        console.error("Failed to create sprint", errorData)
-        alert("Failed to create sprint. Please check all required fields.")
+        console.error("Failed to create sprint - ERROR RESPONSE:", JSON.stringify(errorData, null, 2))
+        alert(`Failed to create sprint: ${JSON.stringify(errorData)}`)
       }
     } catch (err) {
       console.error("Failed to create sprint:", err)
@@ -291,6 +363,9 @@ const SprintMain = () => {
     }
   }
 
+  /**
+   * Prepare sprint data for editing
+   */
   const handleEditSprint = (sprint) => {
     setEditingSprint(sprint)
     setNewSprint({
@@ -307,6 +382,9 @@ const SprintMain = () => {
     setShowAddForm(true)
   }
 
+  /**
+   * Save edited sprint changes via API
+   */
   const handleSaveEdit = async () => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -325,17 +403,26 @@ const SprintMain = () => {
         priority: newSprint.priority,
       }
 
+      console.log("EDIT - Form assigned_to value:", newSprint.assigned_to)
+      console.log("EDIT - Form assigned_by value:", newSprint.assigned_by)
+
       if (newSprint.assigned_to) {
-        sprintData.assigned_to = Number.parseInt(newSprint.assigned_to)
+        const assignedToId = Number.parseInt(newSprint.assigned_to)
+        console.log("EDIT - Parsed assigned_to ID:", assignedToId)
+        sprintData.assigned_to = assignedToId
       } else {
         sprintData.assigned_to = null
       }
 
       if (newSprint.assigned_by) {
-        sprintData.assigned_by = Number.parseInt(newSprint.assigned_by)
+        const assignedById = Number.parseInt(newSprint.assigned_by)
+        console.log("EDIT - Parsed assigned_by ID:", assignedById)
+        sprintData.assigned_by = assignedById
       } else {
         sprintData.assigned_by = null
       }
+
+      console.log("EDIT - Final sprint data being sent:", JSON.stringify(sprintData, null, 2))
 
       const response = await fetch(`http://localhost:8000/api/sprints/${editingSprint.id}/`, {
         method: "PATCH",
@@ -349,14 +436,17 @@ const SprintMain = () => {
 
       if (response.ok) {
         const updatedSprint = await response.json()
+        console.log("EDIT - Sprint updated successfully - FULL RESPONSE:", JSON.stringify(updatedSprint, null, 2))
+
         setSprints((prev) => prev.map((sprint) => (sprint.id === editingSprint.id ? updatedSprint : sprint)))
         resetForm()
         setEditingSprint(null)
         setShowAddForm(false)
         alert("Sprint updated successfully!")
       } else {
-        console.error("Failed to update sprint")
-        alert("Failed to update sprint. Please try again.")
+        const errorData = await response.json()
+        console.error("EDIT - Failed to update sprint - ERROR RESPONSE:", JSON.stringify(errorData, null, 2))
+        alert(`Failed to update sprint: ${JSON.stringify(errorData)}`)
       }
     } catch (error) {
       console.error("Error updating sprint:", error)
@@ -364,6 +454,9 @@ const SprintMain = () => {
     }
   }
 
+  /**
+   * Delete sprint with confirmation
+   */
   const deleteSprint = async (sprintId) => {
     if (window.confirm(`Are you sure you want to delete sprint "${sprints.find((s) => s.id === sprintId)?.name}"?`)) {
       const token = localStorage.getItem("token")
@@ -395,6 +488,9 @@ const SprintMain = () => {
     }
   }
 
+  /**
+   * Move expired sprint to backlog (set as inactive)
+   */
   const moveToBacklog = async (sprintId) => {
     try {
       const token = localStorage.getItem("token")
@@ -426,7 +522,9 @@ const SprintMain = () => {
     }
   }
 
-  // Enhanced filtered and sorted sprints with better debugging
+  /**
+   * Enhanced filtering and sorting logic with improved expired sprint handling
+   */
   const filteredAndSortedSprints = useMemo(() => {
     console.log("Filtering sprints. Total sprints:", sprints.length)
     console.log("Search query:", searchQuery)
@@ -439,6 +537,7 @@ const SprintMain = () => {
       return []
     }
 
+    // Apply filters
     const filtered = sprints.filter((sprint) => {
       if (!sprint) {
         console.log("Found null/undefined sprint")
@@ -475,12 +574,32 @@ const SprintMain = () => {
 
     console.log("Filtered sprints count:", filtered.length)
 
-    // Sort the filtered results
+    // Enhanced sorting logic with special handling for expired sprints
     filtered.sort((a, b) => {
+      // Special handling for due date sorting - expired sprints should be at the end
+      if (sortBy === "end_date") {
+        const aExpired = isSprintExpired(a)
+        const bExpired = isSprintExpired(b)
+
+        // If sorting by due date, put expired sprints at the end regardless of sort order
+        if (aExpired && !bExpired) return 1
+        if (!aExpired && bExpired) return -1
+
+        // If both expired or both not expired, sort normally by date
+        const aValue = new Date(a.end_date || 0)
+        const bValue = new Date(b.end_date || 0)
+
+        if (sortOrder === "asc") {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+        }
+      }
+
+      // Regular sorting for other fields
       let aValue, bValue
 
       switch (sortBy) {
-        case "end_date":
         case "start_date":
         case "created_at":
           aValue = new Date(a[sortBy] || 0)
@@ -509,6 +628,9 @@ const SprintMain = () => {
     return filtered
   }, [sprints, searchQuery, activeFilter, priorityFilter, statusFilter, sortBy, sortOrder])
 
+  /**
+   * Toggle sprint active status
+   */
   const handleToggleActive = async (sprintId) => {
     try {
       const sprint = sprints.find((s) => s.id === sprintId)
@@ -540,12 +662,18 @@ const SprintMain = () => {
     }
   }
 
+  /**
+   * Generate priority badge with appropriate styling
+   */
   const getPriorityBadge = (priority) => {
     const option = priorityOptions.find((opt) => opt.value === priority)
     if (!option) return null
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${option.color}`}>{option.label}</span>
   }
 
+  /**
+   * Generate status badge with appropriate styling
+   */
   const getStatusBadge = (sprint) => {
     const status = getSprintStatus(sprint)
     const statusConfig = {
@@ -560,18 +688,36 @@ const SprintMain = () => {
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span>
   }
 
+  /**
+   * Get user display name with improved null handling
+   * Fixed the assigned_to issue by properly handling the user lookup
+   */
   const getUserName = (userId) => {
-    if (!userId) return "Unassigned"
+    console.log("Getting user name for ID:", userId, "from users:", users.length, "users")
 
-    const user = users.find((u) => u.id === userId || u.id === Number.parseInt(userId))
-    if (!user) {
+    // Handle null, undefined, or empty values
+    if (!userId || userId === "null" || userId === null) {
       return "Unassigned"
     }
 
+    // Find user by ID (handle both string and number IDs)
+    const user = users.find((u) => {
+      return u.id === userId || u.id === Number.parseInt(userId) || u.id.toString() === userId.toString()
+    })
+
+    if (!user) {
+      console.log("User not found for ID:", userId)
+      return "Unassigned"
+    }
+
+    // Build display name with fallbacks
     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim()
     return fullName || user.username || user.email || `User ${user.id}`
   }
 
+  /**
+   * Handle sorting changes with toggle functionality
+   */
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc")
@@ -582,9 +728,23 @@ const SprintMain = () => {
     setIsSortDropdownOpen(false)
   }
 
+  // Add this function after the other helper functions
+  const debugCurrentState = () => {
+    console.log("=== DEBUG STATE ===")
+    console.log("Current sprints:", sprints)
+    console.log("Current users:", users)
+    console.log("Form state:", newSprint)
+    console.log(
+      "Users available for assignment:",
+      users.map((u) => ({ id: u.id, name: getUserName(u.id) })),
+    )
+    console.log("==================")
+  }
+
   return (
     <div className="flex-1 overflow-auto w-full h-full">
       <div className="p-4 bg-white">
+        {/* Header Section */}
         <header className="flex justify-between items-center mb-6">
           <div>
             <div className="text-sm text-gray-500">Projects / Project {projectId}</div>
@@ -592,6 +752,7 @@ const SprintMain = () => {
           </div>
         </header>
 
+        {/* Table Info and Stats */}
         <div className="flex items-center mb-4">
           <div className="font-medium">Sprints Table</div>
           <div className="ml-4 text-sm text-gray-500">
@@ -602,7 +763,9 @@ const SprintMain = () => {
           </div>
         </div>
 
+        {/* Action Bar with Filters and Controls */}
         <div className="flex mb-4 space-x-2 flex-wrap">
+          {/* New Sprint Button */}
           <button
             className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded flex items-center"
             onClick={() => {
@@ -614,6 +777,7 @@ const SprintMain = () => {
             New Sprint <Plus size={14} className="ml-1" />
           </button>
 
+          {/* Search Input */}
           <div className="relative">
             <input
               type="text"
@@ -625,6 +789,7 @@ const SprintMain = () => {
             <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
           </div>
 
+          {/* Status Filter Dropdown */}
           <div className="relative">
             <button
               className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
@@ -684,6 +849,7 @@ const SprintMain = () => {
             )}
           </div>
 
+          {/* Priority Filter Dropdown */}
           <div className="relative">
             <button
               className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
@@ -719,6 +885,7 @@ const SprintMain = () => {
             )}
           </div>
 
+          {/* Sort Dropdown */}
           <div className="relative">
             <button
               className="px-3 py-1.5 text-sm border rounded bg-white flex items-center"
@@ -745,11 +912,19 @@ const SprintMain = () => {
             )}
           </div>
 
+          {/* Hide Button (placeholder for future functionality) */}
           <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
             <EyeOff size={14} className="mr-1" /> Hide
           </button>
+          <button
+            className="px-3 py-1.5 text-sm border rounded bg-yellow-100 text-yellow-800 flex items-center"
+            onClick={debugCurrentState}
+          >
+            Debug State
+          </button>
         </div>
 
+        {/* Main Data Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border-collapse">
             <thead>
@@ -787,6 +962,7 @@ const SprintMain = () => {
                     key={sprint.id}
                     className={`border-t hover:bg-gray-50 ${isSprintExpired(sprint) ? "bg-red-50" : ""}`}
                   >
+                    {/* Sprint Name with Goal */}
                     <td className="p-3">
                       <div className="font-medium text-gray-900 flex items-center">
                         {sprint.name}
@@ -800,11 +976,15 @@ const SprintMain = () => {
                         </div>
                       )}
                     </td>
+
+                    {/* Start Date */}
                     <td className="p-3">
                       <span className="text-sm text-gray-700">
                         {sprint.start_date ? new Date(sprint.start_date).toLocaleDateString() : "-"}
                       </span>
                     </td>
+
+                    {/* Due Date with Calendar Icon */}
                     <td className="p-3">
                       <div className="flex items-center">
                         <Calendar size={14} className="mr-1 text-gray-400" />
@@ -815,32 +995,47 @@ const SprintMain = () => {
                         </span>
                       </div>
                     </td>
+
+                    {/* Description */}
                     <td className="p-3">
                       <div className="text-sm text-gray-700 max-w-xs truncate" title={sprint.description}>
                         {sprint.description || "-"}
                       </div>
                     </td>
+
+                    {/* Priority Badge */}
                     <td className="p-3">{getPriorityBadge(sprint.priority)}</td>
+
+                    {/* Status Badge */}
                     <td className="p-3">{getStatusBadge(sprint)}</td>
+
+                    {/* Assigned To */}
                     <td className="p-3">
                       <div className="flex items-center">
                         <User size={14} className="mr-1 text-gray-400" />
                         <span className="text-sm text-gray-700">{getUserName(sprint.assigned_to)}</span>
                       </div>
                     </td>
+
+                    {/* Assigned By */}
                     <td className="p-3">
                       <div className="flex items-center">
                         <User size={14} className="mr-1 text-gray-400" />
                         <span className="text-sm text-gray-700">{getUserName(sprint.assigned_by)}</span>
                       </div>
                     </td>
+
+                    {/* Created Date */}
                     <td className="p-3">
                       <span className="text-sm text-gray-700">
                         {sprint.created_at ? new Date(sprint.created_at).toLocaleDateString() : "-"}
                       </span>
                     </td>
+
+                    {/* Action Buttons */}
                     <td className="p-3">
                       <div className="flex items-center space-x-2">
+                        {/* Move to Backlog for Expired Sprints */}
                         {isSprintExpired(sprint) && (
                           <button
                             className="text-orange-500 hover:text-orange-600"
@@ -850,6 +1045,8 @@ const SprintMain = () => {
                             <AlertTriangle size={14} />
                           </button>
                         )}
+
+                        {/* Edit Button */}
                         <button
                           className="text-gray-500 hover:text-blue-600"
                           onClick={() => handleEditSprint(sprint)}
@@ -857,6 +1054,8 @@ const SprintMain = () => {
                         >
                           <Edit size={14} />
                         </button>
+
+                        {/* Delete Button */}
                         <button
                           className="text-gray-500 hover:text-red-600"
                           onClick={() => deleteSprint(sprint.id)}
@@ -874,13 +1073,14 @@ const SprintMain = () => {
         </div>
       </div>
 
-      {/* Enhanced Modal popup for adding/editing sprints */}
+      {/* Sprint Creation/Editing Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium mb-4">{editingSprint ? "Edit Sprint" : "Add New Sprint"}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Sprint Name */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">Sprint Name *</label>
                 <input
@@ -893,6 +1093,7 @@ const SprintMain = () => {
                 />
               </div>
 
+              {/* Date Fields */}
               <div>
                 <label className="block text-sm font-medium mb-1">Start Date *</label>
                 <input
@@ -915,6 +1116,7 @@ const SprintMain = () => {
                 />
               </div>
 
+              {/* Priority and Assignment Fields */}
               <div>
                 <label className="block text-sm font-medium mb-1">Priority</label>
                 <select
@@ -939,7 +1141,7 @@ const SprintMain = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select Assignee (Optional)</option>
+                  <option value="">Select Assignee </option>
                   {users && users.length > 0 ? (
                     users.map((user) => {
                       const displayName =
@@ -967,7 +1169,7 @@ const SprintMain = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select Assigner (Optional)</option>
+                  <option value="">Select Assigner </option>
                   {users && users.length > 0 ? (
                     users.map((user) => {
                       const displayName =
@@ -987,6 +1189,7 @@ const SprintMain = () => {
                 </select>
               </div>
 
+              {/* Text Areas */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">Goal</label>
                 <textarea
@@ -1011,6 +1214,7 @@ const SprintMain = () => {
                 />
               </div>
 
+              {/* Active Checkbox */}
               <div className="md:col-span-2 flex items-center">
                 <input
                   type="checkbox"
@@ -1023,6 +1227,7 @@ const SprintMain = () => {
               </div>
             </div>
 
+            {/* Modal Action Buttons */}
             <div className="mt-6 flex justify-end space-x-2">
               <button
                 className="px-4 py-2 border rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
