@@ -77,6 +77,8 @@ class HeaderIDMixin:
         if not self.kwargs.get('pk'):
             return Response({"detail": "X-Object-ID header is required for this action."},
                             status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'PATCH':
+            return self.partial_update(request, *args, **kwargs)
         return self.update(request, *args, **kwargs)
     
     def destroy_with_header(self, request, *args, **kwargs):

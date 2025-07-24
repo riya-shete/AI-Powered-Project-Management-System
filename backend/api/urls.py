@@ -16,6 +16,7 @@ class CustomRouter(DefaultRouter):
             mapping={
                 'get': 'list',
                 'post': 'create',
+                'patch': 'update_with_header',
                 'put': 'update_with_header',
                 'delete': 'destroy_with_header'
             },

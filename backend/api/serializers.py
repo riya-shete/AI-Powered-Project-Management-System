@@ -65,13 +65,16 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'workspace', 'created_by', 'created_at', 'updated_at']
 
 class SprintSerializer(serializers.ModelSerializer):
-    assigned_to = UserSerializer(read_only=True)
-    
+    assigned_to_details = UserSerializer(source='assigned_to', read_only=True)
+    assigned_by_details = UserSerializer(source='assigned_by', read_only=True)    
     class Meta:
         model = Sprint
         fields = ['id', 'name', 'project', 'start_date', 'end_date', 'active', 
-                'description', 'goal', 'priority', 'assigned_to', 'assigned_by', 'created_at', 'updated_at']
-
+                'description', 'goal', 'priority', 'assigned_to', 'assigned_by', 'assigned_to_details', 'assigned_by_details','created_at', 'updated_at']
+        extra_kwargs = {
+            'assigned_to': {'write_only': True, 'required': False, 'allow_null': True},
+            'assigned_by': {'write_only': True, 'required': False, 'allow_null': True}
+        }
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)
     reporter = UserSerializer(read_only=True)

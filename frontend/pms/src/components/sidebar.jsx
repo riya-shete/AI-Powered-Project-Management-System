@@ -94,7 +94,6 @@ const Sidebar = () => {
             Authorization: `Token ${token}`,
           },
         })
-        console.log("fetched workspaces:", response.data)
 
         // FIXED: Handle different response structures
         if (response.data && typeof response.data === "object") {
@@ -192,7 +191,6 @@ const Sidebar = () => {
             Authorization: `Token ${token}`,
           },
         })
-        console.log("fetched projects", response.data)
 
         // FIXED: Handle different response structures
         if (response.data && typeof response.data === "object") {
@@ -585,6 +583,7 @@ const Sidebar = () => {
           setExpandedSections(newExpandedSections)
         }
 
+        // FIXED: Update pinned workspaces when renaming
         const pinnedIndex = pinnedWorkspaces.findIndex((p) => p.id === activeWorkspace.id)
         if (pinnedIndex !== -1) {
           const newPinnedWorkspaces = [...pinnedWorkspaces]
@@ -779,10 +778,17 @@ const Sidebar = () => {
   const togglePin = (workspace, e) => {
     e.stopPropagation()
     const isPinned = pinnedWorkspaces.some((pinned) => pinned.id === workspace.id)
+
     if (isPinned) {
+      // Remove from pinned workspaces
       setPinnedWorkspaces(pinnedWorkspaces.filter((pinned) => pinned.id !== workspace.id))
     } else {
-      setPinnedWorkspaces([...pinnedWorkspaces, workspace])
+      // Add to pinned workspaces with full workspace data including pages
+      const fullWorkspaceData = {
+        ...workspace,
+        pages: workspace.pages || getStandardPages(workspace.id), // Ensure pages are included
+      }
+      setPinnedWorkspaces([...pinnedWorkspaces, fullWorkspaceData])
     }
   }
 
@@ -1102,7 +1108,8 @@ const Sidebar = () => {
       </div>
     )
   }
-
+  //Filter out pinned workspaces from the main workspaces list
+  const unpinnedWorkspaces = workspaces.filter((workspace) => !isPinned(workspace.id))
   return (
     <div className="w-64 h-full bg-white border-r border-gray-200 flex flex-col shadow-sm max-w-full">
       <div className="p-4 space-y-1">
@@ -1182,7 +1189,83 @@ const Sidebar = () => {
                       </button>
                     </div>
                   </div>
-                  {expandedSections[workspace.name] && renderWorkspacePages(workspace)}
+                  {expandedSections[workspace.name] && (
+                    <div className="ml-6 mt-2 space-y-1">
+                      {/* Render projects under this pinned workspace */}
+                      {Array.isArray(projects.results) &&
+                        projects.results
+                          .filter((project) => project.workspace === workspace.id)
+                          .map((project) => (
+                            <div key={project.id} className="relative">
+                              <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors duration-200 group">
+                                <div
+                                  className="flex items-center flex-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    localStorage.setItem("currentProjectId", project.id.toString())
+                                    setCurrentProjectId(project.id.toString())
+                                    toggleProject(project.id)
+                                  }}
+                                >
+                                  <div className="w-5 h-5 bg-green-500 rounded-md flex items-center justify-center text-white font-medium text-xs mr-2">
+                                    P
+                                  </div>
+                                  <span className="text-sm text-gray-700 group-hover:text-gray-900 font-medium">
+                                    {project.name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors duration-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toggleProject(project.id)
+                                    }}
+                                  >
+                                    <ChevronDown
+                                      className={`w-3 h-3 transform transition-transform duration-200 ${expandedProjects[project.id] ? "rotate-180" : ""}`}
+                                    />
+                                  </button>
+                                  <button
+                                    className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors duration-200 relative workspace-menu-container"
+                                    onClick={(e) => toggleWorkspaceMenu(e, project.id, "project")}
+                                  >
+                                    <Settings className="w-3 h-3" />
+                                    {renderProjectMenu(project, workspace.id)}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Render project pages when expanded */}
+                              {expandedProjects[project.id] && (
+                                <div className="ml-6 mt-1 space-y-1">
+                                  {getStandardPages(project.id).map((page) => (
+                                    <div
+                                      key={page.id}
+                                      className={`flex items-center p-2 rounded-md cursor-pointer transition-colors duration-200 group ${
+                                        location.pathname === page.path
+                                          ? "bg-blue-50 text-blue-600 border-l-2 border-blue-500"
+                                          : "hover:bg-gray-50"
+                                      }`}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        localStorage.setItem("currentProjectId", project.id.toString())
+                                        setCurrentProjectId(project.id.toString())
+                                        handleNavigation(page.path)
+                                      }}
+                                    >
+                                      {renderIcon(page.iconType)}
+                                      <span className="text-xs text-gray-600 group-hover:text-gray-900">
+                                        {page.name}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
@@ -1190,6 +1273,7 @@ const Sidebar = () => {
             )}
           </div>
         )}
+            
 
         {/* Workspaces Section */}
         <div
@@ -1295,7 +1379,8 @@ const Sidebar = () => {
 
         {expandedSections["Workspaces"] && (
           <div className="pl-4 pr-4 py-2 bg-gray-50 space-y-2">
-            {workspaces.map((workspace) => (
+            {/* FIXED: Only show unpinned workspaces in the main Workspaces section */}
+            {unpinnedWorkspaces.map((workspace) => (
               <div key={workspace.id} className="relative">
                 <div
                   className={`flex items-center justify-between p-3 rounded-md ${workspace.isActive ? `${getBgColorClass(workspace.color)} border-l-4` : "hover:bg-gray-100"} transition-all duration-200 cursor-pointer`}
