@@ -6,7 +6,7 @@ from .models import (
     Invitation, ActivityLog, OTP
 )
 from django.contrib.auth import get_user_model
-
+from django.utils import timezone
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
     
