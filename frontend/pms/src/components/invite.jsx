@@ -167,15 +167,15 @@ const Invite = ({ isOpen, onClose }) => {
       setLoading(true)
 
       const payload = {
-        token: "anand",
+        token:  Math.random().toString(36).substring(2, 18),
         email: selectedUser.email,
         role: selectedRole,
         workspace: currentWorkspace.id, // ENHANCED: Use current workspace ID
         // workspace_name: currentWorkspace.name, // ADDED: Include workspace name for reference
       }
 
-      console.log("📤 Sending invitation with payload:", payload)
-      console.log("📤 For workspace:", currentWorkspace.name, "ID:", currentWorkspace.id)
+      console.log(">> Sending invitation with payload:", payload)
+      console.log(">>For workspace:", currentWorkspace.name, "ID:", currentWorkspace.id)
 
       const response = await apiClient.post("/invitations/", payload, {
         headers: {

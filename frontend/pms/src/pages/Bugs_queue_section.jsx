@@ -528,8 +528,8 @@ const handleAddIssue = async (e) => {
       status: newIssue.status,
       priority: newIssue.priority,
       due_date: newIssue.due_date || null,
-      assignee: newIssue.assignee,
-      reporter: newIssue.reporter  
+      assignee: newIssue.assignee? parseInt(newIssue.assignee) : null,
+      reporter: newIssue.reporter? parseInt(newIssue.reporter) : null
     };
 
     // Add key if provided
@@ -661,8 +661,8 @@ const handleAddIssue = async (e) => {
       summary: selectedIssue.summary,
       type: selectedIssue.type,
       status: selectedIssue.status,
-      assignee: (selectedIssue.assignee) ,
-      reporter: selectedIssue.reporter ,
+      assignee: (selectedIssue.assignee)? parseInt(selectedIssue.assignee) : null,
+      reporter: selectedIssue.reporter ? parseInt(selectedIssue.reporter) : null,
       due_date: selectedIssue.due_date || null,
       priority: selectedIssue.priority,
       project: parseInt(projectId), // Include the project ID here
