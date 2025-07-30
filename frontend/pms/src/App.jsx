@@ -16,12 +16,12 @@ import SignIn from './pages/SignIn';
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile_Setup from "./pages/Profile_Setup";
 import TeamInvite from "./pages/TeamInvite";
-import SprintTasks from "./pages/SprintTasks";
-import Integrations from "./pages/Integrations";
-import TaskBoardColumns from "./pages/TaskBoardColumns";
+
+
+
 import Profile from './components/profile';
 import PopupChatWindow from './components/inbox'
-import ChatbotWidget from "./components/chatbotwidget";
+
 import ExploreTemplates from "./components/tools"
 import { UserProvider } from "./contexts/UserContext";
 import WorkspaceName from "./pages/WorkspaceName";
@@ -37,9 +37,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/Profile_Setup" element={<Profile_Setup/>} />
           <Route path="/TeamInvite" element={<TeamInvite />} />
-          <Route path="/SprintTasks" element={<SprintTasks />} />
-          <Route path="/Integrations" element={<Integrations/>} />
-          <Route path="/TaskBoardColumns" element={<TaskBoardColumns/>} />
+          
+         
           <Route path="/dashboard" element={<Dashboard/>} />
           {/* Project-specific routes */}
           

@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { FaArrowLeft, FaUser, FaEnvelope, FaBriefcase, FaMapMarkerAlt, FaPhone, FaUserTag } from "react-icons/fa"
+import {
+  FaArrowLeft,
+  FaUser,
+  FaEnvelope,
+  FaBriefcase,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaUserTag,
+} from "react-icons/fa"
 import axios from "axios"
 
 export default function ProfileSetup() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [userId, setUserId] = useState(null)
+  const [profileId, setProfileId] = useState(null)
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -19,50 +29,69 @@ export default function ProfileSetup() {
     company: "",
   })
 
-  // Load user data from localStorage on component mount
   useEffect(() => {
+    const token = localStorage.getItem("token")
     const email = localStorage.getItem("email")
     const username = localStorage.getItem("username")
 
-    if (email) {
-      setFormData((prev) => ({
-        ...prev,
-        email: email,
-        username: username || "",
-      }))
-    }
+    if (!token) return navigate("/Login")
 
-    // Check if user is authenticated
-    const token = localStorage.getItem("token")
-    if (!token) {
-      navigate("/Login")
-    }
+    setFormData((f) => ({ ...f, email: email || "", username: username || "" }))
+
+    axios
+      .get("http://localhost:8000/api/profiles/", {
+        headers: { Authorization: `Token ${token}` },
+      })
+      .then((res) => {
+        let myProfile = Array.isArray(res.data)
+          ? res.data.find((p) => p.user?.username === username) || res.data[0]
+          : res.data
+
+        if (myProfile) {
+          const uid = myProfile.user.id
+          const pid = myProfile.id
+
+          setUserId(uid)
+          setProfileId(pid)
+
+          // ✅ Store user_id in localStorage
+          localStorage.setItem("user_id", uid)
+
+          setFormData((f) => ({
+            ...f,
+            first_name: myProfile.user.first_name || f.first_name,
+            last_name: myProfile.user.last_name || f.last_name,
+            phone: myProfile.phone || "",
+            job_title: myProfile.job_title || "",
+            location: myProfile.company || "",
+            company: myProfile.company || "",
+          }))
+        }
+      })
+      .catch((err) => {
+        console.error("Could not fetch profile:", err)
+      })
   }, [navigate])
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
+  const handleChange = (e) =>
+    setFormData((f) => ({ ...f, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const token = localStorage.getItem("token")
+    if (!token) {
+      alert("Please login again.")
+      return navigate("/Login")
+    }
+    if (!userId || !profileId) {
+      return alert("Still loading your profile, please wait a sec and retry.")
+    }
 
     try {
       setIsLoading(true)
 
-      const token = localStorage.getItem("token")
-
-      if (!token) {
-        alert("Authentication error. Please login again.")
-        navigate("/Login")
-        return
-      }
-
-      // Update basic user information
-      const userResponse = await axios.put(
-        `http://localhost:8000/api/users/`,
+      await axios.put(
+        "http://localhost:8000/api/users/",
         {
           username: formData.username,
           first_name: formData.first_name,
@@ -73,234 +102,196 @@ export default function ProfileSetup() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${token}`,
+            "X-Object-ID": userId,
           },
-        },
+        }
       )
 
-      console.log("User info updated successfully:", userResponse.data)
-
-      // Update profile information
-      const profileResponse = await axios.put(
-        `http://localhost:8000/api/profiles/`,
+      await axios.put(
+        "http://localhost:8000/api/profiles/",
         {
           phone: formData.phone,
           job_title: formData.job_title,
-          company: formData.location, // Using location as company for now
+          company: formData.location,
         },
         {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${token}`,
+            "X-Object-ID": profileId,
           },
-        },
+        }
       )
 
-      console.log("Profile updated successfully:", profileResponse.data)
-
-      // Update localStorage with new user info
       localStorage.setItem("username", formData.username)
       localStorage.setItem("first_name", formData.first_name)
       localStorage.setItem("last_name", formData.last_name)
 
-      alert("Profile setup completed successfully!")
-
-      // Navigate to workspace setup
-      navigate("/workspace-setup")
-    } catch (error) {
-      console.error("Error updating profile:", error)
-
-      if (error.response?.status === 401) {
-        alert("Session expired. Please login again.")
+      alert("Profile setup completed!")
+      navigate("/WorkspaceName")
+    } catch (err) {
+      console.error("Update error:", err)
+      const resp = err.response
+      if (resp?.status === 401) {
+        alert("Session expired.")
         localStorage.clear()
-        navigate("/Login")
-      } else if (error.response?.data?.username) {
-        alert("Username already exists. Please choose a different username.")
-      } else if (error.response?.data) {
-        // Show specific error message from API
-        const errorMessage = Object.values(error.response.data).flat().join(", ")
-        alert(`Error: ${errorMessage}`)
-      } else {
-        alert("Failed to update profile. Please try again.")
+        return navigate("/Login")
       }
+      if (resp?.data?.username) {
+        return alert("Username already taken.")
+      }
+      if (resp?.data) {
+        return alert(Object.values(resp.data).flat().join(", "))
+      }
+      alert("Failed to update, please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-teal-50 text-gray-900 relative p-6">
-      {/* Background decorative elements */}
-      <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-teal-500 opacity-5 rounded-bl-full z-0"></div>
-      <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-blue-500 opacity-5 rounded-tr-full z-0"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-teal-50 p-6">
+      <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-teal-500 opacity-5 rounded-bl-full" />
+      <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-blue-500 opacity-5 rounded-tr-full" />
 
-      <div className="relative flex flex-col items-center bg-white rounded-xl shadow-xl p-8 w-full max-w-lg z-10">
-        {/* Back Button */}
+      <div className="relative bg-white rounded-xl shadow-xl p-8 w-full max-w-lg">
         <button
           onClick={() => navigate("/SignUp")}
           className="absolute top-4 left-4 text-gray-600 hover:text-gray-900 flex items-center space-x-2"
         >
-          <FaArrowLeft /> <span>Back</span>
+          <FaArrowLeft /> Back
         </button>
 
-        {/* Logo or Brand */}
-        <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-teal-600 rounded-full flex items-center justify-center mb-6">
-          <FaUser className="text-white text-2xl" />
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-teal-600 rounded-full flex items-center justify-center mb-4">
+            <FaUser className="text-white text-2xl" />
+          </div>
+          <h2 className="text-3xl font-bold text-blue-700">Complete Your Profile</h2>
+          <p className="text-gray-600 text-center">Tell us a bit about yourself</p>
         </div>
 
-        {/* Form Heading */}
-        <h2 className="text-3xl font-bold mb-2 text-blue-700">Complete Your Profile</h2>
-        <p className="text-gray-600 mb-8 text-center">
-          Tell us a bit more about yourself to personalize your experience
-        </p>
-
-        {/* Form */}
-        <form className="w-full space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           {/* First Name */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">First Name *</label>
+            <label className="block text-sm font-medium mb-1">First Name *</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaUser className="text-gray-400" />
-              </div>
+              <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                placeholder="John"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
+                placeholder="John"
               />
             </div>
           </div>
 
           {/* Last Name */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Last Name *</label>
+            <label className="block text-sm font-medium mb-1">Last Name *</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaUser className="text-gray-400" />
-              </div>
+              <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                placeholder="Doe"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
+                placeholder="Doe"
               />
             </div>
           </div>
 
           {/* Username */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Username *</label>
+            <label className="block text-sm font-medium mb-1">Username *</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaUserTag className="text-gray-400" />
-              </div>
+              <FaUserTag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                placeholder="johndoe123"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
+                placeholder="johndoe"
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">This will be your unique identifier</p>
+            <p className="text-xs text-gray-500 mt-1">Your unique identifier</p>
           </div>
 
-          {/* Email (Pre-filled and readonly) */}
+          {/* Email */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Email Address</label>
+            <label className="block text-sm font-medium mb-1">Email Address</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaEnvelope className="text-gray-400" />
-              </div>
+              <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="email"
                 name="email"
                 value={formData.email}
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
                 readOnly
+                className="w-full pl-10 py-3 border bg-gray-100 rounded-lg text-gray-600"
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
           </div>
 
           {/* Job Title */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Job Title</label>
+            <label className="block text-sm font-medium mb-1">Job Title</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaBriefcase className="text-gray-400" />
-              </div>
+              <FaBriefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 name="job_title"
                 value={formData.job_title}
                 onChange={handleChange}
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
                 placeholder="Software Developer"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
           </div>
 
-          {/* Company/Location */}
+          {/* Company / Location */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Company/Location</label>
+            <label className="block text-sm font-medium mb-1">Company / Location</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaMapMarkerAlt className="text-gray-400" />
-              </div>
+              <FaMapMarkerAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
-                placeholder="Tech Corp / New York, NY"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
+                placeholder="Acme Inc. / New York, NY"
               />
             </div>
           </div>
 
-          {/* Phone Number */}
+          {/* Phone */}
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Phone Number</label>
+            <label className="block text-sm font-medium mb-1">Phone Number</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaPhone className="text-gray-400" />
-              </div>
+              <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                className="w-full pl-10 py-3 border rounded-lg focus:ring-teal-500"
                 placeholder="+1 (555) 000-0000"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium transition-colors duration-200 mt-8"
             disabled={isLoading}
+            className="w-full py-3 bg-blue-600 hover:bg-teal-700 text-white rounded-lg transition"
           >
-            {isLoading ? "Updating Profile..." : "Complete Setup"}
+            {isLoading ? "Updating..." : "Complete Setup"}
           </button>
         </form>
 
-        {/* Skip Option */}
-        <div className="mt-6 text-center">
+        <div className="text-center mt-4">
           <button
-            type="button"
             onClick={() => navigate("/workspace-setup")}
-            className="text-gray-500 hover:text-gray-700 text-sm underline"
+            className="text-sm text-gray-500 underline"
           >
             Skip for now
           </button>
@@ -309,4 +300,3 @@ export default function ProfileSetup() {
     </div>
   )
 }
-                                    

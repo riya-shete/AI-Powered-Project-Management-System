@@ -298,7 +298,7 @@ const SprintMain = () => {
 
       // Enhanced debugging for assignment fields
       console.log("Form assigned_to value:", newSprint.assigned_to)
-      console.log("Form assigned_by value:", newSprint.assigned_by)
+     
 
       // Replace the assignment field handling with this more robust version:
       if (newSprint.assigned_to && newSprint.assigned_to !== "" && newSprint.assigned_to !== "null") {
@@ -338,6 +338,7 @@ const SprintMain = () => {
       })
 
       console.log("Response status:", response.status)
+      console.log("fetched sprint data",response)
       console.log("Response headers:", Object.fromEntries(response.headers.entries()))
 
       if (response.ok) {
@@ -416,12 +417,12 @@ const SprintMain = () => {
         sprintData.assigned_to = null
       }
 
-      if (newSprint.assigned_by) {
-        const assignedById = Number.parseInt(newSprint.assigned_by)
+      if (newSprint.assigned_by_details) {
+        const assignedById = Number.parseInt(newSprint.assigned_by_details)
         console.log("EDIT - Parsed assigned_by ID:", assignedById)
-        sprintData.assigned_by = assignedById
+        sprintData.assigned_by_details = assignedById
       } else {
-        sprintData.assigned_by = null
+        sprintData.assigned_by_details = null
       }
 
       console.log("EDIT - Final sprint data being sent:", JSON.stringify(sprintData, null, 2))
@@ -694,28 +695,40 @@ const SprintMain = () => {
    * Get user display name with improved null handling
    * Fixed the assigned_to issue by properly handling the user lookup
    */
-  const getUserName = (userId) => {
-    console.log("Getting user name for ID:", userId, "from users:", users.length, "users")
-
-    // Handle null, undefined, or empty values
-    if (!userId || userId === "null" || userId === null) {
-      return "Unassigned"
-    }
-
-    // Find user by ID (handle both string and number IDs)
-    const user = users.find((u) => {
-      return u.id === userId || u.id === Number.parseInt(userId) || u.id.toString() === userId.toString()
-    })
-
-    if (!user) {
-      console.log("User not found for ID:", userId)
-      return "Unassigned"
-    }
-
-    // Build display name with fallbacks
-    const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim()
-    return fullName || user.username || user.email || `User ${user.id}`
+  const getUserName = (userIdOrObj) => {
+  // If it's already a user object, use it directly
+  if (typeof userIdOrObj === 'object' && userIdOrObj !== null) {
+    const fullName = `${userIdOrObj.first_name || ""} ${userIdOrObj.last_name || ""}`.trim();
+    return fullName || userIdOrObj.username || userIdOrObj.email || `User ${userIdOrObj.id}`;
   }
+  
+  // Original logic for user ID
+  if (!userIdOrObj || userIdOrObj === "null" || userIdOrObj === null) {
+    return "Unassigned";
+  }
+  
+  const user = users.find((u) => {
+    return u.id === userIdOrObj || u.id === Number.parseInt(userIdOrObj) || u.id.toString() === userIdOrObj.toString();
+  });
+  
+  if (!user) {
+    return "Unassigned";
+  }
+  
+  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+  return fullName || user.username || user.email || `User ${user.id}`;
+};
+  const getUserDisplayName = (userObj) => {
+  if (!userObj) return "Unassigned";
+  
+  const fullName = `${userObj.first_name || ""} ${userObj.last_name || ""}`.trim();
+  return fullName || userObj.username || userObj.email || `User ${userObj.id}`;
+};
+
+// Then use it:
+<span className="text-sm text-gray-700">
+  {getUserDisplayName(sprint.assigned_by_details)}
+</span>
 
   /**
    * Handle sorting changes with toggle functionality
@@ -1014,14 +1027,18 @@ const SprintMain = () => {
                       </div>
                     </td> */}
 
-                    {/* Assigned By */}
-                    <td className="p-3">
-                      <div className="flex items-center">
-                        <User size={14} className="mr-1 text-gray-400" />
-                        <span className="text-sm text-gray-700">{getUserName(sprint.assigned_by)}</span>
-                      </div>
-                    </td>
-
+                    {/* Pass the user object directly instead of using getUserName */}
+<td className="p-3">
+  <div className="flex items-center">
+    <User size={14} className="mr-1 text-gray-400" />
+    <span className="text-sm text-gray-700">
+      {sprint.assigned_by_details 
+        ? `${sprint.assigned_by_details.first_name || ''} ${sprint.assigned_by_details.last_name || ''}`.trim() || sprint.assigned_by_details.username 
+        : 'Unassigned'
+      }
+    </span>
+  </div>
+</td>
                     {/* Created Date */}
                     <td className="p-3">
                       <span className="text-sm text-gray-700">
@@ -1162,7 +1179,7 @@ const SprintMain = () => {
                 <label className="block text-sm font-medium mb-1">Assigned By</label>
                 <select
                   name="assigned_by"
-                  value={newSprint.assigned_by}
+                  value={newSprint.assigned_by_details}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
