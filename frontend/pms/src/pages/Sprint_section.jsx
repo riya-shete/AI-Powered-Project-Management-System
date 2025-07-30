@@ -5,6 +5,8 @@ import { Search, Filter, ArrowDownUp, EyeOff, Plus, Edit, Trash2, User, Calendar
 import { useParams } from "react-router-dom"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
+import Lottie from "lottie-react";
+import sprint from "../assets/sprint_ani.json"
 
 /**
  * Main Sprints Page Component
@@ -912,16 +914,7 @@ const SprintMain = () => {
             )}
           </div>
 
-          {/* Hide Button (placeholder for future functionality) */}
-          <button className="px-3 py-1.5 text-sm border rounded bg-white flex items-center">
-            <EyeOff size={14} className="mr-1" /> Hide
-          </button>
-          <button
-            className="px-3 py-1.5 text-sm border rounded bg-yellow-100 text-yellow-800 flex items-center"
-            onClick={debugCurrentState}
-          >
-            Debug State
-          </button>
+          
         </div>
 
         {/* Main Data Table */}
@@ -935,7 +928,7 @@ const SprintMain = () => {
                 <th className="p-3 text-sm font-medium text-gray-600 w-48">Description</th>
                 <th className="p-3 text-sm font-medium text-gray-600 w-24">Priority</th>
                 <th className="p-3 text-sm font-medium text-gray-600 w-32">Status</th>
-                <th className="p-3 text-sm font-medium text-gray-600 w-32">Assigned To</th>
+                
                 <th className="p-3 text-sm font-medium text-gray-600 w-32">Assigned By</th>
                 <th className="p-3 text-sm font-medium text-gray-600 w-32">Created</th>
                 <th className="p-3 text-sm font-medium text-gray-600 w-24">Actions</th>
@@ -944,10 +937,14 @@ const SprintMain = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="p-8 text-center text-gray-500">
-                    Loading sprints...
-                  </td>
-                </tr>
+                        <td colSpan="10">
+                          <div className="flex justify-center items-center h-[500px]">
+                            <div className="w-52 h-52">
+                              <Lottie animationData={sprint} loop={true} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
               ) : filteredAndSortedSprints.length === 0 ? (
                 <tr>
                   <td colSpan="10" className="p-8 text-center text-gray-500">
@@ -1009,13 +1006,13 @@ const SprintMain = () => {
                     {/* Status Badge */}
                     <td className="p-3">{getStatusBadge(sprint)}</td>
 
-                    {/* Assigned To */}
+                    {/* Assigned To
                     <td className="p-3">
                       <div className="flex items-center">
                         <User size={14} className="mr-1 text-gray-400" />
                         <span className="text-sm text-gray-700">{getUserName(sprint.assigned_to)}</span>
                       </div>
-                    </td>
+                    </td> */}
 
                     {/* Assigned By */}
                     <td className="p-3">
@@ -1132,8 +1129,8 @@ const SprintMain = () => {
                   ))}
                 </select>
               </div>
-
-              <div>
+              
+              {/* <div>
                 <label className="block text-sm font-medium mb-1">Assigned To</label>
                 <select
                   name="assigned_to"
@@ -1159,7 +1156,7 @@ const SprintMain = () => {
                     <option disabled>Loading users...</option>
                   )}
                 </select>
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Assigned By</label>

@@ -1,6 +1,7 @@
 "use client"
-import React, { useEffect, useState } from "react"
-import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit } from "lucide-react"
+
+import { useEffect, useState } from "react"
+import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit, Calendar, Users, User } from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
@@ -24,31 +25,35 @@ const Task_dashboard = () => {
 
 const PMSDashboardSprints = () => {
   const { projectId } = useParams()
-  const [sprintId, setSprintId] = useState(null)
 
-  // State hooks for component
+  // All existing state variables
   const [sprints, setSprints] = useState([])
+  const [users, setUsers] = useState([]) // Add users state
   const [selectedSprintId, setSelectedSprintId] = useState("")
   const [sprintData, setSprintData] = useState(() => {
     const savedData = localStorage.getItem("sprintData")
     return savedData ? JSON.parse(savedData) : {}
   })
-  const [backlogTasks, setBacklogTasks] = useState([]) // New state for backlog
+  const [backlogTasks, setBacklogTasks] = useState([])
   const [taskTables, setTaskTables] = useState([])
   const [customTableTasks, setCustomTableTasks] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPerson, setSelectedPerson] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
-  const [selectedRole, setSelectedRole] = useState("") // New role filter
-  const [selectedPriority, setSelectedPriority] = useState("") // New priority filter
+  const [selectedRole, setSelectedRole] = useState("")
+  const [selectedPriority, setSelectedPriority] = useState("")
   const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false)
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false) // New dropdown
-  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false) // New dropdown
-  const [currentView, setCurrentView] = useState("Active Sprints") // Changed to match tabs
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false)
+  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false)
+  const [currentView, setCurrentView] = useState("Active Sprints")
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedTasks, setSelectedTasks] = useState(new Set())
+  const [showBulkActions, setShowBulkActions] = useState(false)
+
+  // Form states
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false)
   const [newTableInfo, setNewTableInfo] = useState({
     name: "",
@@ -68,108 +73,223 @@ const PMSDashboardSprints = () => {
   const [newSprintEndDate, setNewSprintEndDate] = useState("")
   const [newSprintActive, setNewSprintActive] = useState(true)
   const [showNewSprintForm, setShowNewSprintForm] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [showForm, setShowForm] = useState(false)
 
-  // Updated newTask state with all required fields
+  // Enhanced newTask state
   const [newTask, setNewTask] = useState({
     name: "",
     description: "",
     assigned_to: "",
+    reporter: "",
     role: "",
     status: "",
     priority: "",
     due_date: "",
-    created_at: new Date().toISOString(),
+    created_at: new Date().toISOString().split("T")[0],
     item_id: "",
   })
 
-  // Updated columns to hide ID column
-  const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem("tableColumns")
-    return savedColumns
-      ? JSON.parse(savedColumns)
-      : [
-          { id: "checkbox", label: "", type: "checkbox", visible: true, width: "40px", order: 0 },
-          { id: "name", label: "Tasks", type: "text", visible: true, width: "2/12", order: 1 },
-          { id: "assigned_to", label: "Owner", type: "text", visible: true, width: "2/12", order: 2 },
-          { id: "status", label: "Status", type: "status", visible: true, width: "2/12", order: 3 },
-          { id: "priority", label: "Priority", type: "priority", visible: true, width: "2/12", order: 4 },
-          { id: "role", label: "Type", type: "role", visible: true, width: "2/12", order: 5 },
-          { id: "id", label: "Task ID", type: "text", visible: false, width: "1/12", order: 6 }, // Hidden by default
-          { id: "created_at", label: "Created at", type: "number", visible: true, width: "1/12", order: 7 },
-          { id: "due_date", label: "Due Date", type: "date", visible: true, width: "1/12", order: 8 },
-          { id: "actions", label: "Actions", type: "actions", visible: true, width: "1/12", order: 9 },
-        ]
-  })
+  // Fetch users function following your strategy
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        console.log("No token found for fetching users")
+        return
+      }
+      console.log("Fetching users...")
+      const response = await fetch(`http://localhost:8000/api/users/`, {
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      console.log("Users response status:", response.status)
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Users data received:", data)
+        // Handle different API response structures for users
+        let usersArray = []
+        if (Array.isArray(data)) {
+          usersArray = data
+        } else if (data.results && Array.isArray(data.results)) {
+          usersArray = data.results
+        } else if (data.data && Array.isArray(data.data)) {
+          usersArray = data.data
+        } else {
+          console.log("Unexpected users data structure:", data)
+          usersArray = []
+        }
+        setUsers(usersArray)
+      } else {
+        console.error("Failed to fetch users", response.status)
+        const errorText = await response.text()
+        console.error("Users error response:", errorText)
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error)
+    }
+  }
 
-  // Add column management modal state
-  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
-  const [editingColumn, setEditingColumn] = useState(null)
-  const [columnDragIndex, setColumnDragIndex] = useState(null)
-  const [dropTargetIndex, setDropTargetIndex] = useState(null)
-  const [rowsPerPage, setRowsPerPage] = useState(() => {
-    const saved = localStorage.getItem("rowsPerPage")
-    return saved ? Number.parseInt(saved) : 10
-  })
-  const [currentPage, setCurrentPage] = useState(1)
-  const [sortConfig, setSortConfig] = useState(() => {
-    const saved = localStorage.getItem("sortConfig")
-    return saved ? JSON.parse(saved) : { key: null, direction: "ascending" }
-  })
-  const [editingTask, setEditingTask] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log("Sprints state updated:", sprints)
+    console.log("Sprints count:", sprints.length)
+  }, [sprints])
 
   useEffect(() => {
-    console.log("printing project id", projectId)
-  }, [])
+    console.log("Users state updated:", users)
+    console.log("Users count:", users.length)
+  }, [users])
 
-  // Function to check if task/sprint is expired and should go to backlog
+  // Color functions with proper standard colors
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case "high":
+        return "bg-red-50 text-red-700 border border-red-200"
+      case "medium":
+        return "bg-yellow-50 text-yellow-700 border border-yellow-200"
+      case "low":
+        return "bg-green-50 text-green-700 border border-green-200"
+      default:
+        return "bg-gray-50 text-gray-700 border border-gray-200"
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "done":
+        return "bg-green-50 text-green-700 border border-green-200"
+      case "in progress":
+      case "in_progress":
+        return "bg-blue-50 text-blue-700 border border-blue-200"
+      case "waiting for review":
+      case "waiting_for_review":
+        return "bg-purple-50 text-purple-700 border border-purple-200"
+      case "ready to start":
+      case "ready":
+        return "bg-gray-50 text-gray-700 border border-gray-200"
+      case "stuck":
+        return "bg-red-50 text-red-700 border border-red-200"
+      case "backlog":
+        return "bg-slate-50 text-slate-700 border border-slate-200"
+      default:
+        return "bg-gray-50 text-gray-700 border border-gray-200"
+    }
+  }
+
+  const getRoleColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case "dev":
+        return "bg-blue-50 text-blue-700 border border-blue-200"
+      case "design":
+        return "bg-purple-50 text-purple-700 border border-purple-200"
+      case "quality":
+        return "bg-green-50 text-green-700 border border-green-200"
+      case "security":
+        return "bg-red-50 text-red-700 border border-red-200"
+      case "test":
+        return "bg-yellow-50 text-yellow-700 border border-yellow-200"
+      case "bug":
+        return "bg-orange-50 text-orange-700 border border-orange-200"
+      case "feature":
+        return "bg-indigo-50 text-indigo-700 border border-indigo-200"
+      default:
+        return "bg-gray-50 text-gray-700 border border-gray-200"
+    }
+  }
+
+  // Enhanced filter functions
+  const filterTasks = (tasks) => {
+    return tasks.filter((task) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (task.id && task.id.toString().includes(searchTerm)) ||
+        (task.item_id && task.item_id.toLowerCase().includes(searchTerm.toLowerCase()))
+
+      const matchesPerson = selectedPerson === "" || task.assigned_to?.toString() === selectedPerson
+      const matchesStatus = selectedStatus === "" || task.status === selectedStatus
+      const matchesRole = selectedRole === "" || task.role === selectedRole
+      const matchesPriority = selectedPriority === "" || task.priority === selectedPriority
+
+      return matchesSearch && matchesPerson && matchesStatus && matchesRole && matchesPriority
+    })
+  }
+
+  // Checkbox handlers
+  const handleSelectTask = (taskId) => {
+    const newSelected = new Set(selectedTasks)
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId)
+    } else {
+      newSelected.add(taskId)
+    }
+    setSelectedTasks(newSelected)
+    setShowBulkActions(newSelected.size > 0)
+  }
+
+  const handleSelectAll = (tasks) => {
+    const taskIds = tasks.map((task) => task.id)
+    const allSelected = taskIds.every((id) => selectedTasks.has(id))
+
+    if (allSelected) {
+      const newSelected = new Set(selectedTasks)
+      taskIds.forEach((id) => newSelected.delete(id))
+      setSelectedTasks(newSelected)
+    } else {
+      const newSelected = new Set([...selectedTasks, ...taskIds])
+      setSelectedTasks(newSelected)
+    }
+    setShowBulkActions(selectedTasks.size > 0)
+  }
+
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedTasks.size} selected tasks?`)) {
+      try {
+        const deletePromises = Array.from(selectedTasks).map((taskId) =>
+          axios.delete(`${BASE_URL}/api/tasks/${taskId}/`, {
+            headers: {
+              Authorization: `Token ${localStorage.getItem("token")}`,
+            },
+          }),
+        )
+
+        await Promise.all(deletePromises)
+
+        // Update local state
+        setSprintData((prevData) => {
+          const newData = { ...prevData }
+          Object.keys(newData).forEach((sprintName) => {
+            newData[sprintName] = newData[sprintName].filter((task) => !selectedTasks.has(task.id))
+          })
+          return newData
+        })
+
+        setBacklogTasks((prev) => prev.filter((task) => !selectedTasks.has(task.id)))
+        setTasks((prev) => prev.filter((task) => !selectedTasks.has(task.id)))
+        setSelectedTasks(new Set())
+        setShowBulkActions(false)
+      } catch (error) {
+        console.error("Failed to delete tasks:", error)
+        setError("Failed to delete selected tasks")
+      }
+    }
+  }
+
+  // All existing functions (keeping the same logic)
   const isTaskExpired = (task, sprint) => {
     const currentDate = new Date()
     const taskDueDate = task.due_date ? new Date(task.due_date) : null
     const sprintEndDate = sprint?.end_date ? new Date(sprint.end_date) : null
 
-    // Task is expired if due date passed or sprint ended, and task is not done
     return (
       (taskDueDate && taskDueDate < currentDate && task.status?.toLowerCase() !== "done") ||
       (sprintEndDate && sprintEndDate < currentDate && task.status?.toLowerCase() !== "done")
     )
   }
-
-  useEffect(() => {
-    if (!sprints || sprints.length === 0) return
-
-    axios
-      .get(`${BASE_URL}/api/tasks/`, {
-        headers: {
-          Authorization: `Token ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        const allTasks = res.data.results || res.data
-        const validSprintIds = sprints.map((s) => s.id)
-        const filteredTasks = allTasks.filter((task) => validSprintIds.includes(task.sprint))
-
-        // Separate tasks into active sprints and backlog
-        const bySprint = {}
-        const backlogTasksList = []
-
-        allTasks.forEach((task) => {
-          const sprint = sprints.find((s) => s.id === task.sprint)
-          const sprintName = sprint?.name || `Sprint ${task.sprint}`
-
-          if (isTaskExpired(task, sprint)) {
-            backlogTasksList.push(task)
-          } else {
-            bySprint[sprintName] = bySprint[sprintName] || []
-            bySprint[sprintName].push(task)
-          }
-        })
-
-        setSprintData((prev) => ({ ...prev, ...bySprint }))
-        setBacklogTasks(backlogTasksList)
-      })
-      .catch((err) => console.error("Failed to load tasks:", err))
-  }, [sprints])
 
   const getSprintId = (sprintName) => {
     if (!Array.isArray(sprints) || sprints.length === 0) {
@@ -188,114 +308,11 @@ const PMSDashboardSprints = () => {
     return Math.floor(1000000 + Math.random() * 9000000).toString()
   }
 
-  const addNewSprint = async () => {
-    if (!newSprintName.trim()) return
-    try {
-      const { data: created } = await axios.post(
-        `${BASE_URL}/api/sprints/`,
-        {
-          name: newSprintName,
-          goal: newSprintGoal,
-          start_date: newSprintStartDate,
-          end_date: newSprintEndDate,
-          active: newSprintActive,
-          project: projectId,
-        },
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-            "X-Project-ID": projectId,
-          },
-        },
-      )
-
-      setSprints((prev) => [...prev, created])
-      setSprintData((prev) => ({ ...prev, [created.id]: [] }))
-      setSprintVisibility((prev) => ({ ...prev, [created.id]: true }))
-
-      setNewSprintName("")
-      setNewSprintGoal("")
-      setNewSprintStartDate("")
-      setNewSprintEndDate("")
-      setNewSprintActive(true)
-    } catch (err) {
-      console.error("Failed to create sprint:", err.response?.data || err.message)
-    }
-  }
-
-  const accessToken = localStorage.getItem("access_token")
-
-  const deleteSprint = async (sprintId) => {
-    if (window.confirm(`Are you sure you want to delete sprint ID ${sprintId} and all its tasks?`)) {
-      const accessToken = localStorage.getItem("access_token")
-      if (!accessToken) {
-        alert("User not authenticated. Please log in again.")
-        return
-      }
-      try {
-        const response = await fetch(`http://localhost:8000/api/sprints/${sprintId}/`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Token ${accessToken}`,
-            "X-Object-ID": "1",
-            "Content-Type": "application/json",
-          },
-        })
-        if (!response.ok) {
-          throw new Error("Failed to delete sprint from the backend")
-        }
-
-        setSprintData((prevData) => {
-          const newData = { ...prevData }
-          delete newData[sprintId]
-          return newData
-        })
-        setSprintVisibility((prev) => {
-          const newVisibility = { ...prev }
-          delete newVisibility[sprintId]
-          return newVisibility
-        })
-        alert(`Sprint ${sprintId} deleted successfully`)
-      } catch (error) {
-        console.error(error)
-        alert("An error occurred while deleting the sprint.")
-      }
-    }
-  }
-
-  const startAddingTask = (tableName) => {
-    setAddingToSprint(tableName)
-  }
-
-  const cancelAddingTask = () => {
-    setAddingToSprint(null)
-    setNewTask({
-      name: "",
-      description: "",
-      assigned_to: "",
-      role: "",
-      status: "",
-      priority: "",
-      created_at: "",
-      due_date: "",
-      added: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-    })
-  }
-
   const validateTaskData = (taskData) => {
     const requiredFields = ["name", "description", "project", "sprint"]
     const missingFields = requiredFields.filter((field) => !taskData[field])
     if (missingFields.length > 0) {
       console.error("Missing required fields:", missingFields)
-      return false
-    }
-    if (taskData.project && isNaN(taskData.project)) {
-      console.error("Project ID must be a number:", taskData.project)
-      return false
-    }
-    if (taskData.sprint && isNaN(taskData.sprint)) {
-      console.error("Sprint ID must be a number:", taskData.sprint)
       return false
     }
     return true
@@ -315,8 +332,10 @@ const PMSDashboardSprints = () => {
       description: newTask.description,
       project: Number(projectId),
       sprint: sprintId,
-      assigned_to: Number.parseInt(newTask.assigned_to, 10),
-      reporter: Number.parseInt(localStorage.getItem("user_id"), 10),
+      assigned_to: newTask.assigned_to ? Number.parseInt(newTask.assigned_to, 10) : null,
+      reporter: newTask.reporter
+        ? Number.parseInt(newTask.reporter, 10)
+        : Number.parseInt(localStorage.getItem("user_id"), 10),
       status: newTask.status,
       priority: newTask.priority,
       role: newTask.role,
@@ -330,14 +349,6 @@ const PMSDashboardSprints = () => {
       return
     }
 
-    console.log("=== TASK CREATION DEBUG ===")
-    console.log("Sprint name:", addingToSprint)
-    console.log("Sprint ID:", getSprintId(addingToSprint))
-    console.log("Project ID:", Number(projectId))
-    console.log("Task data being sent:", taskToAdd)
-    console.log("Token:", localStorage.getItem("token"))
-    console.log("User ID:", localStorage.getItem("user_id"))
-
     axios
       .post("http://localhost:8000/api/tasks/", taskToAdd, {
         headers: {
@@ -348,8 +359,6 @@ const PMSDashboardSprints = () => {
         },
       })
       .then((res) => {
-        console.log("Task created successfully:", res.data)
-
         if (addingToSprint === "Backlog") {
           setBacklogTasks((prev) => [...prev, res.data])
         } else {
@@ -358,42 +367,70 @@ const PMSDashboardSprints = () => {
             [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
           }))
         }
-
         setTasks((prevTasks) => {
-          console.log("prevTasks in updater:", prevTasks)
           const safePrev = Array.isArray(prevTasks) ? prevTasks : []
           return [...safePrev, res.data]
         })
         setError(null)
+        cancelAddingTask()
       })
       .catch((err) => {
-        console.error("=== TASK CREATION ERROR ===")
-        console.error("Full error object:", err)
-        console.error("Error response:", err.response)
-        console.error("Error response data:", err.response?.data)
-        if (err.response?.data && typeof err.response.data === "object") {
-          console.error("=== DETAILED VALIDATION ERRORS ===")
-          Object.entries(err.response.data).forEach(([field, errors]) => {
-            console.error(`${field}:`, errors)
-          })
-        }
-        console.error("Error response status:", err.response?.status)
-        console.error("Error response headers:", err.response.headers)
-        console.error("Request config:", err.config)
-        let errorMessage = `Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`
-        if (err.response?.data) {
-          if (typeof err.response.data === "object") {
-            const validationErrors = Object.entries(err.response.data)
-              .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(", ") : errors}`)
-              .join("; ")
-            errorMessage += ` - ${validationErrors}`
-          } else {
-            errorMessage += ` - ${err.response.data}`
-          }
-        }
-        setError(errorMessage)
+        console.error("Task creation error:", err)
+        setError(`Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`)
       })
-    cancelAddingTask()
+  }
+
+  const updateTask = (taskId, newTaskData, sprintName) => {
+    let existingTask
+    if (sprintName === "Backlog") {
+      existingTask = backlogTasks.find((t) => t.id === taskId)
+    } else {
+      const list = sprintData[sprintName] || []
+      existingTask = list.find((t) => t.id === taskId)
+    }
+
+    if (!existingTask) {
+      console.error("Task not found!", sprintName, taskId)
+      return
+    }
+
+    const backendData = {
+      name: newTaskData.name || existingTask.name,
+      description: newTaskData.description || existingTask.description,
+      project: existingTask.project,
+      sprint: existingTask.sprint,
+      assigned_to: newTaskData.assigned_to ? Number.parseInt(newTaskData.assigned_to, 10) : existingTask.assigned_to,
+      reporter: newTaskData.reporter ? Number.parseInt(newTaskData.reporter, 10) : existingTask.reporter,
+      status: newTaskData.status || existingTask.status,
+      priority: newTaskData.priority || existingTask.priority,
+      role: newTaskData.role || existingTask.role,
+      due_date: newTaskData.due_date || existingTask.due_date,
+      created_at: newTaskData.created_at || existingTask.created_at,
+      item_id: existingTask.item_id,
+    }
+
+    axios
+      .put(`${BASE_URL}/api/tasks/${taskId}/`, backendData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setTasks((ts) => ts.map((t) => (t.id === taskId ? res.data : t)))
+        if (sprintName === "Backlog") {
+          setBacklogTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)))
+        } else {
+          setSprintData((sd) => ({
+            ...sd,
+            [sprintName]: sd[sprintName].map((t) => (t.id === taskId ? res.data : t)),
+          }))
+        }
+      })
+      .catch((err) => {
+        console.error("Update failed:", err.response?.data || err)
+        setError(`Failed to update task: ${err.message}`)
+      })
   }
 
   const deleteTask = (sprintName, taskId) => {
@@ -417,7 +454,6 @@ const PMSDashboardSprints = () => {
             }))
           }
           setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
-          console.log(`✅ Task ${taskId} deleted from sprint "${sprintName}"`)
         })
         .catch((err) => {
           console.error("Failed to delete task:", err)
@@ -426,74 +462,36 @@ const PMSDashboardSprints = () => {
     }
   }
 
-  const buildTaskUpdatePayload = (newTask, existingTask, projectId, sprintId, itemId) => {
-    return {
-      name: newTask.name || existingTask.name || "Task name",
-      description: newTask.description || existingTask.description || "Details",
-      project: Number(projectId) || existingTask.project,
-      sprint: sprintId || existingTask.sprint,
-      assigned_to: Number.parseInt(localStorage.getItem("user_id")) || existingTask.assigned_to,
-      reporter: Number.parseInt(localStorage.getItem("user_id")) || existingTask.reporter,
-      status: newTask.status || existingTask.status || "backlog",
-      priority: newTask.priority || existingTask.priority || "medium",
-      due_date: newTask.due_date || existingTask.due_date || new Date().toISOString().split("T")[0],
-      created_at: newTask.created_at || existingTask.created_at || new Date().toISOString(),
-      item_id: itemId || existingTask.item_id,
-    }
+  const startAddingTask = (tableName) => {
+    setAddingToSprint(tableName)
+    setNewTask({
+      name: "",
+      description: "",
+      assigned_to: "",
+      reporter: "",
+      role: "",
+      status: "",
+      priority: "",
+      due_date: "",
+      created_at: new Date().toISOString().split("T")[0],
+      item_id: "",
+    })
   }
 
-  const updateTask = (taskId, newTask, sprintName) => {
-    // Look in the sprintData or backlogTasks for this task
-    let existingTask
-    if (sprintName === "Backlog") {
-      existingTask = backlogTasks.find((t) => t.id === taskId)
-    } else {
-      const list = sprintData[sprintName] || []
-      existingTask = list.find((t) => t.id === taskId)
-    }
-
-    if (!existingTask) {
-      console.error("Task not found!", sprintName, taskId)
-      return
-    }
-
-    const backendData = buildTaskUpdatePayload(
-      newTask,
-      existingTask,
-      existingTask.project,
-      existingTask.sprint,
-      existingTask.item_id,
-    )
-
-    if (!validateTaskData(backendData)) {
-      setError("Invalid task data. Please check all required fields.")
-      return
-    }
-
-    axios
-      .put(`${BASE_URL}/api/tasks/${taskId}/`, backendData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => {
-        setTasks((ts) => ts.map((t) => (t.id === taskId ? res.data : t)))
-
-        if (sprintName === "Backlog") {
-          setBacklogTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)))
-        } else {
-          setSprintData((sd) => ({
-            ...sd,
-            [sprintName]: sd[sprintName].map((t) => (t.id === taskId ? res.data : t)),
-          }))
-        }
-        console.log("✅ Task updated!", res.data)
-      })
-      .catch((err) => {
-        console.error("Update failed:", err.response?.data || err)
-        setError(`Failed to update task: ${err.message}`)
-      })
+  const cancelAddingTask = () => {
+    setAddingToSprint(null)
+    setNewTask({
+      name: "",
+      description: "",
+      assigned_to: "",
+      reporter: "",
+      role: "",
+      status: "",
+      priority: "",
+      due_date: "",
+      created_at: new Date().toISOString().split("T")[0],
+      item_id: "",
+    })
   }
 
   const handleTaskInputChange = (e) => {
@@ -514,11 +512,6 @@ const PMSDashboardSprints = () => {
     backlogTasks.forEach((task) => {
       if (task.assigned_to) owners.add(task.assigned_to)
     })
-    Object.values(customTableTasks).forEach((tasks) => {
-      tasks.forEach((task) => {
-        if (task.assigned_to) owners.add(task.assigned_to)
-      })
-    })
     return Array.from(owners)
   }
 
@@ -532,15 +525,9 @@ const PMSDashboardSprints = () => {
     backlogTasks.forEach((task) => {
       if (task.status) statuses.add(task.status)
     })
-    Object.values(customTableTasks).forEach((tasks) => {
-      tasks.forEach((task) => {
-        if (task.status) statuses.add(task.status)
-      })
-    })
     return Array.from(statuses)
   }
 
-  // New function to get all roles
   const getAllRoles = () => {
     const roles = new Set()
     Object.values(sprintData).forEach((tasks) => {
@@ -551,15 +538,9 @@ const PMSDashboardSprints = () => {
     backlogTasks.forEach((task) => {
       if (task.role) roles.add(task.role)
     })
-    Object.values(customTableTasks).forEach((tasks) => {
-      tasks.forEach((task) => {
-        if (task.role) roles.add(task.role)
-      })
-    })
     return Array.from(roles)
   }
 
-  // New function to get all priorities
   const getAllPriorities = () => {
     const priorities = new Set()
     Object.values(sprintData).forEach((tasks) => {
@@ -570,143 +551,7 @@ const PMSDashboardSprints = () => {
     backlogTasks.forEach((task) => {
       if (task.priority) priorities.add(task.priority)
     })
-    Object.values(customTableTasks).forEach((tasks) => {
-      tasks.forEach((task) => {
-        if (task.priority) priorities.add(task.priority)
-      })
-    })
     return Array.from(priorities)
-  }
-
-  // Updated filter function to include new filters
-  const filterTasks = (tasks) => {
-    return tasks.filter((task) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        (task.name && task.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.id && task.id.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.assigned_to && task.assigned_to.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.status && task.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.priority && task.priority.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.role && task.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (task.created_at && task.created_at.toLowerCase().includes(searchTerm.toLowerCase()))
-
-      const matchesPerson = selectedPerson === "" || task.assigned_to === selectedPerson
-      const matchesStatus = selectedStatus === "" || task.status === selectedStatus
-      const matchesRole = selectedRole === "" || task.role === selectedRole
-      const matchesPriority = selectedPriority === "" || task.priority === selectedPriority
-
-      return matchesSearch && matchesPerson && matchesStatus && matchesRole && matchesPriority
-    })
-  }
-
-  // Sort tasks by due date and priority
-  const sortTasks = (tasks) => {
-    return [...tasks].sort((a, b) => {
-      // First sort by due date (overdue tasks first)
-      const currentDate = new Date()
-      const dateA = a.due_date ? new Date(a.due_date) : null
-      const dateB = b.due_date ? new Date(b.due_date) : null
-
-      if (dateA && dateB) {
-        const isAOverdue = dateA < currentDate
-        const isBOverdue = dateB < currentDate
-
-        if (isAOverdue && !isBOverdue) return -1
-        if (!isAOverdue && isBOverdue) return 1
-        if (isAOverdue && isBOverdue) return dateA - dateB
-        return dateA - dateB
-      }
-
-      // Then by priority
-      const priorityOrder = { High: 3, Medium: 2, Low: 1 }
-      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
-    })
-  }
-
-  // Fixed color functions with case-insensitive matching
-  const getPriorityColor = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case "high":
-        return "bg-red-100 text-red-700 border border-red-200"
-      case "medium":
-        return "bg-yellow-100 text-yellow-700 border border-yellow-200"
-      case "low":
-        return "bg-green-100 text-green-700 border border-green-200"
-      default:
-        return "bg-gray-100 text-gray-700 border border-gray-200"
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "done":
-        return "bg-green-100 text-green-700 border border-green-200"
-      case "in progress":
-        return "bg-blue-100 text-blue-700 border border-blue-200"
-      case "waiting for review":
-        return "bg-purple-100 text-purple-700 border border-purple-200"
-      case "ready to start":
-        return "bg-gray-100 text-gray-700 border border-gray-200"
-      case "stuck":
-        return "bg-red-100 text-red-700 border border-red-200"
-      default:
-        return "bg-gray-100 text-gray-700 border border-gray-200"
-    }
-  }
-
-  const getRoleColor = (role) => {
-    switch (role?.toLowerCase()) {
-      case "dev":
-        return "bg-blue-100 text-blue-700 border border-blue-200"
-      case "design":
-        return "bg-purple-100 text-purple-700 border border-purple-200"
-      case "quality":
-        return "bg-green-100 text-green-700 border border-green-200"
-      case "security":
-        return "bg-red-100 text-red-700 border border-red-200"
-      case "test":
-        return "bg-yellow-100 text-yellow-700 border border-yellow-200"
-      default:
-        return "bg-gray-100 text-gray-700 border border-gray-200"
-    }
-  }
-
-  const openAddTableModal = () => {
-    setIsAddTableModalOpen(true)
-  }
-
-  const closeAddTableModal = () => {
-    setIsAddTableModalOpen(false)
-    setNewTableInfo({
-      name: "",
-      date: "",
-      description: "",
-    })
-  }
-
-  const handleTableInfoChange = (e) => {
-    const { name, value } = e.target
-    setNewTableInfo((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const addNewTable = () => {
-    if (!newTableInfo.name) return
-    setTaskTables((prev) => [...prev, { ...newTableInfo, id: generateId() }])
-    closeAddTableModal()
-  }
-
-  const sprintHasMatchingTasks = (sprintName) => {
-    const tasks = sprintData[sprintName] || []
-    return filterTasks(tasks).length > 0
-  }
-
-  const tableHasMatchingTasks = (tableName) => {
-    const tasks = customTableTasks[tableName] || []
-    return filterTasks(tasks).length > 0
   }
 
   const toggleSprintVisibility = (sprintName) => {
@@ -716,30 +561,121 @@ const PMSDashboardSprints = () => {
     }))
   }
 
+  // User Dropdown Component
+  const UserDropdown = ({ value, onChange, placeholder = "Select user", name }) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [searchTerm, setSearchTerm] = useState("")
+
+    const selectedUser = users.find((user) => user.id.toString() === value)
+
+    const filteredUsers = users.filter(
+      (user) =>
+        user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
+        >
+          <div className="flex items-center">
+            <Search className="h-4 w-4 mr-2 text-gray-400" />
+            <span className={selectedUser ? "text-gray-900" : "text-gray-500"}>
+              {selectedUser
+                ? `${selectedUser.first_name || ""} ${selectedUser.last_name || ""}`.trim() ||
+                  selectedUser.username ||
+                  selectedUser.email
+                : placeholder}
+            </span>
+          </div>
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              <button
+                onClick={() => {
+                  onChange({ target: { name, value: "" } })
+                  setIsOpen(false)
+                  setSearchTerm("")
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
+              >
+                <Search className="h-4 w-4 mr-2 text-gray-400" />
+                <span className="text-gray-500">Unassigned</span>
+              </button>
+              {filteredUsers.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => {
+                    onChange({ target: { name, value: user.id.toString() } })
+                    setIsOpen(false)
+                    setSearchTerm("")
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
+                >
+                  <User className="h-4 w-4 mr-2 text-gray-400" />
+                  <div>
+                    <div className="text-gray-900">
+                      {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username}
+                    </div>
+                    {user.email && <div className="text-xs text-gray-500">{user.email}</div>}
+                  </div>
+                </button>
+              ))}
+              {filteredUsers.length === 0 && <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Load data effect
   useEffect(() => {
     const token = localStorage.getItem("token")
     setLoading(true)
+
+    // Fetch users first
+    fetchUsers()
+
     const sprintHeaders = {
       Authorization: `Token ${token}`,
       "X-Project-ID": projectId,
     }
-    console.log("📦 Fetching sprints for project:", projectId, "→ with headers:", sprintHeaders)
 
     axios
       .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
       .then((res) => {
         const mySprints = res.data.results || res.data
         setSprints(mySprints)
-
         return Promise.all(
           mySprints.map((s) => {
             const taskHeaders = {
               Authorization: `Token ${token}`,
               "X-Sprint-ID": s.id,
             }
-            console.log("📝 Fetching tasks for sprint:", s.id, "→ with headers:", taskHeaders)
             return axios.get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders }).then((r) => ({
               sprintName: s.name,
+              sprintData: s,
               tasks: r.data.results || r.data,
             }))
           }),
@@ -750,18 +686,15 @@ const PMSDashboardSprints = () => {
         const visibilityBySprint = {}
         const backlogTasksList = []
 
-        allSprintTasks.forEach(({ sprintName, tasks }) => {
+        allSprintTasks.forEach(({ sprintName, sprintData: sprint, tasks }) => {
           const activeTasks = []
-
           tasks.forEach((task) => {
-            const sprint = sprints.find((s) => s.name === sprintName)
             if (isTaskExpired(task, sprint)) {
               backlogTasksList.push(task)
             } else {
               activeTasks.push(task)
             }
           })
-
           dataBySprint[sprintName] = activeTasks
           visibilityBySprint[sprintName] = true
         })
@@ -772,373 +705,99 @@ const PMSDashboardSprints = () => {
         setLoading(false)
       })
       .catch((err) => {
-        console.error("❌ Failed to fetch data:", err)
+        console.error("Failed to fetch data:", err)
         setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`)
         setLoading(false)
       })
   }, [projectId])
 
-  useEffect(() => {
-    localStorage.setItem("sprintData", JSON.stringify(sprintData))
-  }, [sprintData])
+  // Enhanced SprintTable component
+  const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName }) => {
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  useEffect(() => {
-    localStorage.setItem("tableColumns", JSON.stringify(columns))
-  }, [columns])
-
-  useEffect(() => {
-    localStorage.setItem("rowsPerPage", rowsPerPage.toString())
-  }, [rowsPerPage])
-
-  useEffect(() => {
-    localStorage.setItem("sortConfig", JSON.stringify(sortConfig))
-  }, [sortConfig])
-
-  const toggleColumnVisibility = (columnId) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) => (col.id === columnId ? { ...col, visible: !col.visible } : col)),
-    )
-  }
-
-  const updateColumnWidth = (columnId, newWidth) => {
-    setColumns((prevColumns) => prevColumns.map((col) => (col.id === columnId ? { ...col, width: newWidth } : col)))
-  }
-
-  const updateColumnOrder = (fromIndex, toIndex) => {
-    setColumns((prevColumns) => {
-      const newColumns = [...prevColumns]
-      const [movedColumn] = newColumns.splice(fromIndex, 1)
-      newColumns.splice(toIndex, 0, movedColumn)
-      return newColumns.map((col, idx) => ({
-        ...col,
-        order: idx,
-      }))
-    })
-  }
-
-  const startColumnDrag = (index) => {
-    setColumnDragIndex(index)
-  }
-
-  const handleColumnDragOver = (index) => {
-    if (columnDragIndex !== null && columnDragIndex !== index) {
-      setDropTargetIndex(index)
-    }
-  }
-
-  const handleColumnDrop = () => {
-    if (columnDragIndex !== null && dropTargetIndex !== null) {
-      updateColumnOrder(columnDragIndex, dropTargetIndex)
-      setColumnDragIndex(null)
-      setDropTargetIndex(null)
-    }
-  }
-
-  const openColumnModal = (column = null) => {
-    setEditingColumn(column)
-    setIsColumnModalOpen(true)
-  }
-
-  const closeColumnModal = () => {
-    setIsColumnModalOpen(false)
-    setEditingColumn(null)
-  }
-
-  const saveColumnChanges = (updatedColumn) => {
-    if (editingColumn) {
-      setColumns((prevColumns) =>
-        prevColumns.map((col) => (col.id === editingColumn.id ? { ...col, ...updatedColumn } : col)),
-      )
-    } else {
-      setColumns((prevColumns) => [
-        ...prevColumns,
-        {
-          ...updatedColumn,
-          id: `custom_${Date.now()}`,
-          order: prevColumns.length,
-        },
-      ])
-    }
-    closeColumnModal()
-  }
-
-  const deleteColumn = (columnId) => {
-    setColumns((prevColumns) => prevColumns.filter((col) => col.id !== columnId))
-  }
-
-  const requestSort = (key) => {
-    let direction = "ascending"
-    if (sortConfig.key === key && sortConfig.direction === "ascending") {
-      direction = "descending"
-    }
-    setSortConfig({ key, direction })
-  }
-
-  const getSortedItems = (items) => {
-    if (!sortConfig.key) return items
-    return [...items].sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === "ascending" ? -1 : 1
-      }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === "ascending" ? 1 : -1
-      }
-      return 0
-    })
-  }
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
-  }
-
-  const getPaginatedItems = (items) => {
-    const startIndex = (currentPage - 1) * rowsPerPage
-    return items.slice(startIndex, startIndex + rowsPerPage)
-  }
-
-  // Enhanced SprintTable component with editable cells, rows and columns
-  const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName, index }) => {
-    const [isSelected, setIsSelected] = useState(false)
-    const [columnWidths, setColumnWidths] = useState(() => {
-      const saved = localStorage.getItem(`columnWidths-${sprintName}`)
-      return saved
-        ? JSON.parse(saved)
-        : {
-            name: "20%",
-            assigned_to: "15%",
-            status: "15%",
-            priority: "10%",
-            role: "10%",
-            created_at: "7%",
-            due_date: "10%",
-            actions: "5%",
-          }
-    })
-
-    const [visibleColumns, setVisibleColumns] = useState(() => {
-      const saved = localStorage.getItem(`visibleColumns-${sprintName}`)
-      return saved
-        ? JSON.parse(saved)
-        : {
-            name: true,
-            assigned_to: true,
-            status: true,
-            priority: true,
-            role: true,
-            id: false, // Hide ID column by default
-            created_at: true,
-            due_date: true,
-            actions: true,
-          }
-    })
-
-    const [sortConfig, setSortConfig] = useState(() => {
-      const saved = localStorage.getItem(`sortConfig-${sprintName}`)
-      return saved ? JSON.parse(saved) : { key: null, direction: "asc" }
-    })
-
-    const [editingCell, setEditingCell] = useState(null)
-    const [editValue, setEditValue] = useState("")
-    const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false)
-    const [selectedColumnId, setSelectedColumnId] = useState(null)
-    const [isAddColumnModalOpen, setIsAddColumnModalOpen] = useState(false)
-    const [newColumnInfo, setNewColumnInfo] = useState({
-      id: "",
-      label: "",
-      type: "text",
-      visible: true,
-      width: "15%",
-    })
-
-    const getBgColor = () => {
-      return "bg-gray-100 bg-opacity-90"
-    }
-
-    useEffect(() => {
-      localStorage.setItem(`columnWidths-${sprintName}`, JSON.stringify(columnWidths))
-    }, [columnWidths, sprintName])
-
-    useEffect(() => {
-      localStorage.setItem(`visibleColumns-${sprintName}`, JSON.stringify(visibleColumns))
-    }, [visibleColumns, sprintName])
-
-    useEffect(() => {
-      localStorage.setItem(`sortConfig-${sprintName}`, JSON.stringify(sortConfig))
-    }, [sortConfig, sprintName])
-
-    const sortedTasks = React.useMemo(() => {
-      return sortTasks(tasks) // Use the new sorting function
-    }, [tasks])
-
-    const requestSort = (key) => {
-      let direction = "asc"
-      if (sortConfig.key === key && sortConfig.direction === "asc") {
-        direction = "desc"
-      }
-      setSortConfig({ key, direction })
-    }
-
-    const toggleColumnVisibility = (columnId) => {
-      setVisibleColumns((prev) => ({
-        ...prev,
-        [columnId]: !prev[columnId],
-      }))
-    }
-
-    const startColumnResize = (e, columnId) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const startX = e.clientX
-      const startWidth = Number.parseFloat(columnWidths[columnId].replace("%", ""))
-      const handleMouseMove = (moveEvent) => {
-        const deltaX = moveEvent.clientX - startX
-        const tableWidth = document.querySelector("table")?.offsetWidth || 1000
-        const newWidthPercent = Math.max(5, startWidth + (deltaX / tableWidth) * 100)
-        setColumnWidths((prev) => ({
-          ...prev,
-          [columnId]: `${newWidthPercent}%`,
-        }))
-      }
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
-      }
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-    }
-
-    const startCellEdit = (taskId, columnId, value) => {
-      setEditingCell({ taskId, columnId })
-      setEditValue(value !== undefined ? value : "")
-    }
-
-    const saveCellEdit = () => {
-      if (!editingCell) return
-      const { taskId, columnId } = editingCell
-      const taskToUpdate = tasks.find((task) => task.id === taskId)
-      if (!taskToUpdate) return
-      const updatedTaskData = {
-        ...taskToUpdate,
-        [columnId]: editValue,
-      }
-      updateTask(taskId, updatedTaskData, sprintName)
-      setEditingCell(null)
-    }
-
-    const cancelCellEdit = () => {
-      setEditingCell(null)
-    }
-
-    const openAddColumnModal = () => {
-      setIsAddColumnModalOpen(true)
-    }
-
-    const closeAddColumnModal = () => {
-      setIsAddColumnModalOpen(false)
-      setNewColumnInfo({
-        id: "",
-        label: "",
-        type: "text",
-        visible: true,
-        width: "15%",
-      })
-    }
-
-    const handleColumnInfoChange = (e) => {
-      const { name, value, type, checked } = e.target
-      setNewColumnInfo((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-        id: name === "label" ? value.toLowerCase().replace(/\s+/g, "_") : prev.id,
-      }))
-    }
-
-    const addNewColumn = () => {
-      if (!newColumnInfo.label) return
-      setVisibleColumns((prev) => ({
-        ...prev,
-        [newColumnInfo.id]: true,
-      }))
-      setColumnWidths((prev) => ({
-        ...prev,
-        [newColumnInfo.id]: newColumnInfo.width,
-      }))
-      const updatedTasks = tasks.map((task) => ({
-        ...task,
-        [newColumnInfo.id]: "",
-      }))
-      const updatedSprintData = { ...sprintData }
-      updatedSprintData[sprintName] = updatedTasks
-      setSprintData(updatedSprintData)
-      closeAddColumnModal()
-    }
-
-    const deleteColumnFromTable = (columnId) => {
-      if (window.confirm(`Are you sure you want to delete the ${columnId} column?`)) {
-        setVisibleColumns((prev) => {
-          const newVisibility = { ...prev }
-          delete newVisibility[columnId]
-          return newVisibility
-        })
-        setColumnWidths((prev) => {
-          const newWidths = { ...prev }
-          delete newWidths[columnId]
-          return newWidths
-        })
-        const updatedTasks = tasks.map((task) => {
-          const newTask = { ...task }
-          delete newTask[columnId]
-          return newTask
-        })
-        const updatedSprintData = { ...sprintData }
-        updatedSprintData[sprintName] = updatedTasks
-        setSprintData(updatedSprintData)
-      }
-    }
-
-    const availableColumns = Object.keys(visibleColumns).filter((col) => col !== "checkbox" && col !== "actions")
-    const statusOptions = ["Done", "In Progress", "Waiting for review", "Ready to start", "Stuck"]
-    const priorityOptions = ["High", "Medium", "Low"]
-    const roleOptions = ["Bug", "Feature", "Quality", "Security", "Test"]
+    const sprint = sprints.find((s) => s.name === sprintName)
+    const filteredTasks = filterTasks(tasks)
+    const allSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTasks.has(task.id))
+    const someSelected = filteredTasks.some((task) => selectedTasks.has(task.id))
 
     return (
-      <div
-        className={`mb-8 mx-8 w-auto ${getBgColor()} p-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out border border-gray-200/90 transition-all duration-500 ease-in-out ${!isExpanded ? "bg-gray-100" : ""} overflow-visible`}
-        onMouseLeave={() => setIsSelected(false)}
-      >
-        <div className="flex items-center justify-between mb-2 p-2 bg-gray-300 rounded-t">
-          <div className="flex items-center cursor-pointer" onClick={toggleExpand}>
-            <span className="font-medium text-blue-600">{title}</span>
-            <ChevronDown
-              size={16}
-              className={`ml-1 transition-transform duration-300 ease-in-out ${isExpanded ? "" : "transform rotate-180"}`}
-            />
+      <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Sprint Header */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <button onClick={toggleExpand} className="flex items-center space-x-2 text-gray-900 hover:text-blue-600">
+              <ChevronDown
+                size={20}
+                className={`transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`}
+              />
+              <span className="font-semibold text-lg">{title}</span>
+            </button>
+
+            {sprint && (
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <div className="flex items-center space-x-1">
+                  <Calendar size={14} />
+                  <span>
+                    {new Date(sprint.start_date).toLocaleDateString()} -{" "}
+                    {new Date(sprint.end_date).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users size={14} />
+                  <span>{filteredTasks.length} tasks</span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center">
-            <span className="text-xs text-gray-600 mr-3">
-              {sprintName === "Sprint 1" && "Feb 17 - Mar 2"}
-              {sprintName === "sprint 2" && "Mar 1 - April15"}
-            </span>
-            <div className="relative overflow-visible">
+
+          <div className="flex items-center space-x-2">
+            <div className="relative">
               <button
-                onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)}
-                className="text-gray-600 hover:text-gray-800 p-1 rounded"
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 <Settings size={16} />
               </button>
-              {isColumnMenuOpen && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 py-1">
-                  <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b">Table Options</div>
-                  <div className="px-2 py-1 space-y-1">
+
+              {isSettingsOpen && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                  <div className="py-1">
                     <button
-                      onClick={openAddColumnModal}
-                      className="block w-full text-left text-sm text-blue-600 hover:bg-gray-100 px-2 py-1"
+                      onClick={() => {
+                        addTask(sprintName)
+                        setIsSettingsOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      + Add New Column
+                      Add Task
                     </button>
                     <button
-                      onClick={() => deleteSprint(sprintName)}
-                      className="block w-full text-left text-sm text-red-600 hover:bg-gray-100 px-2 py-1"
+                      onClick={() => {
+                        // Add export functionality
+                        setIsSettingsOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Export Sprint
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Add duplicate functionality
+                        setIsSettingsOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Duplicate Sprint
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete ${sprintName}?`)) {
+                          // Add delete sprint functionality
+                        }
+                        setIsSettingsOpen(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       Delete Sprint
                     </button>
@@ -1146,538 +805,187 @@ const PMSDashboardSprints = () => {
                 </div>
               )}
             </div>
+
             <button
               onClick={() => addTask(sprintName)}
-              className="text-blue-600 flex items-center text-sm hover:text-blue-800"
+              className="flex items-center space-x-1 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md"
             >
-              <Plus size={16} className="mr-1" />
-              Add Task
+              <Plus size={16} />
+              <span>Add Task</span>
             </button>
           </div>
         </div>
-        <div
-          className={`overflow-hidden transition-all duration-500 ease-in-out transform-origin-top ${isExpanded ? "max-h-screen opacity-100 scale-y-100" : "max-h-0 opacity-0 scale-y-0"}`}
-        >
-          <div className="p-4 transform transition-transform duration-500" style={{ transformOrigin: "top" }}>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-zinc-200 bg-opacity-50 text-sm text-gray-600">
-                    <th className="p-2 border-b text-left w-10">
-                      <input type="checkbox" className="mr-2" />
-                    </th>
-                    {availableColumns.map(
-                      (columnId) =>
-                        visibleColumns[columnId] && (
-                          <th
-                            key={columnId}
-                            className={`p-2 border-b text-left relative cursor-pointer ${selectedColumnId === columnId ? "bg-blue-50" : ""}`}
-                            style={{ width: columnWidths[columnId] || "auto" }}
-                            onClick={() => setSelectedColumnId(columnId === selectedColumnId ? null : columnId)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                {columnId === "name"
-                                  ? "Tasks"
-                                  : columnId === "assigned_to"
-                                    ? "Owner"
-                                    : columnId === "created_at"
-                                      ? "Created At"
-                                      : columnId === "due_date"
-                                        ? "Due Date"
-                                        : columnId.charAt(0).toUpperCase() + columnId.slice(1)}
-                                {sortConfig.key === columnId && (
-                                  <span className="ml-1">{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
-                                )}
-                              </div>
-                              {selectedColumnId === columnId && (
-                                <div className="flex items-center">
-                                  <button
-                                    className="text-gray-500 hover:text-gray-700 p-1"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      requestSort(columnId)
-                                    }}
-                                  >
-                                    {sortConfig.key === columnId && sortConfig.direction === "asc" ? "↓" : "↑"}
-                                  </button>
-                                  <button
-                                    className="text-gray-500 hover:text-gray-700 p-1"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleColumnVisibility(columnId)
-                                    }}
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                  {!["name", "id"].includes(columnId) && (
-                                    <button
-                                      className="text-gray-500 hover:text-red-500 p-1"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        deleteColumnFromTable(columnId)
-                                      }}
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div
-                              className="absolute top-0 right-0 h-full w-1 cursor-col-resize"
-                              onMouseDown={(e) => startColumnResize(e, columnId)}
-                            ></div>
-                          </th>
-                        ),
-                    )}
-                    {visibleColumns.actions && (
-                      <th className="p-2 border-b text-left relative" style={{ width: columnWidths.actions || "10%" }}>
-                        <div className="flex items-center">Actions</div>
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedTasks.map((task) => {
-                    const isOverdue =
-                      task.due_date && new Date(task.due_date) < new Date() && task.status?.toLowerCase() !== "done"
 
-                    return (
-                      <tr
-                        key={task.id}
-                        className={`hover:bg-gray-100 bg-opacity-70 text-sm ${isOverdue ? "bg-red-50" : ""}`}
-                      >
-                        <td className="p-2 border-b w-10">
-                          <input type="checkbox" className="mr-2" />
-                        </td>
-                        {availableColumns.map(
-                          (columnId) =>
-                            visibleColumns[columnId] && (
-                              <td key={columnId} className="p-2 border-b">
-                                {editingCell && editingCell.taskId === task.id && editingCell.columnId === columnId ? (
-                                  columnId === "status" ? (
-                                    <select
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                    >
-                                      {statusOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                          {option}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : columnId === "priority" ? (
-                                    <select
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                    >
-                                      {priorityOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                          {option}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : columnId === "role" ? (
-                                    <select
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                    >
-                                      {roleOptions.map((option) => (
-                                        <option key={option} value={option}>
-                                          {option}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : columnId === "created_at" ? (
-                                    <input
-                                      type="datetime-local"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") saveCellEdit()
-                                        if (e.key === "Escape") cancelCellEdit()
-                                      }}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                    />
-                                  ) : columnId === "due_date" ? (
-                                    <input
-                                      type="date"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") saveCellEdit()
-                                        if (e.key === "Escape") cancelCellEdit()
-                                      }}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                    />
-                                  ) : (
-                                    <input
-                                      type="text"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onBlur={saveCellEdit}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") saveCellEdit()
-                                        if (e.key === "Escape") cancelCellEdit()
-                                      }}
-                                      className="w-full p-1 border rounded"
-                                      autoFocus
-                                      readOnly={columnId === "id"}
-                                    />
-                                  )
-                                ) : (
-                                  <div
-                                    className={`truncate max-w-full cursor-pointer hover:bg-gray-200 p-1 rounded ${columnId === "assigned_to" ? "text-blue-600" : ""} ${isOverdue && columnId === "name" ? "text-red-600 font-medium" : ""}`}
-                                    onClick={() => {
-                                      if (columnId !== "id") {
-                                        startCellEdit(task.id, columnId, task[columnId])
-                                      }
-                                    }}
-                                  >
-                                    {columnId === "status" ? (
-                                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
-                                        {task.status}
-                                      </span>
-                                    ) : columnId === "priority" ? (
-                                      <span
-                                        className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}
-                                      >
-                                        {task.priority}
-                                      </span>
-                                    ) : columnId === "role" ? (
-                                      <span className={`px-2 py-1 rounded-full text-xs ${getRoleColor(task.role)}`}>
-                                        {task.role || "Missing"}
-                                      </span>
-                                    ) : columnId === "due_date" ? (
-                                      task.due_date ? (
-                                        <span className={isOverdue ? "text-red-600 font-medium" : ""}>
-                                          {new Date(task.due_date).toLocaleDateString()}
-                                        </span>
-                                      ) : (
-                                        "-"
-                                      )
-                                    ) : (
-                                      task[columnId] || "-"
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                            ),
-                        )}
-                        {visibleColumns.actions && (
-                          <td className="p-2 border-b">
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() => {
-                                  console.log("Opening form for", task.id)
-                                  console.log("All current tasks:", tasks)
-                                  setEditingTask(task)
-                                  setShowForm(true)
-                                }}
-                                className="text-blue-500 hover:text-blue-700"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() => deleteTask(sprintName, task.id)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                  <tr className="text-sm">
-                    <td colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="p-2 border-b">
-                      <button
-                        onClick={() => addTask(sprintName)}
-                        className="text-gray-500 hover:text-blue-500 flex items-center text-sm"
-                      >
-                        + Add task
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        {isAddColumnModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-md shadow-lg p-4 w-full max-w-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Add New Column</h3>
-                <button onClick={closeAddColumnModal} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Column Name</label>
-                  <input
-                    type="text"
-                    name="label"
-                    value={newColumnInfo.label}
-                    onChange={handleColumnInfoChange}
-                    placeholder="Enter column name"
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Column Type</label>
-                  <select
-                    name="type"
-                    value={newColumnInfo.type}
-                    onChange={handleColumnInfoChange}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                    <option value="status">Status</option>
-                    <option value="priority">Priority</option>
-                    <option value="role">Role</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Column Width</label>
-                  <select
-                    name="width"
-                    value={newColumnInfo.width}
-                    onChange={handleColumnInfoChange}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="10%">Narrow (10%)</option>
-                    <option value="15%">Normal (15%)</option>
-                    <option value="20%">Wide (20%)</option>
-                    <option value="25%">Extra Wide (25%)</option>
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    onClick={closeAddColumnModal}
-                    className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={addNewColumn}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Add Column
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  const ColumnManagementModal = () => {
-    const [columnForm, setColumnForm] = useState(
-      editingColumn || {
-        label: "",
-        type: "text",
-        visible: true,
-        width: "2/12",
-      },
-    )
-
-    const handleColumnFormChange = (e) => {
-      const { name, value, type, checked } = e.target
-      setColumnForm((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      }))
-    }
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-        <div className="bg-white rounded-md shadow-lg p-4 w-full max-w-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">{editingColumn ? "Edit Column" : "Add New Column"}</h3>
-            <button onClick={closeColumnModal} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {!editingColumn ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Column Name</label>
-                <input
-                  type="text"
-                  name="label"
-                  value={columnForm.label}
-                  onChange={handleColumnFormChange}
-                  placeholder="Enter column name"
-                  className="w-full px-3 py-2 border rounded-md"
-                />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Column Name</label>
-                  <input
-                    type="text"
-                    name="label"
-                    value={columnForm.label}
-                    onChange={handleColumnFormChange}
-                    placeholder="Enter column name"
-                    className="w-full px-3 py-2 border rounded-md"
-                    disabled={["checkbox", "name", "id"].includes(editingColumn.id)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Visible</label>
-                  <div className="flex items-center h-10">
+        {/* Table Content */}
+        {isExpanded && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="w-12 px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      name="visible"
-                      checked={columnForm.visible}
-                      onChange={handleColumnFormChange}
-                      className="h-4 w-4"
+                      checked={allSelected}
+                      ref={(input) => {
+                        if (input) input.indeterminate = someSelected && !allSelected
+                      }}
+                      onChange={() => handleSelectAll(filteredTasks)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </div>
-                </div>
-              </div>
-            )}
-            {!editingColumn && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Column Type</label>
-                <select
-                  name="type"
-                  value={columnForm.type}
-                  onChange={handleColumnFormChange}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="text">Text</option>
-                  <option value="number">Number</option>
-                  <option value="date">Date</option>
-                  <option value="status">Status</option>
-                  <option value="priority">Priority</option>
-                  <option value="role">Type</option>
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Column Width</label>
-              <select
-                name="width"
-                value={columnForm.width}
-                onChange={handleColumnFormChange}
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                <option value="1/12">Narrow (1/12)</option>
-                <option value="2/12">Normal (2/12)</option>
-                <option value="3/12">Wide (3/12)</option>
-                <option value="4/12">Extra Wide (4/12)</option>
-              </select>
-            </div>
-            <div className="flex justify-between space-x-2 pt-4">
-              {editingColumn && !["checkbox", "name", "id"].includes(editingColumn.id) && (
-                <button
-                  onClick={() => {
-                    deleteColumn(editingColumn.id)
-                    closeColumnModal()
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Delete Column
-                </button>
-              )}
-              <div className="flex ml-auto space-x-2">
-                <button
-                  onClick={closeColumnModal}
-                  className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => saveColumnChanges(columnForm)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  {editingColumn ? "Save Changes" : "Add Column"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Task
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assigned To
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reporter
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Due Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTasks.map((task) => {
+                  const isOverdue =
+                    task.due_date && new Date(task.due_date) < new Date() && task.status?.toLowerCase() !== "done"
+                  const assignedUser = users.find((u) => u.id.toString() === task.assigned_to?.toString())
+                  const reporterUser = users.find((u) => u.id.toString() === task.reporter?.toString())
 
-  const NewSprintForm = () => {
-    return (
-      <div
-        className="mb-4 space-y-2 bg-white p-4 rounded shadow"
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center space-x-2 ">
-          <input
-            type="text"
-            value={newSprintName}
-            onChange={(e) => setNewSprintName(e.target.value)}
-            placeholder="Sprint name"
-            className="flex-1 px-3 py-1.5 text-sm border rounded bg-white"
-          />
-          <button
-            onClick={addNewSprint}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded disabled:opacity-50"
-            disabled={!newSprintName.trim()}
-          >
-            Add
-          </button>
-        </div>
-        <input
-          type="text"
-          value={newSprintGoal}
-          onChange={(e) => setNewSprintGoal(e.target.value)}
-          placeholder="Goal"
-          className="w-full px-3 py-1.5 text-sm border rounded"
-        />
-        <div className="flex space-x-2">
-          <input
-            type="date"
-            value={newSprintStartDate}
-            onChange={(e) => setNewSprintStartDate(e.target.value)}
-            className="flex-1 px-3 py-1.5 text-sm border rounded"
-          />
-          <input
-            type="date"
-            value={newSprintEndDate}
-            onChange={(e) => setNewSprintEndDate(e.target.value)}
-            className="flex-1 px-3 py-1.5 text-sm border rounded"
-          />
-        </div>
-        <label className="inline-flex items-center space-x-2 text-sm">
-          <input
-            type="checkbox"
-            checked={newSprintActive}
-            onChange={(e) => setNewSprintActive(e.target.checked)}
-            className="form-checkbox h-4 w-4"
-          />
-          <span>Active?</span>
-        </label>
+                  return (
+                    <tr
+                      key={task.id}
+                      className={`hover:bg-gray-50 ${isOverdue ? "bg-red-50" : ""} ${selectedTasks.has(task.id) ? "bg-blue-50" : ""}`}
+                    >
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedTasks.has(task.id)}
+                          onChange={() => handleSelectTask(task.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="max-w-xs">
+                          <div className={`font-medium text-gray-900 ${isOverdue ? "text-red-600" : ""}`}>
+                            {task.name}
+                          </div>
+                          {task.description && (
+                            <div className="text-sm text-gray-500 mt-1 truncate">{task.description}</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
+                        >
+                          {task.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
+                        >
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(task.role)}`}
+                        >
+                          {task.role || "Unassigned"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-gray-400" />
+                          <span className="text-sm text-gray-900">
+                            {assignedUser
+                              ? `${assignedUser.first_name || ""} ${assignedUser.last_name || ""}`.trim() ||
+                                assignedUser.username ||
+                                assignedUser.email
+                              : task.assigned_to
+                                ? `User ${task.assigned_to}`
+                                : "Unassigned"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-gray-400" />
+                          <span className="text-sm text-gray-900">
+                            {reporterUser
+                              ? `${reporterUser.first_name || ""} ${reporterUser.last_name || ""}`.trim() ||
+                                reporterUser.username ||
+                                reporterUser.email
+                              : task.reporter
+                                ? `User ${task.reporter}`
+                                : "Unknown"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        {task.created_at ? new Date(task.created_at).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        {task.due_date ? (
+                          <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                            {new Date(task.due_date).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingTask(task)
+                              setShowForm(true)
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => deleteTask(sprintName, task.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filteredTasks.length === 0 && (
+                  <tr>
+                    <td colSpan="10" className="px-4 py-8 text-center text-gray-500">
+                      No tasks found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     )
   }
@@ -1686,17 +994,17 @@ const PMSDashboardSprints = () => {
   const TaskUpdateForm = () => {
     const [formData, setFormData] = useState({})
 
-    // Initialize form data when editingTask changes
     useEffect(() => {
       if (editingTask) {
         setFormData({
           name: editingTask.name || "",
           description: editingTask.description || "",
           status: editingTask.status || "backlog",
-          priority: editingTask.priority || "Medium",
+          priority: editingTask.priority || "medium",
           role: editingTask.role || "",
-          created_at: editingTask.created_at || "",
-          assigned_to: editingTask.assigned_to || "",
+          created_at: editingTask.created_at ? editingTask.created_at.split("T")[0] : "",
+          assigned_to: editingTask.assigned_to?.toString() || "",
+          reporter: editingTask.reporter?.toString() || "",
           due_date: editingTask.due_date || "",
         })
       }
@@ -1721,6 +1029,7 @@ const PMSDashboardSprints = () => {
               <X size={24} />
             </button>
           </div>
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
@@ -1734,6 +1043,7 @@ const PMSDashboardSprints = () => {
                 placeholder="Enter task name"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
@@ -1745,6 +1055,7 @@ const PMSDashboardSprints = () => {
                 placeholder="Enter task description"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -1754,7 +1065,6 @@ const PMSDashboardSprints = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select status</option>
                   <option value="backlog">Backlog</option>
                   <option value="ready">Ready to Start</option>
                   <option value="in_progress">In Progress</option>
@@ -1763,11 +1073,12 @@ const PMSDashboardSprints = () => {
                   <option value="stuck">Stuck</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                 <select
                   name="priority"
-                  value={formData.priority || "Medium"}
+                  value={formData.priority || "medium"}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -1777,27 +1088,31 @@ const PMSDashboardSprints = () => {
                 </select>
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                 <select
                   name="role"
                   value={formData.role || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select Role</option>
+                  <option value="">Select Type</option>
                   <option value="dev">Dev</option>
                   <option value="design">Design</option>
-                  <option value="Quality">Quality</option>
-                  <option value="Security">Security</option>
-                  <option value="Test">Test</option>
+                  <option value="quality">Quality</option>
+                  <option value="security">Security</option>
+                  <option value="test">Test</option>
+                  <option value="bug">Bug</option>
+                  <option value="feature">Feature</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="created_at"
                   value={formData.created_at || ""}
                   onChange={handleInputChange}
@@ -1805,29 +1120,40 @@ const PMSDashboardSprints = () => {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To (User ID)</label>
-                <input
-                  type="text"
-                  name="assigned_to"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
+                <UserDropdown
                   value={formData.assigned_to || ""}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter user ID"
+                  placeholder="Select assignee"
+                  name="assigned_to"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  name="due_date"
-                  value={formData.due_date || ""}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reporter</label>
+                <UserDropdown
+                  value={formData.reporter || ""}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Select reporter"
+                  name="reporter"
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input
+                type="date"
+                name="due_date"
+                value={formData.due_date || ""}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             <div className="flex justify-end space-x-3 pt-6">
               <button
                 type="button"
@@ -1838,19 +1164,15 @@ const PMSDashboardSprints = () => {
               </button>
               <button
                 onClick={() => {
-                  // Find which sprint this task belongs to
                   let taskSprint = ""
                   Object.entries(sprintData).forEach(([sprintName, tasks]) => {
                     if (tasks.find((t) => t.id === editingTask.id)) {
                       taskSprint = sprintName
                     }
                   })
-
-                  // Check if task is in backlog
                   if (!taskSprint && backlogTasks.find((t) => t.id === editingTask.id)) {
                     taskSprint = "Backlog"
                   }
-
                   updateTask(editingTask.id, formData, taskSprint)
                   setShowForm(false)
                   setEditingTask(null)
@@ -1866,6 +1188,7 @@ const PMSDashboardSprints = () => {
     )
   }
 
+  // Show your original Lottie loading animation
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -1886,29 +1209,29 @@ const PMSDashboardSprints = () => {
       )}
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
             <nav className="text-sm text-gray-500 mb-2">Projects / Project {projectId}</nav>
             <h1 className="text-2xl font-semibold text-gray-900">PMS</h1>
           </div>
-          <div className="flex items-center space-x-3">
-            <button className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center">
-              Export Issues
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </button>
-            <button className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center">
-              Show all issues
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </button>
-          </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            {/* Bulk Actions */}
+            {showBulkActions && (
+              <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-md">
+                <span className="text-sm text-blue-700">{selectedTasks.size} selected</span>
+                <button onClick={handleBulkDelete} className="text-sm text-red-600 hover:text-red-800">
+                  Delete
+                </button>
+              </div>
+            )}
+
             {/* Add Task Button */}
             <button
               onClick={() => {
@@ -1921,19 +1244,19 @@ const PMSDashboardSprints = () => {
               Add Task
             </button>
 
-            {/* Search */}
+            {/* Enhanced Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="Search issues"
+                placeholder="Search tasks, descriptions, IDs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-80"
               />
             </div>
 
-            {/* Project Filter */}
+            {/* Enhanced Filters */}
             <div className="relative">
               <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
                 Project: Current
@@ -1941,7 +1264,6 @@ const PMSDashboardSprints = () => {
               </button>
             </div>
 
-            {/* Type/Role Filter */}
             <div className="relative">
               <button
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
@@ -1977,7 +1299,6 @@ const PMSDashboardSprints = () => {
               )}
             </div>
 
-            {/* Status Filter */}
             <div className="relative">
               <button
                 onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
@@ -2013,7 +1334,6 @@ const PMSDashboardSprints = () => {
               )}
             </div>
 
-            {/* Assignee Filter */}
             <div className="relative">
               <button
                 onClick={() => setIsPersonDropdownOpen(!isPersonDropdownOpen)}
@@ -2082,7 +1402,7 @@ const PMSDashboardSprints = () => {
               <SprintTable
                 key={sprintName}
                 title={sprintName}
-                tasks={sortTasks(filterTasks(tasks))}
+                tasks={tasks}
                 isExpanded={sprintVisibility[sprintName]}
                 toggleExpand={() => toggleSprintVisibility(sprintName)}
                 addTask={startAddingTask}
@@ -2098,7 +1418,7 @@ const PMSDashboardSprints = () => {
         ) : (
           <SprintTable
             title="Backlog"
-            tasks={sortTasks(filterTasks(backlogTasks))}
+            tasks={backlogTasks}
             isExpanded={true}
             toggleExpand={() => {}}
             addTask={startAddingTask}
@@ -2110,15 +1430,15 @@ const PMSDashboardSprints = () => {
       {/* Add Task Form */}
       {addingToSprint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Add Task to {addingToSprint}</h2>
               <button onClick={cancelAddingTask} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
+
             <div className="space-y-4">
-              {/* Task Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Task Name *</label>
                 <input
@@ -2131,7 +1451,7 @@ const PMSDashboardSprints = () => {
                   placeholder="Enter task name"
                 />
               </div>
-              {/* Description */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
@@ -2143,9 +1463,8 @@ const PMSDashboardSprints = () => {
                   placeholder="Enter task description"
                 />
               </div>
-              {/* Status & Priority */}
+
               <div className="grid grid-cols-2 gap-4">
-                {/* Status */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select
@@ -2164,7 +1483,7 @@ const PMSDashboardSprints = () => {
                     <option value="stuck">Stuck</option>
                   </select>
                 </div>
-                {/* Priority */}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                   <select
@@ -2181,64 +1500,72 @@ const PMSDashboardSprints = () => {
                   </select>
                 </div>
               </div>
-              {/* Role & Created At */}
+
               <div className="grid grid-cols-2 gap-4">
-                {/* Role */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                   <select
                     name="role"
                     value={newTask.role}
                     onChange={handleTaskInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Select role</option>
-                    <option value="Dev">Dev</option>
-                    <option value="Design">Design</option>
-                    <option value="Quality">Quality</option>
-                    <option value="Security">Security</option>
-                    <option value="Test">Test</option>
+                    <option value="">Select type</option>
+                    <option value="dev">Dev</option>
+                    <option value="design">Design</option>
+                    <option value="quality">Quality</option>
+                    <option value="security">Security</option>
+                    <option value="test">Test</option>
+                    <option value="bug">Bug</option>
+                    <option value="feature">Feature</option>
                   </select>
                 </div>
-                {/* Created At */}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     name="created_at"
-                    value={newTask.created_at ? newTask.created_at.slice(0, 16) : ""}
+                    value={newTask.created_at}
                     onChange={handleTaskInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
-              {/* Assigned To & Due Date */}
+
               <div className="grid grid-cols-2 gap-4">
-                {/* Assigned To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-                  <input
-                    type="number"
-                    name="assigned_to"
+                  <UserDropdown
                     value={newTask.assigned_to}
                     onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter user ID"
+                    placeholder="Select assignee"
+                    name="assigned_to"
                   />
                 </div>
-                {/* Due Date */}
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    name="due_date"
-                    value={newTask.due_date}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reporter</label>
+                  <UserDropdown
+                    value={newTask.reporter}
                     onChange={handleTaskInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Select reporter"
+                    name="reporter"
                   />
                 </div>
               </div>
-              {/* Form Actions */}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  name="due_date"
+                  value={newTask.due_date}
+                  onChange={handleTaskInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
               <div className="flex justify-end space-x-3 pt-6">
                 <button
                   type="button"
@@ -2261,9 +1588,6 @@ const PMSDashboardSprints = () => {
 
       {/* Task Update Form Modal */}
       <TaskUpdateForm />
-
-      {/* Column Management Modal */}
-      {isColumnModalOpen && <ColumnManagementModal />}
     </div>
   )
 }

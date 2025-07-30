@@ -14,7 +14,7 @@ import './index.css';
 import Login from './pages/Login';
 import SignIn from './pages/SignIn';
 import ForgotPassword from "./pages/ForgotPassword";
-import PurposeSelection from "./pages/PurposeSelection";
+import Profile_Setup from "./pages/Profile_Setup";
 import TeamInvite from "./pages/TeamInvite";
 import SprintTasks from "./pages/SprintTasks";
 import Integrations from "./pages/Integrations";
@@ -35,7 +35,7 @@ function App() {
           <Route path="/Login" element={<Login/>} />
           <Route path="/SignIn" element={<SignIn/>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/purpose-selection" element={<PurposeSelection />} />
+          <Route path="/Profile_Setup" element={<Profile_Setup/>} />
           <Route path="/TeamInvite" element={<TeamInvite />} />
           <Route path="/SprintTasks" element={<SprintTasks />} />
           <Route path="/Integrations" element={<Integrations/>} />
