@@ -59,14 +59,30 @@ router.register(r'sprints', SprintViewSet)
 router.register(r'tasks', TaskViewSet)
 router.register(r'bugs', BugViewSet)
 router.register(r'retrospectives', RetrospectiveViewSet)
-router.register(r'notifications', NotificationViewSet)
+# router.register(r'notifications', NotificationViewSet)
 router.register(r'bookmarks', BookmarkViewSet)
 router.register(r'invitations', InvitationViewSet)
 router.register(r'activities', ActivityLogViewSet)
+
+notification_patterns = [
+    path('', views.NotificationViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'patch': 'update_with_header',
+        'put': 'update_with_header',
+        'delete': 'destroy_with_header'
+    }), name='notification-main-action'),
+    path('mark_all_read/', views.NotificationViewSet.as_view({'post': 'mark_all_read'}), name='notification-mark-all-read'),
+    path('clear_all/', views.NotificationViewSet.as_view({'delete': 'clear_all'}), name='notification-clear-all'),
+    path('unread_count/', views.NotificationViewSet.as_view({'get': 'unread_count'}), name='notification-unread-count'),
+    path('by_type/', views.NotificationViewSet.as_view({'get': 'by_type'}), name='notification-by-type'),
+    path('mark_read/', views.NotificationViewSet.as_view({'post': 'mark_read'}), name='notification-mark-read')
+]
 
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', csrf_exempt(views.register_user), name='register'),
     path('auth/request-otp/', views.request_otp, name='request_otp'),
     path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
+    path('notifications/', include(notification_patterns)),
 ]

@@ -6,7 +6,7 @@ from .models import (
     Invitation, ActivityLog, OTP
 )
 from django.contrib.auth import get_user_model
-
+from django.utils import timezone
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
     
@@ -89,7 +89,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class BugSerializer(serializers.ModelSerializer):
     assignee = UserSerializer(read_only=True)
-    reporter = UserSerializer(read_only=True)
+    reporter = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
     
     class Meta:
         model = Bug
@@ -98,6 +98,12 @@ class BugSerializer(serializers.ModelSerializer):
             'assignee', 'status', 'priority', 'key', 'created_at', 
             'updated_at', 'due_date', 'resolution', 'type'
         ]
+        
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.reporter:
+            representation['reporter'] = UserSerializer(instance.reporter).data
+        return representation
 
 class RetrospectiveSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)

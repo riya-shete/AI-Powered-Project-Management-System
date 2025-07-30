@@ -49,6 +49,18 @@ const Sidebar = () => {
 
   // Workspace management state
   const [activeWorkspaceMenu, setActiveWorkspaceMenu] = useState(null)
+  const { 
+  workspaces: contextWorkspaces, 
+  currentWorkspace,
+  setCurrentWorkspace,
+  loading: contextLoading,
+  error: contextError,
+  refreshWorkspaces,
+  createWorkspace: contextCreateWorkspace,
+  updateWorkspace: contextUpdateWorkspace,
+  deleteWorkspace: contextDeleteWorkspace
+} = useWorkspace();
+
 
   // Project expansion state
   const [expandedProjects, setExpandedProjects] = useState(() => {
@@ -85,102 +97,104 @@ const Sidebar = () => {
 
   const token = localStorage.getItem("token")
 
+  //needs to be delted as we are already building this in workspace context.jsx
   // FIXED: Workspace CRUD API functions with better error handling
-  const workspaceAPI = {
-    getAllWorkspaces: async () => {
-      try {
-        const response = await axios.get("http://localhost:8000/api/workspaces/", {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        })
+  // const workspaceAPI = {
+  //   getAllWorkspaces: async () => {
+  //     try {
+  //       const response = await axios.get("http://localhost:8000/api/workspaces/", {
+  //         headers: {
+  //           Authorization: `Token ${token}`,
+  //         },
+  //       })
+  //       console.log("fetched workspaces:", response.data)
 
-        // FIXED: Handle different response structures
-        if (response.data && typeof response.data === "object") {
-          return {
-            results: response.data.results || response.data.data || (Array.isArray(response.data) ? response.data : []),
-          }
-        }
-        return { results: [] }
-      } catch (error) {
-        console.error("Error fetching workspaces:", error)
-        return { results: [] } // FIXED: Always return expected structure
-      }
-    },
+  //       // FIXED: Handle different response structures
+  //       if (response.data && typeof response.data === "object") {
+  //         return {
+  //           results: response.data.results || response.data.data || (Array.isArray(response.data) ? response.data : []),
+  //         }
+  //       }
+  //       return { results: [] }
+  //     } catch (error) {
+  //       console.error("Error fetching workspaces:", error)
+  //       return { results: [] } // FIXED: Always return expected structure
+  //     }
+  //   },
 
-    getWorkspaceById: async (workspaceId) => {
-      try {
-        const response = await axios.get("http://localhost:8000/api/workspaces/", {
-          headers: {
-            Authorization: `Token ${token}`,
-            "X-Object-ID": workspaceId,
-          },
-        })
-        return response.data
-      } catch (error) {
-        console.error("Error fetching workspace:", error)
-        throw error
-      }
-    },
+  //   getWorkspaceById: async (workspaceId) => {
+  //     try {
+  //       const response = await axios.get("http://localhost:8000/api/workspaces/", {
+  //         headers: {
+  //           Authorization: `Token ${token}`,
+  //           "X-Object-ID": workspaceId,
+  //         },
+  //       })
+  //       return response.data
+  //     } catch (error) {
+  //       console.error("Error fetching workspace:", error)
+  //       throw error
+  //     }
+  //   },
 
-    createWorkspace: async (workspaceData) => {
-      try {
-        const token = localStorage.getItem("token")
-        const user_id = localStorage.getItem("user_id")
+  //   createWorkspace: async (workspaceData) => {
+  //     try {
+  //       const token = localStorage.getItem("token")
+  //       const user_id = localStorage.getItem("user_id")
 
-        const response = await axios.post(
-          "http://localhost:8000/api/workspaces/",
-          {
-            name: workspaceData.name,
-            description: workspaceData.description || "New workspace",
-            icon: "workspace_icon",
-            owner: Number.parseInt(user_id),
-          },
-          {
-            headers: {
-              Authorization: `Token ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        )
-        return response.data
-      } catch (error) {
-        console.error("Error creating workspace:", error)
-        throw error
-      }
-    },
+  //       const response = await axios.post(
+  //         "http://localhost:8000/api/workspaces/",
+  //         {
+  //           name: workspaceData.name,
+  //           description: workspaceData.description || "New workspace",
+  //           icon: "workspace_icon",
+  //           owner: Number.parseInt(user_id),
+  //         },
+  //         {
+  //           headers: {
+  //             Authorization: `Token ${token}`,
+  //             "Content-Type": "application/json",
+  //           },
+  //         },
+  //       )
+  //       return response.data
+  //     } catch (error) {
+  //       console.error("Error creating workspace:", error)
+  //       throw error
+  //     }
+  //   },
 
-    updateWorkspace: async (workspaceId, workspaceData) => {
-      try {
-        const response = await axios.put("http://localhost:8000/api/workspaces/", workspaceData, {
-          headers: {
-            Authorization: `Token ${token}`,
-            "Content-Type": "application/json",
-            "X-Object-ID": workspaceId,
-          },
-        })
-        return response.data
-      } catch (error) {
-        console.error("Error updating workspace:", error)
-        throw error
-      }
-    },
+  //   updateWorkspace: async (workspaceId, workspaceData) => {
+  //     try {
+  //       const response = await axios.put("http://localhost:8000/api/workspaces/", workspaceData, {
+  //         headers: {
+  //           Authorization: `Token ${token}`,
+  //           "Content-Type": "application/json",
+  //           "X-Object-ID": workspaceId,
+  //         },
+  //       })
+  //       return response.data
+  //     } catch (error) {
+  //       console.error("Error updating workspace:", error)
+  //       throw error
+  //     }
+  //   },
 
-    deleteWorkspace: async (workspaceId) => {
-      try {
-        const response = await axios.delete("http://localhost:8000/api/workspaces/", {
-          headers: {
-            Authorization: `Token ${token}`,
-            "X-Object-ID": workspaceId,
-          },
-        })
-        return response.data
-      } catch (error) {
-        console.error("Error deleting workspace:", error)
-        throw error
-      }
-    },
-  }
+  //   deleteWorkspace: async (workspaceId) => {
+  //     try {
+  //       const response = await axios.delete("http://localhost:8000/api/workspaces/", {
+  //         headers: {
+  //           Authorization: `Token ${token}`,
+  //           "X-Object-ID": workspaceId,
+  //         },
+  //       })
+  //       return response.data
+  //     } catch (error) {
+  //       console.error("Error deleting workspace:", error)
+  //       throw error
+  //     }
+  //   },
+  // }
 
   // FIXED: Project CRUD API functions with better error handling
   const projectAPI = {
@@ -191,6 +205,7 @@ const Sidebar = () => {
             Authorization: `Token ${token}`,
           },
         })
+        console.log("fetched projects", response.data)
 
         // FIXED: Handle different response structures
         if (response.data && typeof response.data === "object") {
@@ -370,16 +385,6 @@ const Sidebar = () => {
     }
   })
 
-  const [workspaces, setWorkspaces] = useState(() => {
-    try {
-      const saved = localStorage.getItem("workspaces")
-      return saved ? JSON.parse(saved) : defaultWorkspaces
-    } catch (error) {
-      console.error("Error loading workspaces from localStorage:", error)
-      return defaultWorkspaces
-    }
-  })
-
   const [pinnedWorkspaces, setPinnedWorkspaces] = useState(() => {
     try {
       const saved = localStorage.getItem("pinnedWorkspaces")
@@ -399,13 +404,14 @@ const Sidebar = () => {
     }
   }, [expandedSections])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("workspaces", JSON.stringify(workspaces))
-    } catch (error) {
-      console.error("Error saving workspaces to localStorage:", error)
-    }
-  }, [workspaces])
+  //need to be deleted
+  // useEffect(() => {
+  //   try {
+  //     localStorage.setItem("workspaces", JSON.stringify(workspaces))
+  //   } catch (error) {
+  //     console.error("Error saving workspaces to localStorage:", error)
+  //   }
+  // }, [workspaces])
 
   useEffect(() => {
     try {
@@ -417,28 +423,23 @@ const Sidebar = () => {
 
   // Track active workspace based on current path
   useEffect(() => {
-    const currentPath = location.pathname
-    const isWorkspacePath = workspaces.some((workspace) =>
-      (workspace.pages || []).some((page) => page.path === currentPath),
-    )
+  const currentPath = location.pathname
+  const isWorkspacePath = contextWorkspaces.some((workspace) =>
+    (workspace.pages || []).some((page) => page.path === currentPath),
+  )
 
-    if (isWorkspacePath) {
-      const updatedWorkspaces = workspaces.map((workspace) => ({
-        ...workspace,
-        isActive: (workspace.pages || []).some((page) => page.path === currentPath),
-      }))
-      setWorkspaces(updatedWorkspaces)
-
-      workspaces.forEach((workspace) => {
-        if (workspace.pages.some((page) => page.path === currentPath)) {
-          setExpandedSections((prev) => ({
-            ...prev,
-            [workspace.name]: true,
-          }))
-        }
-      })
-    }
-  }, [location.pathname])
+  if (isWorkspacePath) {
+    contextWorkspaces.find((workspace) => {
+      if ((workspace.pages || []).some((page) => page.path === currentPath)) {
+        setCurrentWorkspace(workspace) // This will update the context
+        setExpandedSections((prev) => ({
+          ...prev,
+          [workspace.name]: true,
+        }))
+      }
+    })
+  }
+}, [location.pathname, contextWorkspaces, setCurrentWorkspace])
 
   // Search functionality
   useEffect(() => {
@@ -450,7 +451,7 @@ const Sidebar = () => {
     const query = searchQuery.toLowerCase()
     const results = []
 
-    workspaces.forEach((workspace) => {
+    contextWorkspaces.find((workspace) => {
       if (workspace.name.toLowerCase().includes(query)) {
         results.push({
           type: "workspace",
@@ -480,7 +481,7 @@ const Sidebar = () => {
     })
 
     setSearchResults(results)
-  }, [searchQuery, workspaces])
+  }, [searchQuery, contextWorkspaces])
 
   // Closing workspace menu when clicking outside
   useEffect(() => {
@@ -523,103 +524,192 @@ const Sidebar = () => {
     navigate(path)
   }
 
-  // Updated addWorkspace function
+  // // Updated addWorkspace function
+  // const addWorkspace = async () => {
+  //   if (newWorkspaceName.trim()) {
+  //     setLoading(true)
+  //     try {
+  //       const newWorkspaceData = {
+  //         name: newWorkspaceName,
+  //         description: `${newWorkspaceName} workspace`,
+  //       }
+
+  //       const createdWorkspace = await workspaceAPI.createWorkspace(newWorkspaceData)
+
+  //       const newWorkspace = {
+  //         id: createdWorkspace.id,
+  //         name: createdWorkspace.name,
+  //         icon: createdWorkspace.name.charAt(0).toUpperCase(),
+  //         color: getRandomColor(),
+  //         isActive: false,
+  //         pages: getStandardPages(currentProjectId),
+  //       }
+
+  //       setWorkspaces([...workspaces, newWorkspace])
+
+  //       setExpandedSections((prev) => ({
+  //         ...prev,
+  //         [newWorkspace.name]: true,
+  //       }))
+
+  //       setNewWorkspaceName("")
+  //       setIsCreateDialogOpen(false)
+  //     } catch (error) {
+  //       setError("Failed to create workspace")
+  //       console.error("Create workspace error:", error)
+  //       alert(`Failed to create workspace: ${error.response?.data?.message || error.message}`)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+  // }
+  //NEW:
   const addWorkspace = async () => {
-    if (newWorkspaceName.trim()) {
-      setLoading(true)
-      try {
-        const newWorkspaceData = {
-          name: newWorkspaceName,
-          description: `${newWorkspaceName} workspace`,
-        }
-
-        const createdWorkspace = await workspaceAPI.createWorkspace(newWorkspaceData)
-
-        const newWorkspace = {
-          id: createdWorkspace.id,
-          name: createdWorkspace.name,
-          icon: createdWorkspace.name.charAt(0).toUpperCase(),
-          color: getRandomColor(),
-          isActive: false,
-          pages: getStandardPages(currentProjectId),
-        }
-
-        setWorkspaces([...workspaces, newWorkspace])
-
-        setExpandedSections((prev) => ({
-          ...prev,
-          [newWorkspace.name]: true,
-        }))
-
-        setNewWorkspaceName("")
-        setIsCreateDialogOpen(false)
-      } catch (error) {
-        setError("Failed to create workspace")
-        console.error("Create workspace error:", error)
-        alert(`Failed to create workspace: ${error.response?.data?.message || error.message}`)
-      } finally {
-        setLoading(false)
-      }
-    }
-  }
-
-  const renameWorkspace = async () => {
-    if (newWorkspaceName && newWorkspaceName !== activeWorkspace.name) {
-      setLoading(true)
-      try {
-        await workspaceAPI.updateWorkspace(activeWorkspace.id, {
-          name: newWorkspaceName,
-        })
-
-        const updatedWorkspaces = workspaces.map((w) =>
-          w.id === activeWorkspace.id ? { ...w, name: newWorkspaceName } : w,
-        )
-        setWorkspaces(updatedWorkspaces)
-
-        const newExpandedSections = { ...expandedSections }
-        if (expandedSections[activeWorkspace.name] !== undefined) {
-          newExpandedSections[newWorkspaceName] = expandedSections[activeWorkspace.name]
-          delete newExpandedSections[activeWorkspace.name]
-          setExpandedSections(newExpandedSections)
-        }
-
-        // FIXED: Update pinned workspaces when renaming
-        const pinnedIndex = pinnedWorkspaces.findIndex((p) => p.id === activeWorkspace.id)
-        if (pinnedIndex !== -1) {
-          const newPinnedWorkspaces = [...pinnedWorkspaces]
-          newPinnedWorkspaces[pinnedIndex] = { ...newPinnedWorkspaces[pinnedIndex], name: newWorkspaceName }
-          setPinnedWorkspaces(newPinnedWorkspaces)
-        }
-      } catch (error) {
-        setError("Failed to rename workspace")
-        console.error("Rename workspace error:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    setNewWorkspaceName("")
-    setIsRenameDialogOpen(false)
-    setActiveWorkspace(null)
-  }
-
-  const deleteWorkspace = async () => {
+  if (newWorkspaceName.trim()) {
     setLoading(true)
     try {
-      await workspaceAPI.deleteWorkspace(activeWorkspace.id)
+      const newWorkspaceData = {
+        name: newWorkspaceName,
+        description: description || `${newWorkspaceName} workspace`,
+      }
 
-      setPinnedWorkspaces(pinnedWorkspaces.filter((pinned) => pinned.id !== activeWorkspace.id))
-      setWorkspaces(workspaces.filter((workspace) => workspace.id !== activeWorkspace.id))
+      const createdWorkspace = await contextCreateWorkspace(newWorkspaceData)
 
-      setIsDeleteDialogOpen(false)
-      setActiveWorkspace(null)
+      setExpandedSections((prev) => ({
+        ...prev,
+        [createdWorkspace.name]: true,
+      }))
+
+      setNewWorkspaceName("")
+      setDescription("")
+      setIsCreateDialogOpen(false)
     } catch (error) {
-      setError("Failed to delete workspace")
-      console.error("Delete workspace error:", error)
+      setError("Failed to create workspace")
+      console.error("Create workspace error:", error)
+      alert(`Failed to create workspace: ${error.response?.data?.message || error.message}`)
     } finally {
       setLoading(false)
     }
   }
+}
+
+  // const renameWorkspace = async () => {
+  //   if (newWorkspaceName && newWorkspaceName !== activeWorkspace.name) {
+  //     setLoading(true)
+  //     try {
+  //       await workspaceAPI.updateWorkspace(activeWorkspace.id, {
+  //         name: newWorkspaceName,
+  //       })
+
+  //       const updatedWorkspaces = workspaces.map((w) =>
+  //         w.id === activeWorkspace.id ? { ...w, name: newWorkspaceName } : w,
+  //       )
+  //       setWorkspaces(updatedWorkspaces)
+
+  //       const newExpandedSections = { ...expandedSections }
+  //       if (expandedSections[activeWorkspace.name] !== undefined) {
+  //         newExpandedSections[newWorkspaceName] = expandedSections[activeWorkspace.name]
+  //         delete newExpandedSections[activeWorkspace.name]
+  //         setExpandedSections(newExpandedSections)
+  //       }
+
+  //       // FIXED: Update pinned workspaces when renaming
+  //       const pinnedIndex = pinnedWorkspaces.findIndex((p) => p.id === activeWorkspace.id)
+  //       if (pinnedIndex !== -1) {
+  //         const newPinnedWorkspaces = [...pinnedWorkspaces]
+  //         newPinnedWorkspaces[pinnedIndex] = { ...newPinnedWorkspaces[pinnedIndex], name: newWorkspaceName }
+  //         setPinnedWorkspaces(newPinnedWorkspaces)
+  //       }
+  //     } catch (error) {
+  //       setError("Failed to rename workspace")
+  //       console.error("Rename workspace error:", error)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+
+  //   setNewWorkspaceName("")
+  //   setIsRenameDialogOpen(false)
+  //   setActiveWorkspace(null)
+  // }
+  //NEW:
+  const renameWorkspace = async () => {
+  if (newWorkspaceName && newWorkspaceName !== activeWorkspace.name) {
+    setLoading(true)
+    try {
+      await contextUpdateWorkspace(activeWorkspace.id, {
+        name: newWorkspaceName,
+        description: description,
+      })
+
+      // Update expanded sections
+      const newExpandedSections = { ...expandedSections }
+      if (expandedSections[activeWorkspace.name] !== undefined) {
+        newExpandedSections[newWorkspaceName] = expandedSections[activeWorkspace.name]
+        delete newExpandedSections[activeWorkspace.name]
+        setExpandedSections(newExpandedSections)
+      }
+
+      // Update pinned workspaces
+      const pinnedIndex = pinnedWorkspaces.findIndex((p) => p.id === activeWorkspace.id)
+      if (pinnedIndex !== -1) {
+        const newPinnedWorkspaces = [...pinnedWorkspaces]
+        newPinnedWorkspaces[pinnedIndex] = { 
+          ...newPinnedWorkspaces[pinnedIndex], 
+          name: newWorkspaceName 
+        }
+        setPinnedWorkspaces(newPinnedWorkspaces)
+      }
+    } catch (error) {
+      setError("Failed to rename workspace")
+      console.error("Rename workspace error:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  setNewWorkspaceName("")
+  setDescription("")
+  setIsRenameDialogOpen(false)
+  setActiveWorkspace(null)
+}
+
+  // const deleteWorkspace = async () => {
+  //   setLoading(true)
+  //   try {
+  //     await workspaceAPI.deleteWorkspace(activeWorkspace.id)
+
+  //     setPinnedWorkspaces(pinnedWorkspaces.filter((pinned) => pinned.id !== activeWorkspace.id))
+  //     setWorkspaces(workspaces.filter((workspace) => workspace.id !== activeWorkspace.id))
+
+  //     setIsDeleteDialogOpen(false)
+  //     setActiveWorkspace(null)
+  //   } catch (error) {
+  //     setError("Failed to delete workspace")
+  //     console.error("Delete workspace error:", error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+  //NEW:
+  const deleteWorkspace = async () => {
+  setLoading(true)
+  try {
+    await contextDeleteWorkspace(activeWorkspace.id)
+
+    // Clean up local state
+    setPinnedWorkspaces(pinnedWorkspaces.filter((pinned) => pinned.id !== activeWorkspace.id))
+    
+    setIsDeleteDialogOpen(false)
+    setActiveWorkspace(null)
+  } catch (error) {
+    setError("Failed to delete workspace")
+    console.error("Delete workspace error:", error)
+  } finally {
+    setLoading(false)
+  }
+}
+
 
   // Project management functions
   const addProject = async () => {
@@ -732,48 +822,72 @@ const Sidebar = () => {
     setIsDeleteProjectDialogOpen(true)
   }
 
-  const { setCurrentWorkspace } = useWorkspace()
+  //>>const { setCurrentWorkspace } = useWorkspace()
 
   // FIXED: Loading data on component mount with better error handling
+  // useEffect(() => {
+  //   const loadInitialData = async () => {
+  //     setLoading(true)
+  //     try {
+  //       const [workspacesData, projectsData] = await Promise.all([
+  //         workspaceAPI.getAllWorkspaces(),
+  //         projectAPI.getAllProjects(),
+  //       ])
+
+  //       // FIXED: Handle API response structure safely
+  //       if (workspacesData && workspacesData.results) {
+  //         setWorkspaces(workspacesData.results)
+  //       }
+
+  //       if (projectsData) {
+  //         setProjects(projectsData)
+  //       }
+
+  //       const currentPath = location.pathname
+  //       const currentWorkspace = (workspacesData?.results || []).find((workspace) =>
+  //         (workspace.pages || []).some((page) => page.path === currentPath),
+  //       )
+
+  //       if (currentWorkspace) {
+  //         setCurrentWorkspace(currentWorkspace)
+  //       }
+  //     } catch (error) {
+  //       setError("Failed to load data")
+  //       console.error("Load data error:", error)
+  //       // FIXED: Set fallback data on error
+  //       setWorkspaces(defaultWorkspaces)
+  //       setProjects({ results: [] })
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+
+  //   loadInitialData()
+  // }, [location.pathname])
   useEffect(() => {
-    const loadInitialData = async () => {
-      setLoading(true)
-      try {
-        const [workspacesData, projectsData] = await Promise.all([
-          workspaceAPI.getAllWorkspaces(),
-          projectAPI.getAllProjects(),
-        ])
-
-        // FIXED: Handle API response structure safely
-        if (workspacesData && workspacesData.results) {
-          setWorkspaces(workspacesData.results)
-        }
-
-        if (projectsData) {
-          setProjects(projectsData)
-        }
-
-        const currentPath = location.pathname
-        const currentWorkspace = (workspacesData?.results || []).find((workspace) =>
-          (workspace.pages || []).some((page) => page.path === currentPath),
-        )
-
-        if (currentWorkspace) {
-          setCurrentWorkspace(currentWorkspace)
-        }
-      } catch (error) {
-        setError("Failed to load data")
-        console.error("Load data error:", error)
-        // FIXED: Set fallback data on error
-        setWorkspaces(defaultWorkspaces)
-        setProjects({ results: [] })
-      } finally {
-        setLoading(false)
+  const loadInitialData = async () => {
+    setLoading(true)
+    try {
+      // Only load projects since workspaces are handled by context
+      const projectsData = await projectAPI.getAllProjects()
+      
+      if (projectsData) {
+        setProjects(projectsData)
       }
+    } catch (error) {
+      setError("Failed to load data")
+      console.error("Load data error:", error)
+      setProjects({ results: [] })
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Only load projects if we have workspaces from context
+  if (contextWorkspaces.length > 0) {
     loadInitialData()
-  }, [location.pathname])
+  }
+}, [contextWorkspaces])
 
   const togglePin = (workspace, e) => {
     e.stopPropagation()
@@ -839,7 +953,7 @@ const Sidebar = () => {
 
   const setActiveWorkspaceForNav = (activeId) => {
     setWorkspaces(
-      workspaces.map((w) => ({
+      ContextWorkspaces.map((w) => ({
         ...w,
         pages: getStandardPages(w.id),
         isActive: w.id === activeId,
@@ -912,18 +1026,18 @@ const Sidebar = () => {
     setIsDeleteDialogOpen(true)
   }
 
-  useEffect(() => {
-    if (!workspaces || workspaces.length === 0) return
+  // useEffect(() => {
+  //   if (!workspaces || workspaces.length === 0) return
 
-    const currentPath = location.pathname
-    const currentWorkspace = workspaces.find((workspace) =>
-      (workspace.pages || []).some((page) => page.path === currentPath),
-    )
+  //   const currentPath = location.pathname
+  //   const currentWorkspace = workspaces.find((workspace) =>
+  //     (workspace.pages || []).some((page) => page.path === currentPath),
+  //   )
 
-    if (currentWorkspace) {
-      setCurrentWorkspace(currentWorkspace)
-    }
-  }, [location.pathname, workspaces, setCurrentWorkspace])
+  //   if (currentWorkspace) {
+  //     setCurrentWorkspace(currentWorkspace)
+  //   }
+  // }, [location.pathname, workspaces, setCurrentWorkspace])
 
   const renderWorkspacePages = (workspace) => {
     return (
@@ -1040,6 +1154,7 @@ const Sidebar = () => {
     onConfirm,
     confirmText,
     confirmClass = "bg-blue-600 hover:bg-blue-700",
+    
   }) => {
     if (!isOpen) return null
 
@@ -1109,7 +1224,9 @@ const Sidebar = () => {
     )
   }
   //Filter out pinned workspaces from the main workspaces list
-  const unpinnedWorkspaces = workspaces.filter((workspace) => !isPinned(workspace.id))
+  // const unpinnedWorkspaces = contextWorkspaces.filter((workspace) => !isPinned(workspace.id))
+  //NEW:
+  const unpinnedWorkspaces = contextWorkspaces.filter((workspace) => !isPinned(workspace.id))
   return (
     <div className="w-64 h-full bg-white border-r border-gray-200 flex flex-col shadow-sm max-w-full">
       <div className="p-4 space-y-1">
