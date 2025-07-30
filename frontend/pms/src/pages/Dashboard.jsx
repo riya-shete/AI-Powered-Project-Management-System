@@ -1,22 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/sidebar';
 import { Link } from "react-router-dom";
 // Main App Component
 const Dashboard = () => {
+    const [currentUser, setCurrentUser] = useState({
+    id: null,
+    username: '',
+    email: ''
+  });
+    // Fetch current user data from localStorage 
+  useEffect(() => {
+    const fetchCurrentUser = () => {
+      // Get user data from localStorage (stored during login)
+      const userId = localStorage.getItem("user_id");
+      const username = localStorage.getItem("username"); 
+      const userEmail = localStorage.getItem("user-email");
+      
+      if (userId && username) {
+        setCurrentUser({
+          id: parseInt(userId),
+          username: username,
+          email: userEmail || ''
+        });
+        
+        console.log("Current user loaded:", { id: userId, username, email: userEmail });
+      } else {
+        console.error("User data not found in localStorage");
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <MainContent />
+        <MainContent currentUser={currentUser} />
       </div>
     </div>
+    
   );
 };
 
 // Main Content Component
-const MainContent = () => {
+const MainContent = ({ currentUser = {}}) => {
   const boardCards = [
     { id: 1, title: 'Retrospectives', path: 'PMS dev > My Team > My Team' },
     { id: 2, title: 'PMS', path: 'PMS dev > My Team > My Team' },
@@ -27,7 +56,7 @@ const MainContent = () => {
   return (
     <div className="flex-1 overflow-auto p-10 bg-gray-50">
         <div className="px-6 py-4 bg-white rounded-lg shadow-sm border border-gray-100">
-          <h1 className="text-2xl font-semibold text-gray-800 mb-1">Good morning, Yari!</h1>
+          <h1 className="text-2xl font-semibold text-gray-800 mb-1">Good morning, {(currentUser && currentUser.username) || 'Guest'}!</h1>
           <p className="text-gray-600 text-lg">Quickly access your recent boards, Inbox and workspaces</p>
         </div>
 
