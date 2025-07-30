@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsDemo from "./notitication"; 
-
 import ProfileSidebar from './ProfileSidebar';
-import PopupChatWindow from "./inbox"; // Imported chat component
+import PopupChatWindow from "./inbox";
 import Invite from './invite'; 
 import { UserPlus } from 'lucide-react';
-
-
+import axios from 'axios';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -16,39 +14,68 @@ const Navbar = () => {
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
   const [isInviteOpen, setInviteOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(null);
 
+  const fetchUnreadCount = async () => {
+    try {
+      setNotificationsLoading(true);
+      const response = await axios.get('http://localhost:8000/api/notifications/?read=false');
+      // Count the number of unread notifications from the response
+      const count = response.data.length || 0;
+      setUnreadCount(count);
+      setNotificationsError(null);
+    } catch (err) {
+      console.error('Error fetching unread notifications:', err);
+      setNotificationsError('Failed to load notifications');
+      setUnreadCount(0);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
 
   const handleNavigation = (path) => {
     navigate(path);
   };
 
-  // Toggle notifications popup
   const handleNotificationClick = () => {
     setNotificationOpen(true);
+    fetchUnreadCount(); // Refresh count when notifications are opened
   };
 
   const closeNotificationPopup = () => {
     setNotificationOpen(false);
   };
 
-  
-
   const closeFeedModal = () => {
     setFeedOpen(false);
   };
+
   const toggleProfileSidebar = () => {
     setIsProfileSidebarOpen(!isProfileSidebarOpen);
   };
+
   const toggleChat = () => {
     setChatOpen(!isChatOpen);
   };
-  //invitation handkler
+
   const handleInviteClick = () => {
-  setInviteOpen(true);
+    setInviteOpen(true);
   };
+
   const closeInviteModal = () => {
     setInviteOpen(false);
   };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchUnreadCount();
+
+    // Set up polling to refresh count periodically
+    const interval = setInterval(fetchUnreadCount, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
@@ -87,7 +114,23 @@ const Navbar = () => {
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" 
               />
             </svg>
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
+            
+            {/* Notification Badge */}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+            {notificationsLoading && unreadCount === 0 && (
+              <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                •
+              </span>
+            )}
+            {notificationsError && unreadCount === 0 && (
+              <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                !
+              </span>
+            )}
           </button>
           
           {/* Inbox Button toggles the chat popup */}
@@ -105,8 +148,6 @@ const Navbar = () => {
               />
             </svg>
           </button>
-          
-          
           
           {/* Search Button */}
           <button 
@@ -154,7 +195,7 @@ const Navbar = () => {
           {/* Profile Button */}
           <button 
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-blue-400 transition-colors duration-200"
-            onClick={toggleProfileSidebar} // Changed from handleNavigation to toggleProfileSidebar
+            onClick={toggleProfileSidebar}
           >
             <img 
               src="https://t4.ftcdn.net/jpg/09/61/69/71/240_F_961697155_J7ZlI6T87DqEtLIRZoXkdMAMs87VyfAu.jpg" 
@@ -174,18 +215,20 @@ const Navbar = () => {
       </nav>
 
       {/* Render Notifications Modal */}
-      <NotificationsDemo isOpen={isNotificationOpen} onClose={closeNotificationPopup} />
-
+      <NotificationsDemo 
+        isOpen={isNotificationOpen} 
+        onClose={closeNotificationPopup}
+        refreshCount={fetchUnreadCount}
+      />
 
       <ProfileSidebar 
-  isOpen={isProfileSidebarOpen} 
-  onClose={() => setIsProfileSidebarOpen(false)}
-  openNotifications={() => setNotificationOpen(true)}
-  openTeamChat={() => setChatOpen(true)}
-  
-/>
+        isOpen={isProfileSidebarOpen} 
+        onClose={() => setIsProfileSidebarOpen(false)}
+        openNotifications={() => setNotificationOpen(true)}
+        openTeamChat={() => setChatOpen(true)}
+      />
+      
       {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
-      {/* Render Invite Modal */}
       <Invite isOpen={isInviteOpen} onClose={closeInviteModal} />
     </>
   );
