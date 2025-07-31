@@ -24,7 +24,7 @@ const NotificationsPanel = ({
   const API_ENDPOINT = `${baseUrl}/api/notifications/`;
   const MARK_READ_ENDPOINT = `${baseUrl}/api/notifications/mark_read/`;
   const MARK_ALL_READ_ENDPOINT = `${baseUrl}/api/notifications/mark_all_read/`;
-  const DELETE_ENDPOINT = `${baseUrl}/api/notifications/delete/`;
+  const DELETE_ENDPOINT = `${baseUrl}/api/notifications/`;
   const DELETE_ALL_ENDPOINT = `${baseUrl}/api/notifications/clear_all/`;
 
   // Notification type configuration
@@ -39,24 +39,53 @@ const NotificationsPanel = ({
     system: { label: 'System', icon: Settings, color: 'text-gray-400' }
   };
 
+  // Enhanced debug logging
+  const debugLog = (action, message, data = null) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${action}] ${message}`, data || '');
+  };
+
+  // Get auth headers with X-Object-ID when needed
+  const getHeaders = (notificationId = null) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      debugLog('AUTH', 'No token found');
+      return null;
+    }
+
+    const headers = {
+      'Authorization': `Token ${token}`,
+      'Content-Type': 'application/json'
+    };
+
+    if (notificationId) {
+      headers['X-Object-ID'] = notificationId.toString();
+      debugLog('HEADERS', 'Added X-Object-ID header', headers);
+    }
+
+    return headers;
+  };
+
   // Fetch notifications
   const fetchNotifications = async () => {
     setLoading(true);
     setError(null);
     
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const headers = getHeaders();
+    if (!headers) {
       setError('No authentication token found');
       setLoading(false);
       return;
     }
 
+    debugLog('FETCH', 'Starting fetch notifications');
+    
     try {
-      const response = await axios.get(API_ENDPOINT, {
-        headers: {
-          'Authorization': `Token ${token}`,
-          // 'X-Object-ID': userId.toString()
-        }
+      const response = await axios.get(API_ENDPOINT, { headers });
+
+      debugLog('API RESPONSE', 'Received response', {
+        status: response.status,
+        data: response.data
       });
 
       if (response.data && Array.isArray(response.data)) {
@@ -67,129 +96,194 @@ const NotificationsPanel = ({
           groups[type] = true;
         });
         setExpandedGroups(groups);
+        debugLog('STATE', `Updated with ${response.data.length} notifications`);
       } else {
         setError('Unexpected response format');
+        debugLog('ERROR', 'Unexpected response format', response.data);
       }
     } catch (err) {
-      console.error('API Error:', err);
-      setError(`Failed to load notifications: ${err.message}`);
+      const errorMsg = err.response?.data?.message || err.message;
+      setError(`Failed to load notifications: ${errorMsg}`);
+      debugLog('ERROR', 'Fetch failed', {
+        status: err.response?.status,
+        message: errorMsg,
+        response: err.response?.data
+      });
     } finally {
       setLoading(false);
+      debugLog('FETCH', 'Fetch completed');
     }
   };
 
   // Mark as read
-  const markAsRead = async (id) => {
+  const markAsRead = async (notificationId) => {
+    debugLog('MARK READ', `Starting mark as read for notification ID: ${notificationId}`);
+    
+    const headers = getHeaders(notificationId);
+    if (!headers) {
+      debugLog('ERROR', 'No auth headers for markAsRead');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${MARK_READ_ENDPOINT}${id}/`,
+      const response = await axios.post(
+        MARK_READ_ENDPOINT,
         {},
-        {
-          headers: {
-            'Authorization': `Token ${token}`,
-            'X-Object-ID': userId.toString()
-          }
-        }
+        { headers }
       );
+
+      debugLog('API RESPONSE', 'Mark read success', {
+        status: response.status,
+        data: response.data
+      });
+      
       // Optimistic UI update
       setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
-      // Refresh to ensure sync with backend
-      fetchNotifications();
+      debugLog('STATE', `Notification ${notificationId} marked as read`);
     } catch (err) {
-      console.error('Mark read failed:', err);
-      // Revert if failed
-      fetchNotifications();
+      const errorMsg = err.response?.data?.message || err.message;
+      console.error('Mark read failed:', errorMsg);
+      debugLog('ERROR', 'Mark read failed', {
+        status: err.response?.status,
+        message: errorMsg,
+        response: err.response?.data
+      });
+      fetchNotifications(); // Revert by refetching
     }
   };
 
   // Mark all as read
   const markAllAsRead = async () => {
+    debugLog('MARK ALL READ', 'Starting mark all as read');
+    
+    const headers = getHeaders();
+    if (!headers) {
+      debugLog('ERROR', 'No auth headers for markAllAsRead');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
+      const response = await axios.post(
         MARK_ALL_READ_ENDPOINT,
         {},
-        {
-          headers: {
-            'Authorization': `Token ${token}`,
-            // 'X-Object-ID': userId.toString()
-          }
-        }
+        { headers }
       );
+
+      debugLog('API RESPONSE', 'Mark all read success', {
+        status: response.status,
+        data: response.data
+      });
+      
       // Optimistic UI update
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      // Refresh to ensure sync with backend
-      fetchNotifications();
+      debugLog('STATE', 'All notifications marked as read');
     } catch (err) {
-      console.error('Mark all read failed:', err);
-      // Revert if failed
-      fetchNotifications();
+      const errorMsg = err.response?.data?.message || err.message;
+      console.error('Mark all read failed:', errorMsg);
+      debugLog('ERROR', 'Mark all read failed', {
+        status: err.response?.status,
+        message: errorMsg,
+        response: err.response?.data
+      });
+      fetchNotifications(); // Revert by refetching
     }
   };
 
   // Delete notification
-  const deleteNotification = async (id) => {
+  const deleteNotification = async (notificationId) => {
+    debugLog('DELETE', `Starting delete for notification ID: ${notificationId}`);
+    
+    const headers = getHeaders(notificationId);
+    if (!headers) {
+      debugLog('ERROR', 'No auth headers for deleteNotification');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${DELETE_ENDPOINT}${id}/`,
-        {
-          headers: {
-            'Authorization': `Token ${token}`,
-            'X-Object-ID': userId.toString()
-          }
-        }
+      const response = await axios.delete(
+        DELETE_ENDPOINT,
+        { headers }
       );
+
+      debugLog('API RESPONSE', 'Delete success', {
+        status: response.status,
+        data: response.data
+      });
+      
       // Optimistic UI update
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      // Refresh to ensure sync with backend
-      fetchNotifications();
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      debugLog('STATE', `Notification ${notificationId} deleted`);
     } catch (err) {
-      console.error('Delete failed:', err);
-      // Revert if failed
-      fetchNotifications();
+      const errorMsg = err.response?.data?.message || err.message;
+      console.error('Delete failed:', errorMsg);
+      debugLog('ERROR', 'Delete failed', {
+        status: err.response?.status,
+        message: errorMsg,
+        response: err.response?.data
+      });
+      fetchNotifications(); // Revert by refetching
     }
   };
 
   // Delete all read notifications
   const deleteAllRead = async () => {
+    debugLog('DELETE ALL READ', 'Starting delete all read');
+    
+    const headers = getHeaders();
+    if (!headers) {
+      debugLog('ERROR', 'No auth headers for deleteAllRead');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
+      const response = await axios.delete(
         DELETE_ALL_ENDPOINT,
-        {
-          headers: {
-            'Authorization': `Token ${token}`,
-            // 'X-Object-ID': userId.toString()
-          }
-        }
+        { headers }
       );
+
+      debugLog('API RESPONSE', 'Delete all read success', {
+        status: response.status,
+        data: response.data
+      });
+      
       // Optimistic UI update
       setNotifications(prev => prev.filter(n => !n.read));
-      // Refresh to ensure sync with backend
-      fetchNotifications();
+      debugLog('STATE', 'All read notifications deleted');
     } catch (err) {
-      console.error('Delete all read failed:', err);
-      // Revert if failed
-      fetchNotifications();
+      const errorMsg = err.response?.data?.message || err.message;
+      console.error('Delete all read failed:', errorMsg);
+      debugLog('ERROR', 'Delete all read failed', {
+        status: err.response?.status,
+        message: errorMsg,
+        response: err.response?.data
+      });
+      fetchNotifications(); // Revert by refetching
     }
   };
 
   // Handle notification click (mark as read and navigate if URL exists)
   const handleNotificationClick = (notification) => {
+    debugLog('CLICK', 'Notification clicked', {
+      id: notification.id,
+      read: notification.read,
+      url: notification.url
+    });
+    
     if (!notification.read) {
+      debugLog('ACTION', 'Marking as read before navigation');
       markAsRead(notification.id);
     }
     if (notification.url) {
+      debugLog('NAVIGATION', 'Redirecting to URL', notification.url);
       window.location.href = notification.url;
     }
   };
 
   // Toggle group expansion
   const toggleGroup = (type) => {
+    debugLog('UI ACTION', 'Toggling group', type);
     setExpandedGroups(prev => ({
       ...prev,
       [type]: !prev[type]
@@ -218,9 +312,12 @@ const NotificationsPanel = ({
   const unreadCount = notifications.filter(n => !n.read).length;
   const readCount = notifications.filter(n => n.read).length;
 
-  // Load data when panel opens or when operations are performed
+  // Load data when panel opens
   useEffect(() => {
-    if (isOpen) fetchNotifications();
+    if (isOpen) {
+      debugLog('MOUNT', 'Component mounted, fetching notifications');
+      fetchNotifications();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -315,7 +412,7 @@ const NotificationsPanel = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
+          {loading && notifications.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent" />
               <span className="mt-3 text-gray-600">Loading notifications...</span>
@@ -399,7 +496,7 @@ const NotificationsPanel = ({
                                     className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Handle accept logic here
+                                      debugLog('ACTION', 'Accept invitation clicked', item.id);
                                     }}
                                   >
                                     Accept
@@ -408,7 +505,7 @@ const NotificationsPanel = ({
                                     className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Handle decline logic here
+                                      debugLog('ACTION', 'Decline invitation clicked', item.id);
                                     }}
                                   >
                                     Decline
@@ -422,6 +519,7 @@ const NotificationsPanel = ({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  debugLog('ACTION', 'Mark as read clicked', item.id);
                                   markAsRead(item.id);
                                 }}
                                 className="text-gray-400 hover:text-blue-600"
@@ -433,6 +531,7 @@ const NotificationsPanel = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                debugLog('ACTION', 'Delete clicked', item.id);
                                 deleteNotification(item.id);
                               }}
                               className="text-gray-400 hover:text-red-600"
@@ -459,7 +558,10 @@ const NotificationsPanel = ({
               {activeTab === 'UNREAD' && ` (${unreadCount} unread)`}
             </span>
             <button 
-              onClick={fetchNotifications}
+              onClick={() => {
+                debugLog('ACTION', 'Refresh clicked');
+                fetchNotifications();
+              }}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
               Refresh
