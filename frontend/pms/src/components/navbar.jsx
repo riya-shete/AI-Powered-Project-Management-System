@@ -21,8 +21,17 @@ const Navbar = () => {
   const fetchUnreadCount = async () => {
     try {
       setNotificationsLoading(true);
-      const response = await axios.get('http://localhost:8000/api/notifications/?read=false');
-      // Count the number of unread notifications from the response
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await axios.get('http://localhost:8000/api/notifications/?read=false', {
+        headers: {
+          'Authorization': `Token ${token}`
+        }
+      });
+      
       const count = response.data.length || 0;
       setUnreadCount(count);
       setNotificationsError(null);
@@ -116,17 +125,17 @@ const Navbar = () => {
             </svg>
             
             {/* Notification Badge */}
-            {unreadCount > 0 && (
+            {!notificationsLoading && !notificationsError && unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
-            {notificationsLoading && unreadCount === 0 && (
+            {notificationsLoading && (
               <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                 •
               </span>
             )}
-            {notificationsError && unreadCount === 0 && (
+            {notificationsError && (
               <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                 !
               </span>
