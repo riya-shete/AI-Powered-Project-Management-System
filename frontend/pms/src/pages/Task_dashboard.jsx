@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit, Calendar, Users, User } from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
@@ -17,7 +17,9 @@ const Task_dashboard = () => {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <PMSDashboardSprints />
+        <div className="flex-1 overflow-y-auto">
+          <PMSDashboardSprints />
+        </div>
       </div>
     </div>
   )
@@ -75,6 +77,11 @@ const PMSDashboardSprints = () => {
   const [showNewSprintForm, setShowNewSprintForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [showForm, setShowForm] = useState(false)
+
+  const personDropdownRef = useRef(null)
+  const filterDropdownRef = useRef(null)
+  const roleDropdownRef = useRef(null)
+  const priorityDropdownRef = useRef(null)
 
   // Enhanced newTask state
   const [newTask, setNewTask] = useState({
@@ -142,6 +149,29 @@ const PMSDashboardSprints = () => {
     console.log("Users state updated:", users)
     console.log("Users count:", users.length)
   }, [users])
+
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (personDropdownRef.current && !personDropdownRef.current.contains(event.target)) {
+      setIsPersonDropdownOpen(false)
+    }
+    if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+      setIsFilterDropdownOpen(false)
+    }
+    if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
+      setIsRoleDropdownOpen(false)
+    }
+    if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target)) {
+      setIsPriorityDropdownOpen(false)
+    }
+  }
+
+  document.addEventListener('mousedown', handleClickOutside)
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside)
+  }
+}, [])
+
 
   // Color functions with proper standard colors
   const getPriorityColor = (priority) => {
@@ -565,6 +595,22 @@ const PMSDashboardSprints = () => {
   const UserDropdown = ({ value, onChange, placeholder = "Select user", name }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const dropdownRef = useRef(null) 
+
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+        setSearchTerm("")
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
     const selectedUser = users.find((user) => user.id.toString() === value)
 
@@ -714,6 +760,21 @@ const PMSDashboardSprints = () => {
   // Enhanced SprintTable component
   const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    const settingsDropdownRef = useRef(null) 
+
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(event.target)) {
+        setIsSettingsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
     const sprint = sprints.find((s) => s.name === sprintName)
     const filteredTasks = filterTasks(tasks)
@@ -751,7 +812,7 @@ const PMSDashboardSprints = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <div className="relative">
+            <div className="relative" ref={settingsDropdownRef}>
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
@@ -1257,14 +1318,14 @@ const PMSDashboardSprints = () => {
             </div>
 
             {/* Enhanced Filters */}
-            <div className="relative">
+            {/* <div className="relative">
               <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
                 Project: Current
                 <ChevronDown className="ml-2 h-4 w-4" />
               </button>
-            </div>
+            </div> */}
 
-            <div className="relative">
+            <div className="relative" ref={roleDropdownRef}>
               <button
                 onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                 className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
@@ -1299,7 +1360,7 @@ const PMSDashboardSprints = () => {
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={filterDropdownRef}>
               <button
                 onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
                 className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
@@ -1334,7 +1395,7 @@ const PMSDashboardSprints = () => {
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative"ref={personDropdownRef}>
               <button
                 onClick={() => setIsPersonDropdownOpen(!isPersonDropdownOpen)}
                 className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
