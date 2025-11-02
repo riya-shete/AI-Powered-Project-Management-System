@@ -22,7 +22,7 @@ export default function WorkspaceSetup() {
   // Use the workspace context
   const { createWorkspace, loading: contextLoading, error: contextError } = useWorkspace()
 
-  // 1️⃣ On mount: verify we have both token & user_id
+  // 1️⃣ On mount: verify we have both v & user_id
   useEffect(() => {
     const token = localStorage.getItem("token")
     const userId = localStorage.getItem("user_id")
