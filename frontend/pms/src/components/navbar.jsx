@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsDemo from "./notitication"; 
 import ProfileSidebar from './ProfileSidebar';
-import PopupChatWindow from "./inbox";
+import WorkspaceChat from "./WorkspaceChat"; // CHANGED: Import the new WorkspaceChat
 import Invite from './invite'; 
 import { UserPlus } from 'lucide-react';
 import axios from 'axios';
+import { useWorkspace } from '../contexts/WorkspaceContexts'; // ADDED: Import workspace context
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState(null);
+
+  // ADDED: Get current workspace from context
+  const { currentWorkspace, workspaces, loading: workspaceLoading } = useWorkspace();
 
   const fetchUnreadCount = async () => {
     try {
@@ -50,7 +54,7 @@ const Navbar = () => {
 
   const handleNotificationClick = () => {
     setNotificationOpen(true);
-    fetchUnreadCount(); // Refresh count when notifications are opened
+    fetchUnreadCount();
   };
 
   const closeNotificationPopup = () => {
@@ -65,7 +69,13 @@ const Navbar = () => {
     setIsProfileSidebarOpen(!isProfileSidebarOpen);
   };
 
+  // ENHANCED: Chat toggle with workspace validation
   const toggleChat = () => {
+    if (!currentWorkspace && !workspaceLoading) {
+      // Show a warning if no workspace is selected
+      alert('Please select a workspace first to access the chat.');
+      return;
+    }
     setChatOpen(!isChatOpen);
   };
 
@@ -78,11 +88,8 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchUnreadCount();
-
-    // Set up polling to refresh count periodically
-    const interval = setInterval(fetchUnreadCount, 60000); // Refresh every minute
+    const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -124,7 +131,6 @@ const Navbar = () => {
               />
             </svg>
             
-            {/* Notification Badge */}
             {!notificationsLoading && !notificationsError && unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -142,12 +148,16 @@ const Navbar = () => {
             )}
           </button>
           
-          {/* Inbox Button toggles the chat popup */}
+          {/* ENHANCED: Chat Button with workspace indicator */}
           <button 
-            className="text-white hover:text-blue-100 transition-colors duration-200"
+            className={`text-white hover:text-blue-100 transition-colors duration-200 relative ${
+              !currentWorkspace && !workspaceLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             onClick={toggleChat}
+            disabled={!currentWorkspace && !workspaceLoading}
+            title={currentWorkspace ? `Chat in ${currentWorkspace.name}` : 'Select a workspace to chat'}
           >
-            <span className="sr-only">Inbox / Chat</span>
+            <span className="sr-only">Workspace Chat</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path 
                 strokeLinecap="round" 
@@ -156,6 +166,11 @@ const Navbar = () => {
                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
               />
             </svg>
+            
+            {/* ADDED: Green dot indicator when workspace is selected */}
+            {currentWorkspace && (
+              <span className="absolute -bottom-1 -right-1 bg-green-500 rounded-full h-2 w-2 border border-blue-500"></span>
+            )}
           </button>
           
           {/* Search Button */}
@@ -237,7 +252,15 @@ const Navbar = () => {
         openTeamChat={() => setChatOpen(true)}
       />
       
-      {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
+      {/* CHANGED: Use WorkspaceChat instead of ChatApp */}
+      {isChatOpen && (
+        <WorkspaceChat 
+          isOpen={isChatOpen}
+          onClose={() => setChatOpen(false)}
+          currentWorkspace={currentWorkspace}
+        />
+      )}
+      
       <Invite isOpen={isInviteOpen} onClose={closeInviteModal} />
     </>
   );

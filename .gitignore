@@ -83,3 +83,8 @@ celerybeat.pid
 
 # Jupyter Notebook
 .ipynb_checkpoints
+chat_test.html
+chat.json
+package-lock.json
+websocket-chat-tester.html
+ws_postman_collection.postman_collection
