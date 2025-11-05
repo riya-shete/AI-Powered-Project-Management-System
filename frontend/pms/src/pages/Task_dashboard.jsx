@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit, Calendar, Users, User } from "lucide-react"
+import { Search, ChevronDown, Plus, X, Settings, Trash2, Edit, Calendar, Users, User ,RefreshCw} from "lucide-react"
 import Navbar from "../components/navbar"
 import Sidebar from "../components/sidebar"
 import axios from "axios"
 import Lottie from "lottie-react"
 import { useParams } from "react-router-dom"
 import man from "../assets/man_with_task_list.json"
+import AIAssistantWidget from '../components/AIProjectAnalyzer';
 
 const BASE_URL = "http://localhost:8000"
 
@@ -52,6 +53,7 @@ const PMSDashboardSprints = () => {
   const [error, setError] = useState(null)
   const [selectedTasks, setSelectedTasks] = useState(new Set())
   const [showBulkActions, setShowBulkActions] = useState(false)
+  const [newAITasks, setNewAITasks] = useState([]);
 
   // Form states
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false)
@@ -81,7 +83,7 @@ const PMSDashboardSprints = () => {
     name: "",
     description: "",
     assigned_to: "",
-    reporter: "",
+    assigned_by: "",
     role: "",
     status: "",
     priority: "",
@@ -91,57 +93,192 @@ const PMSDashboardSprints = () => {
   })
 
   // Fetch users function following your strategy
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        console.log("No token found for fetching users")
-        return
-      }
-      console.log("Fetching users...")
-      const response = await fetch(`http://localhost:8000/api/users/`, {
-        headers: {
-          Authorization: `Token ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-      console.log("Users response status:", response.status)
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Users data received:", data)
-        // Handle different API response structures for users
-        let usersArray = []
-        if (Array.isArray(data)) {
-          usersArray = data
-        } else if (data.results && Array.isArray(data.results)) {
-          usersArray = data.results
-        } else if (data.data && Array.isArray(data.data)) {
-          usersArray = data.data
-        } else {
-          console.log("Unexpected users data structure:", data)
-          usersArray = []
-        }
-        setUsers(usersArray)
-      } else {
-        console.error("Failed to fetch users", response.status)
-        const errorText = await response.text()
-        console.error("Users error response:", errorText)
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error)
+const fetchUsers = async () => {
+  try {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      console.log("No token found for fetching users")
+      return
     }
+    console.log("Fetching users...")
+    const response = await fetch(`http://localhost:8000/api/users/`, {
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+    console.log("Users response status:", response.status)
+    if (response.ok) {
+      const data = await response.json()
+      console.log("Users data received:", data)
+      // Handle different API response structures for users
+      let usersArray = []
+      if (Array.isArray(data)) {
+        usersArray = data
+      } else if (data.results && Array.isArray(data.results)) {
+        usersArray = data.results
+      } else if (data.data && Array.isArray(data.data)) {
+        usersArray = data.data
+      } else {
+        console.log("Unexpected users data structure:", data)
+        usersArray = []
+      }
+      setUsers(usersArray)
+    } else {
+      console.error("Failed to fetch users", response.status)
+      const errorText = await response.text()
+      console.error("Users error response:", errorText)
+    }
+  } catch (error) {
+    console.error("Error fetching users:", error)
   }
+}
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log("Sprints state updated:", sprints)
-    console.log("Sprints count:", sprints.length)
-  }, [sprints])
+const loadAllData = async () => {
+  const token = localStorage.getItem("token")
+  setLoading(true)
 
-  useEffect(() => {
-    console.log("Users state updated:", users)
-    console.log("Users count:", users.length)
-  }, [users])
+  try {
+    // Fetch users first
+    await fetchUsers()
+
+    // Fetch sprints
+    const sprintHeaders = {
+      Authorization: `Token ${token}`,
+      "X-Project-ID": projectId,
+    }
+
+    const sprintsResponse = await axios.get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
+    const mySprints = sprintsResponse.data.results || sprintsResponse.data
+    setSprints(mySprints)
+
+    // Organize tasks by sprint
+    const dataBySprint = {}
+    const visibilityBySprint = {}
+    const backlogTasksList = []
+
+    // Initialize sprint data structure
+    mySprints.forEach((sprint) => {
+      dataBySprint[sprint.name] = []
+      visibilityBySprint[sprint.name] = true
+    })
+
+    // Add Backlog to visibility
+    visibilityBySprint["Backlog"] = true
+
+    // Fetch tasks for each sprint individually
+    for (const sprint of mySprints) {
+      try {
+        const taskHeaders = {
+          Authorization: `Token ${token}`,
+          "X-Project-ID": projectId,
+          "X-Sprint-ID": sprint.id,
+        }
+        
+        const tasksResponse = await axios.get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders })
+        const sprintTasks = tasksResponse.data.results || tasksResponse.data || []
+        
+        console.log(`Sprint "${sprint.name}" tasks:`, sprintTasks)
+        console.log(`Sprint fetched from bkend "${sprint.name}" tasks:`, sprintTasks)
+        
+        // Categorize tasks for this sprint
+        sprintTasks.forEach((task) => {
+          const isExpired = isTaskExpired(task, sprint)
+          if (isExpired) {
+            console.log(`Task "${task.name}" expired - moving to backlog`, {
+              taskDue: task.due_date,
+              sprintEnd: sprint.end_date,
+              status: task.status,
+              currentDate: new Date()
+            })
+            // Add to backlog with original sprint info
+            backlogTasksList.push({
+              ...task,
+              original_sprint: sprint.name,
+              original_sprint_id: sprint.id
+            })
+          } else {
+            console.log(`Task "${task.name}" active - keeping in sprint`, {
+              taskDue: task.due_date,
+              sprintEnd: sprint.end_date,
+              status: task.status,
+              currentDate: new Date()
+            })
+            // Add to active sprint
+            dataBySprint[sprint.name].push(task)
+          }
+        })
+      } catch (error) {
+        console.error(`Error fetching tasks for sprint ${sprint.name}:`, error)
+        dataBySprint[sprint.name] = []
+      }
+    }
+
+    // Fetch backlog tasks (tasks with no sprint)
+    try {
+      const backlogHeaders = {
+        Authorization: `Token ${token}`,
+        "X-Project-ID": projectId,
+      }
+      
+      // Get all tasks and filter for those without sprint
+      const allTasksResponse = await axios.get(`${BASE_URL}/api/tasks/`, { headers: backlogHeaders })
+      const allTasks = allTasksResponse.data.results || allTasksResponse.data || []
+      
+      const tasksWithoutSprint = allTasks.filter(task => !task.sprint)
+      console.log("Tasks without sprint (backlog):", tasksWithoutSprint)
+      
+      // Add tasks without sprint to backlog
+      backlogTasksList.push(...tasksWithoutSprint)
+      
+    } catch (backlogError) {
+      console.error("Error fetching backlog tasks:", backlogError)
+    }
+
+    // Remove duplicates from backlog
+    const uniqueBacklogTasks = backlogTasksList.filter((task, index, self) => 
+      index === self.findIndex(t => t.id === task.id)
+    )
+
+    // Log for debugging
+    console.log("Final task distribution:", {
+      sprints: Object.keys(dataBySprint).map(name => ({
+        name,
+        taskCount: dataBySprint[name].length,
+        tasks: dataBySprint[name].map(t => ({ id: t.id, name: t.name, due_date: t.due_date, status: t.status }))
+      })),
+      backlogCount: uniqueBacklogTasks.length,
+      backlogTasks: uniqueBacklogTasks.map(t => ({ id: t.id, name: t.name, due_date: t.due_date, status: t.status, original_sprint: t.original_sprint }))
+    })
+
+    setSprintData(dataBySprint)
+    setBacklogTasks(uniqueBacklogTasks)
+    setSprintVisibility(visibilityBySprint)
+    setLoading(false)
+
+  } catch (err) {
+    console.error("Failed to fetch data:", err)
+    setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`)
+    setLoading(false)
+  }
+}
+
+
+// Debug logging for state changes
+useEffect(() => {
+  console.log("Sprints state updated:", sprints)
+  console.log("Sprints count:", sprints.length)
+}, [sprints])
+
+useEffect(() => {
+  console.log("Users state updated:", users)
+  console.log("Users count:", users.length)
+}, [users])
+
+// THEN REPLACE YOUR EXISTING DATA LOADING useEffect WITH THIS:
+useEffect(() => {
+  loadAllData()
+}, [projectId])
 
   // Color functions with proper standard colors
   const getPriorityColor = (priority) => {
@@ -219,6 +356,19 @@ const PMSDashboardSprints = () => {
     })
   }
 
+  // Add this function to handle tasks generated by AI
+const handleAITasksGenerated = (tasks) => {
+  console.log('AI generated tasks:', tasks);
+  setNewAITasks(tasks);
+  
+  // Refresh the data to show new tasks
+  loadAllData();
+  
+  // Show success message (you can use your existing error state for success too)
+  setError(`✅ Successfully added ${tasks.length} tasks from AI assistant!`);
+  setTimeout(() => setError(null), 5000);
+};
+
   // Checkbox handlers
   const handleSelectTask = (taskId) => {
     const newSelected = new Set(selectedTasks)
@@ -281,15 +431,37 @@ const PMSDashboardSprints = () => {
 
   // All existing functions (keeping the same logic)
   const isTaskExpired = (task, sprint) => {
-    const currentDate = new Date()
-    const taskDueDate = task.due_date ? new Date(task.due_date) : null
-    const sprintEndDate = sprint?.end_date ? new Date(sprint.end_date) : null
+  if (task.status?.toLowerCase() === "done") return false
 
-    return (
-      (taskDueDate && taskDueDate < currentDate && task.status?.toLowerCase() !== "done") ||
-      (sprintEndDate && sprintEndDate < currentDate && task.status?.toLowerCase() !== "done")
-    )
+  const todayStr = new Date().toISOString().split("T")[0] // "2025-11-05"
+  const today = new Date(todayStr)
+
+  // Task due date
+  if (task.due_date) {
+    const taskDateStr = new Date(task.due_date).toISOString().split("T")[0]
+    const taskDueDate = new Date(taskDateStr)
+
+    if (taskDueDate < today) {
+      console.log(`Task "${task.name}" expired (due date passed)`)
+      return true
+    }
   }
+
+  // Sprint end date
+  if (sprint?.end_date) {
+    const sprintDateStr = new Date(sprint.end_date).toISOString().split("T")[0]
+    const sprintEnd = new Date(sprintDateStr)
+
+    if (sprintEnd < today && !task.due_date) {
+      console.log(`Task "${task.name}" expired (sprint ended)`)
+      return true
+    }
+  }
+
+  return false
+}
+
+
 
   const getSprintId = (sprintName) => {
     if (!Array.isArray(sprints) || sprints.length === 0) {
@@ -318,67 +490,76 @@ const PMSDashboardSprints = () => {
     return true
   }
 
-  const addTaskToSprint = () => {
-    if (!addingToSprint || !newTask.name) {
-      console.error("Missing sprint name or task name")
-      return
-    }
-
-    const itemId = `T${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`
-    const sprintId = addingToSprint === "Backlog" ? null : getSprintId(addingToSprint)
-
-    const taskToAdd = {
-      name: newTask.name,
-      description: newTask.description,
-      project: Number(projectId),
-      sprint: sprintId,
-      assigned_to: newTask.assigned_to ? Number.parseInt(newTask.assigned_to, 10) : null,
-      reporter: newTask.reporter
-        ? Number.parseInt(newTask.reporter, 10)
-        : Number.parseInt(localStorage.getItem("user_id"), 10),
-      status: newTask.status,
-      priority: newTask.priority,
-      role: newTask.role,
-      due_date: newTask.due_date,
-      created_at: newTask.created_at,
-      item_id: itemId,
-    }
-
-    if (!validateTaskData(taskToAdd)) {
-      setError("Invalid task data. Please check all required fields.")
-      return
-    }
-
-    axios
-      .post("http://localhost:8000/api/tasks/", taskToAdd, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(localStorage.getItem("token") && {
-            Authorization: `Token ${localStorage.getItem("token")}`,
-          }),
-        },
-      })
-      .then((res) => {
-        if (addingToSprint === "Backlog") {
-          setBacklogTasks((prev) => [...prev, res.data])
-        } else {
-          setSprintData((prevData) => ({
-            ...prevData,
-            [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
-          }))
-        }
-        setTasks((prevTasks) => {
-          const safePrev = Array.isArray(prevTasks) ? prevTasks : []
-          return [...safePrev, res.data]
-        })
-        setError(null)
-        cancelAddingTask()
-      })
-      .catch((err) => {
-        console.error("Task creation error:", err)
-        setError(`Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`)
-      })
+const addTaskToSprint = () => {
+  if (!addingToSprint || !newTask.name) {
+    console.error("Missing sprint name or task name")
+    return
   }
+
+  const itemId = `T${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`
+  
+  // Properly handle sprint assignment
+  const sprintId = addingToSprint === "Backlog" ? null : getSprintId(addingToSprint)
+
+  const taskToAdd = {
+    name: newTask.name,
+    description: newTask.description,
+    project: Number(projectId),
+    sprint: sprintId,
+    assigned_to: newTask.assigned_to ? Number.parseInt(newTask.assigned_to, 10) : null,
+    assigned_by: newTask.assigned_by ? Number.parseInt(newTask.assigned_by, 10) : Number.parseInt(localStorage.getItem("user_id"), 10),
+    status: newTask.status,
+    priority: newTask.priority,
+    role: newTask.role,
+    due_date: newTask.due_date,
+    created_at: newTask.created_at,
+    item_id: itemId,
+  }
+
+  if (!validateTaskData(taskToAdd)) {
+    setError("Invalid task data. Please check all required fields.")
+    return
+  }
+  
+  console.log("📤 [DEBUG] Data being sent to backend:", JSON.stringify(taskToAdd, null, 2))
+
+  axios
+    .post("http://localhost:8000/api/tasks/", taskToAdd, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(localStorage.getItem("token") && {
+          Authorization: `Token ${localStorage.getItem("token")}`,
+        }),
+      },
+    })
+    .then((res) => {
+      // ADD DEBUG HERE - Check what the backend actually returns
+      console.log("✅ [DEBUG] Task created successfully:", res.data)
+      console.log("🔍 [DEBUG] assigned_to in response:", res.data.assigned_to)
+      console.log("🔍 [DEBUG] assigned_to type in response:", typeof res.data.assigned_to)
+      console.log("🔍 [DEBUG] Full response structure:", Object.keys(res.data))
+
+      if (addingToSprint === "Backlog") {
+        setBacklogTasks((prev) => [...prev, res.data])
+      } else {
+        setSprintData((prevData) => ({
+          ...prevData,
+          [addingToSprint]: [...(prevData[addingToSprint] || []), res.data],
+        }))
+      }
+      setTasks((prevTasks) => {
+        const safePrev = Array.isArray(prevTasks) ? prevTasks : []
+        return [...safePrev, res.data]
+      })
+      setError(null)
+      cancelAddingTask()
+    })
+    .catch((err) => {
+      console.error("❌ [DEBUG] Task creation error:", err)
+      console.error("❌ [DEBUG] Error response:", err.response?.data)
+      setError(`Failed to create task: ${err.response?.status} ${err.response?.statusText || err.message}`)
+    })
+}
 
   const updateTask = (taskId, newTaskData, sprintName) => {
     let existingTask
@@ -400,7 +581,7 @@ const PMSDashboardSprints = () => {
       project: existingTask.project,
       sprint: existingTask.sprint,
       assigned_to: newTaskData.assigned_to ? Number.parseInt(newTaskData.assigned_to, 10) : existingTask.assigned_to,
-      reporter: newTaskData.reporter ? Number.parseInt(newTaskData.reporter, 10) : existingTask.reporter,
+      assigned_by: newTaskData.assigned_by ? Number.parseInt(newTaskData.assigned_by, 10) : existingTask.assigned_by,
       status: newTaskData.status || existingTask.status,
       priority: newTaskData.priority || existingTask.priority,
       role: newTaskData.role || existingTask.role,
@@ -468,7 +649,7 @@ const PMSDashboardSprints = () => {
       name: "",
       description: "",
       assigned_to: "",
-      reporter: "",
+      assigned_by: "",
       role: "",
       status: "",
       priority: "",
@@ -484,7 +665,7 @@ const PMSDashboardSprints = () => {
       name: "",
       description: "",
       assigned_to: "",
-      reporter: "",
+      assigned_by: "",
       role: "",
       status: "",
       priority: "",
@@ -493,6 +674,47 @@ const PMSDashboardSprints = () => {
       item_id: "",
     })
   }
+const handleMoveToSprint = async (taskId, sprintId) => {
+  try {
+    const taskToUpdate = backlogTasks.find(task => task.id === taskId)
+    if (!taskToUpdate) return
+
+    const updateData = {
+      ...taskToUpdate,
+      sprint: sprintId,
+    }
+
+    // Remove the original_sprint fields before sending to backend
+    delete updateData.original_sprint
+    delete updateData.original_sprint_id
+
+    const response = await axios.put(`${BASE_URL}/api/tasks/${taskId}/`, updateData, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${localStorage.getItem("token")}`,
+      },
+    })
+
+    // Update local state
+    const updatedTask = response.data
+    setBacklogTasks(prev => prev.filter(task => task.id !== taskId))
+    
+    // Find which sprint to add it back to
+    const targetSprint = sprints.find(s => s.id === sprintId)
+    if (targetSprint) {
+      setSprintData(prev => ({
+        ...prev,
+        [targetSprint.name]: [...(prev[targetSprint.name] || []), updatedTask]
+      }))
+    }
+
+    console.log(`Successfully moved task "${taskToUpdate.name}" back to sprint "${targetSprint?.name}"`)
+
+  } catch (error) {
+    console.error("Failed to move task to sprint:", error)
+    setError("Failed to move task back to sprint")
+  }
+}
 
   const handleTaskInputChange = (e) => {
     const { name, value } = e.target
@@ -561,166 +783,113 @@ const PMSDashboardSprints = () => {
     }))
   }
 
-  // User Dropdown Component
-  const UserDropdown = ({ value, onChange, placeholder = "Select user", name }) => {
-    const [isOpen, setIsOpen] = useState(false)
-    const [searchTerm, setSearchTerm] = useState("")
+// User Dropdown Component - FIXED VERSION
+const UserDropdown = ({ value, onChange, placeholder = "Select user", name }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
 
-    const selectedUser = users.find((user) => user.id.toString() === value)
+  const selectedUser = users.find((user) => user.id.toString() === value?.toString())
 
-    const filteredUsers = users.filter(
-      (user) =>
-        user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+  const filteredUsers = users.filter(
+    (user) =>
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
-    return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
-        >
-          <div className="flex items-center">
-            <Search className="h-4 w-4 mr-2 text-gray-400" />
-            <span className={selectedUser ? "text-gray-900" : "text-gray-500"}>
-              {selectedUser
-                ? `${selectedUser.first_name || ""} ${selectedUser.last_name || ""}`.trim() ||
-                  selectedUser.username ||
-                  selectedUser.email
-                : placeholder}
-            </span>
-          </div>
-          <ChevronDown className="h-4 w-4 text-gray-400" />
-        </button>
-
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-            <div className="p-2 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="max-h-60 overflow-y-auto">
-              <button
-                onClick={() => {
-                  onChange({ target: { name, value: "" } })
-                  setIsOpen(false)
-                  setSearchTerm("")
-                }}
-                className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
-              >
-                <Search className="h-4 w-4 mr-2 text-gray-400" />
-                <span className="text-gray-500">Unassigned</span>
-              </button>
-              {filteredUsers.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => {
-                    onChange({ target: { name, value: user.id.toString() } })
-                    setIsOpen(false)
-                    setSearchTerm("")
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
-                >
-                  <User className="h-4 w-4 mr-2 text-gray-400" />
-                  <div>
-                    <div className="text-gray-900">
-                      {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username}
-                    </div>
-                    {user.email && <div className="text-xs text-gray-500">{user.email}</div>}
-                  </div>
-                </button>
-              ))}
-              {filteredUsers.length === 0 && <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>}
-            </div>
-          </div>
-        )}
-      </div>
-    )
+  const handleSelect = (userId) => {
+    onChange({ target: { name, value: userId } })
+    setIsOpen(false)
+    setSearchTerm("")
   }
 
-  // Load data effect
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    setLoading(true)
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
+      >
+        <div className="flex items-center">
+          <User className="h-4 w-4 mr-2 text-gray-400" />
+          <span className={selectedUser ? "text-gray-900" : "text-gray-500"}>
+            {selectedUser
+              ? `${selectedUser.first_name || ""} ${selectedUser.last_name || ""}`.trim() ||
+                selectedUser.username ||
+                selectedUser.email
+              : placeholder}
+          </span>
+        </div>
+        <ChevronDown className="h-4 w-4 text-gray-400" />
+      </button>
 
-    // Fetch users first
-    fetchUsers()
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            <button
+              onClick={() => handleSelect("")}
+              className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
+            >
+              <span className="text-gray-500">Unassigned</span>
+            </button>
+            {filteredUsers.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => handleSelect(user.id.toString())}
+                className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center"
+              >
+                <User className="h-4 w-4 mr-2 text-gray-400" />
+                <div>
+                  <div className="text-gray-900">
+                    {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username}
+                  </div>
+                  {user.email && <div className="text-xs text-gray-500">{user.email}</div>}
+                </div>
+              </button>
+            ))}
+            {filteredUsers.length === 0 && <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
-    const sprintHeaders = {
-      Authorization: `Token ${token}`,
-      "X-Project-ID": projectId,
-    }
 
-    axios
-      .get(`${BASE_URL}/api/sprints/`, { headers: sprintHeaders })
-      .then((res) => {
-        const mySprints = res.data.results || res.data
-        setSprints(mySprints)
-        return Promise.all(
-          mySprints.map((s) => {
-            const taskHeaders = {
-              Authorization: `Token ${token}`,
-              "X-Sprint-ID": s.id,
-            }
-            return axios.get(`${BASE_URL}/api/tasks/`, { headers: taskHeaders }).then((r) => ({
-              sprintName: s.name,
-              sprintData: s,
-              tasks: r.data.results || r.data,
-            }))
-          }),
-        )
-      })
-      .then((allSprintTasks) => {
-        const dataBySprint = {}
-        const visibilityBySprint = {}
-        const backlogTasksList = []
-
-        allSprintTasks.forEach(({ sprintName, sprintData: sprint, tasks }) => {
-          const activeTasks = []
-          tasks.forEach((task) => {
-            if (isTaskExpired(task, sprint)) {
-              backlogTasksList.push(task)
-            } else {
-              activeTasks.push(task)
-            }
-          })
-          dataBySprint[sprintName] = activeTasks
-          visibilityBySprint[sprintName] = true
-        })
-
-        setSprintData(dataBySprint)
-        setBacklogTasks(backlogTasksList)
-        setSprintVisibility(visibilityBySprint)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Failed to fetch data:", err)
-        setError(`Failed to fetch data: ${err.response?.status} ${err.response?.statusText || err.message}`)
-        setLoading(false)
-      })
-  }, [projectId])
 
   // Enhanced SprintTable component
-  const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName }) => {
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const SprintTable = ({ title, tasks, isExpanded, toggleExpand, addTask, sprintName, isBacklog = false }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-    const sprint = sprints.find((s) => s.name === sprintName)
-    const filteredTasks = filterTasks(tasks)
-    const allSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTasks.has(task.id))
-    const someSelected = filteredTasks.some((task) => selectedTasks.has(task.id))
+  const sprint = sprints.find((s) => s.name === sprintName)
+  const filteredTasks = filterTasks(tasks)
+  const allSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTasks.has(task.id))
+  const someSelected = filteredTasks.some((task) => selectedTasks.has(task.id))
 
-    return (
+  // ADD DEBUG CODE HERE - right before the return statement
+  console.log(`🔍 [DEBUG] ${title} tasks:`, filteredTasks.map(task => ({
+    id: task.id,
+    name: task.name,
+    assigned_to: task.assigned_to,
+    assigned_to_type: typeof task.assigned_to,
+    assigned_to_raw: task.assigned_to
+  })))
+
+  return (
       <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Sprint Header */}
         <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
@@ -849,7 +1018,7 @@ const PMSDashboardSprints = () => {
                     Assigned To
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reporter
+                    Assigned By
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
@@ -864,10 +1033,15 @@ const PMSDashboardSprints = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTasks.map((task) => {
-                  const isOverdue =
-                    task.due_date && new Date(task.due_date) < new Date() && task.status?.toLowerCase() !== "done"
+                  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status?.toLowerCase() !== "done"
                   const assignedUser = users.find((u) => u.id.toString() === task.assigned_to?.toString())
-                  const reporterUser = users.find((u) => u.id.toString() === task.reporter?.toString())
+                  const assignedbyUser = users.find((u) => u.id.toString() === task.assigned_by?.toString())
+
+                  // Add safety checks for task data
+                  if (!task || !task.id) {
+                    console.warn("Invalid task data:", task)
+                    return null // Skip rendering invalid tasks
+                  }
 
                   return (
                     <tr
@@ -885,7 +1059,7 @@ const PMSDashboardSprints = () => {
                       <td className="px-4 py-4">
                         <div className="max-w-xs">
                           <div className={`font-medium text-gray-900 ${isOverdue ? "text-red-600" : ""}`}>
-                            {task.name}
+                            {task.name || "Unnamed Task"}
                           </div>
                           {task.description && (
                             <div className="text-sm text-gray-500 mt-1 truncate">{task.description}</div>
@@ -896,14 +1070,14 @@ const PMSDashboardSprints = () => {
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
                         >
-                          {task.status}
+                          {task.status || "No Status"}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
                         >
-                          {task.priority}
+                          {task.priority || "No Priority"}
                         </span>
                       </td>
                       <td className="px-4 py-4">
@@ -914,33 +1088,50 @@ const PMSDashboardSprints = () => {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-gray-400" />
-                          <span className="text-sm text-gray-900">
-                            {assignedUser
-                              ? `${assignedUser.first_name || ""} ${assignedUser.last_name || ""}`.trim() ||
-                                assignedUser.username ||
-                                assignedUser.email
-                              : task.assigned_to
-                                ? `User ${task.assigned_to}`
-                                : "Unassigned"}
-                          </span>
-                        </div>
-                      </td>
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 mr-2 text-gray-400" />
+                            <span className="text-sm text-gray-900">
+                              {(() => {
+                                // Case 1: assigned_to is an object with user details
+                                if (task.assigned_to && typeof task.assigned_to === 'object') {
+                                  return `${task.assigned_to.first_name || ''} ${task.assigned_to.last_name || ''}`.trim() || 
+                                        task.assigned_to.username || 
+                                        task.assigned_to.email ||
+                                        'Unassigned';
+                                }
+                                
+                                // Case 2: assigned_to is a user ID (number or string)
+                                if (task.assigned_to) {
+                                  const assignedUser = users.find(u => u.id.toString() === task.assigned_to.toString());
+                                  if (assignedUser) {
+                                    return `${assignedUser.first_name || ''} ${assignedUser.last_name || ''}`.trim() || 
+                                          assignedUser.username || 
+                                          assignedUser.email;
+                                  }
+                                  return `User ${task.assigned_to}`;
+                                }
+                                
+                                // Case 3: No assignment
+                                return "Unassigned";
+                              })()}
+                            </span>
+                          </div>
+                        </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-gray-400" />
-                          <span className="text-sm text-gray-900">
-                            {reporterUser
-                              ? `${reporterUser.first_name || ""} ${reporterUser.last_name || ""}`.trim() ||
-                                reporterUser.username ||
-                                reporterUser.email
-                              : task.reporter
-                                ? `User ${task.reporter}`
-                                : "Unknown"}
-                          </span>
-                        </div>
-                      </td>
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 mr-2 text-gray-400" />
+                            <span className="text-sm text-gray-900">
+                              {/* <CHANGE> Handle reporter as both object and ID */}
+                              {assignedbyUser
+                                ? `${assignedbyUser.first_name || ""} ${assigned_by.last_name || ""}`.trim() || assignedbyUser.username || assignedbyUser.email
+                                : typeof task.assigned_by === 'object' && task.assigned_by?.username
+                                  ? task.assigned_by.username
+                                  : task.assigned_by
+                                    ? `User ${task.assigned_by}`
+                                    : "Unknown"}
+                            </span>
+                          </div>
+                        </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
                         {task.created_at ? new Date(task.created_at).toLocaleDateString() : "-"}
                       </td>
@@ -961,15 +1152,27 @@ const PMSDashboardSprints = () => {
                               setShowForm(true)
                             }}
                             className="text-blue-600 hover:text-blue-800"
+                            title="Edit task"
                           >
                             <Edit size={16} />
                           </button>
                           <button
                             onClick={() => deleteTask(sprintName, task.id)}
                             className="text-red-600 hover:text-red-800"
+                            title="Delete task"
                           >
                             <Trash2 size={16} />
                           </button>
+                          {/* Add move back button for backlog tasks */}
+                          {isBacklog && task.original_sprint && (
+                            <button
+                              onClick={() => handleMoveToSprint(task.id, task.original_sprint_id)}
+                              className="text-green-600 hover:text-green-800"
+                              title={`Move back to ${task.original_sprint}`}
+                            >
+                              <RefreshCw size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1004,7 +1207,7 @@ const PMSDashboardSprints = () => {
           role: editingTask.role || "",
           created_at: editingTask.created_at ? editingTask.created_at.split("T")[0] : "",
           assigned_to: editingTask.assigned_to?.toString() || "",
-          reporter: editingTask.reporter?.toString() || "",
+          assigned_by: editingTask.assigned_by?.toString() || "",
           due_date: editingTask.due_date || "",
         })
       }
@@ -1133,12 +1336,12 @@ const PMSDashboardSprints = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reporter</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned By</label>
                 <UserDropdown
-                  value={formData.reporter || ""}
+                  value={formData.assigned_by || ""}
                   onChange={handleInputChange}
-                  placeholder="Select reporter"
-                  name="reporter"
+                  placeholder="Select assigned_by"
+                  name="assigned_by"
                 />
               </div>
             </div>
@@ -1200,7 +1403,7 @@ const PMSDashboardSprints = () => {
   }
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen">
+    <div className="flex-1 bg-gray-50 min-h-screen overflow-y-auto">
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mx-4 mb-4">
           <strong className="font-bold">Error:</strong>
@@ -1396,6 +1599,7 @@ const PMSDashboardSprints = () => {
 
       {/* Content */}
       <div className="p-6">
+        
         {currentView === "Active Sprints" ? (
           <div className="space-y-6">
             {Object.entries(sprintData).map(([sprintName, tasks]) => (
@@ -1409,13 +1613,26 @@ const PMSDashboardSprints = () => {
                 sprintName={sprintName}
               />
             ))}
-            {Object.keys(sprintData).length === 0 && (
+            
+            {/* Backlog Section at the end of Active Sprints */}
+            <SprintTable
+              title="Backlog (Expired Tasks)"
+              tasks={backlogTasks}
+              isExpanded={sprintVisibility["Backlog"]}
+              toggleExpand={() => toggleSprintVisibility("Backlog")}
+              addTask={startAddingTask}
+              sprintName="Backlog"
+              isBacklog={true}
+            />
+            
+            {Object.keys(sprintData).length === 0 && backlogTasks.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500">No active sprints found</p>
+                <p className="text-gray-500">No active sprints or tasks found</p>
               </div>
             )}
           </div>
         ) : (
+          // Keep the separate backlog view if needed
           <SprintTable
             title="Backlog"
             tasks={backlogTasks}
@@ -1423,8 +1640,9 @@ const PMSDashboardSprints = () => {
             toggleExpand={() => {}}
             addTask={startAddingTask}
             sprintName="Backlog"
+            isBacklog={true}
           />
-        )}
+)}
       </div>
 
       {/* Add Task Form */}
@@ -1545,12 +1763,12 @@ const PMSDashboardSprints = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reporter</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned By</label>
                   <UserDropdown
-                    value={newTask.reporter}
+                    value={newTask.assigned_by}
                     onChange={handleTaskInputChange}
-                    placeholder="Select reporter"
-                    name="reporter"
+                    placeholder="Select assigned_by"
+                    name="assigned_by"
                   />
                 </div>
               </div>
@@ -1588,6 +1806,11 @@ const PMSDashboardSprints = () => {
 
       {/* Task Update Form Modal */}
       <TaskUpdateForm />
+      <AIAssistantWidget 
+      projectId={projectId}
+      onTasksGenerated={handleAITasksGenerated}
+      sprints={sprints} // Pass the sprints array so user can choose which sprint to add tasks to
+    />
     </div>
   )
 }

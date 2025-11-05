@@ -1,5 +1,5 @@
-#backend\ai_system\models\task_analyzer.py
-import ollama
+import requests
+import json
 import logging
 from typing import Dict, List, Any
 from django.conf import settings
@@ -10,136 +10,111 @@ class TaskAnalyzer:
     def __init__(self):
         self.model_name = getattr(settings, 'OLLAMA_MODEL', 'llama3.1:8b')
         self.ollama_host = getattr(settings, 'OLLAMA_HOST', 'http://localhost:11434')
-        self.client = None
-        self._initialize_client()
-    
-    def _initialize_client(self):
-        """Initialize Ollama client for task analysis"""
-        try:
-            self.client = ollama.Client(host=self.ollama_host)
-            self.client.list()
-            logger.info(f"✅ TaskAnalyzer connected to Ollama")
-            return True
-        except Exception as e:
-            logger.error(f"❌ TaskAnalyzer connection failed: {e}")
-            self.client = None
-            return False
     
     def is_healthy(self) -> bool:
-        """Check if task analyzer is available"""
+        """Check if AI service is available"""
         try:
-            return self.client is not None
+            response = requests.get(f"{self.ollama_host}/api/tags", timeout=5)
+            return response.status_code == 200
         except:
             return False
     
-    def break_down_task(self, main_task: str, context: str = "") -> List[Dict]:
-        """Break down a main task into detailed subtasks"""
+    def break_down_task(self, task_description: str, context: str = "") -> List[Dict[str, Any]]:
+        """Break down a task into subtasks using HTTP requests"""
         if not self.is_healthy():
-            return [{"error": "AI service unavailable"}]
-        
-        if not main_task.strip():
-            return [{"error": "Task description is required"}]
+            return [{"name": "Setup", "description": "AI service unavailable", "estimated_minutes": 0}]
         
         prompt = f"""
-        Break down this main task into detailed, executable subtasks:
+        Break down this task into 3-5 subtasks: {task_description}
+        Context: {context}
         
-        MAIN TASK: {main_task}
-        CONTEXT: {context if context else "No specific context provided"}
-        
-        Provide a detailed breakdown in this EXACT JSON array format:
+        Return ONLY JSON array in this format:
         [
             {{
-                "subtask_name": "Specific, actionable step",
-                "description": "Detailed step-by-step instructions",
-                "estimated_hours": 4,
-                "dependencies": ["previous_subtask"],
-                "required_resources": ["VS Code", "Django", "React", "Specific libraries"],
-                "acceptance_criteria": "Clear, testable completion criteria",
-                "skill_level": "Beginner/Intermediate/Advanced",
-                "output_deliverable": "What will be produced (e.g., API endpoint, UI component)"
+                "name": "Subt task name",
+                "description": "What to do",
+                "estimated_minutes": 60
             }}
         ]
-        
-        Guidelines:
-        - Each subtask should be 2-8 hours of work
-        - Include setup, implementation, testing, and review steps
-        - Make subtasks actionable and specific
         """
         
         try:
-            logger.info(f"🔍 Breaking down task: {main_task}")
-            
-            response = self.client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                options={'temperature': 0.2}
+            response = requests.post(
+                f"{self.ollama_host}/api/generate",
+                json={
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3}
+                },
+                timeout=60
             )
             
-            # Parse the response
-            from ..utils.json_parser import robust_json_parse
-            result = robust_json_parse(response['response'])
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result.get('response', '').strip()
+                
+                try:
+                    subtasks = json.loads(ai_response)
+                    if isinstance(subtasks, list):
+                        return subtasks
+                except:
+                    pass
             
-            # Ensure we return a list
-            if isinstance(result, dict) and "error" in result:
-                return [result]
-            elif not isinstance(result, list):
-                return [{"error": "Unexpected response format", "raw": str(result)[:200]}]
-            
-            logger.info(f"✅ Task breakdown completed: {len(result)} subtasks")
-            return result
+            # Fallback subtasks
+            return [
+                {"name": "Research", "description": f"Research {task_description}", "estimated_minutes": 60},
+                {"name": "Implementation", "description": f"Implement {task_description}", "estimated_minutes": 120},
+                {"name": "Testing", "description": f"Test {task_description}", "estimated_minutes": 30}
+            ]
             
         except Exception as e:
-            logger.error(f"❌ Task breakdown failed: {e}")
-            return [{"error": f"Breakdown failed: {str(e)}"}]
+            logger.error(f"Task breakdown failed: {e}")
+            return [{"name": "Error", "description": f"Failed to break down task: {str(e)}", "estimated_minutes": 0}]
     
-    def estimate_task_duration(self, task_description: str, developer_level: str = "intermediate") -> Dict[str, Any]:
-        """Estimate time required for a specific task"""
+    def estimate_task_duration(self, task: str, developer_level: str = "intermediate") -> Dict[str, Any]:
+        """Estimate task duration using HTTP requests"""
         if not self.is_healthy():
-            return {"error": "AI service unavailable"}
+            return {"estimated_hours": 8, "confidence": "low", "reason": "AI service unavailable"}
         
         prompt = f"""
-        Estimate the time required for this task for a {developer_level} developer:
+        Estimate time for this task: {task}
+        Developer level: {developer_level}
         
-        TASK: {task_description}
-        
-        Provide a detailed time estimation in this EXACT JSON format:
-        {{
-            "task_description": "{task_description}",
-            "developer_level": "{developer_level}",
-            "time_breakdown": {{
-                "analysis_design": 2,
-                "implementation": 8,
-                "testing": 3,
-                "debugging": 2,
-                "documentation": 1,
-                "code_review": 1
-            }},
-            "total_hours": 17,
-            "confidence_level": "High/Medium/Low",
-            "complexity_factors": ["Database complexity", "API integration", "UI complexity"],
-            "recommendations": "Implementation suggestions",
-            "risks": "Potential challenges"
-        }}
+        Return ONLY JSON: {{"estimated_hours": 8, "confidence": "High/Medium/Low", "breakdown": "Explanation"}}
         """
         
         try:
-            response = self.client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                options={'temperature': 0.1}
+            response = requests.post(
+                f"{self.ollama_host}/api/generate",
+                json={
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3}
+                },
+                timeout=60
             )
             
-            from ..utils.json_parser import robust_json_parse
-            return robust_json_parse(response['response'])
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result.get('response', '').strip()
+                
+                try:
+                    estimation = json.loads(ai_response)
+                    if isinstance(estimation, dict):
+                        return estimation
+                except:
+                    pass
+            
+            # Fallback estimation
+            return {
+                "estimated_hours": 8,
+                "confidence": "medium", 
+                "breakdown": "Fallback estimation",
+                "developer_level": developer_level
+            }
             
         except Exception as e:
-            logger.error(f"❌ Duration estimation failed: {e}")
-            return {"error": f"Estimation failed: {str(e)}"}
-    
-    def get_health_status(self) -> Dict[str, Any]:
-        """Get health status of task analyzer"""
-        return {
-            "service": "task_analyzer",
-            "status": "healthy" if self.is_healthy() else "unhealthy",
-            "model": self.model_name
-        }
+            logger.error(f"Duration estimation failed: {e}")
+            return {"estimated_hours": 8, "confidence": "low", "reason": f"Estimation failed: {str(e)}"}

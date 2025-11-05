@@ -47,6 +47,8 @@ const Sidebar = () => {
   const [searchResults, setSearchResults] = useState([])
   const [showSearchInput, setShowSearchInput] = useState(false)
 
+  const params = new URLSearchParams(window.location.search);
+
   // Workspace management state
   const [activeWorkspaceMenu, setActiveWorkspaceMenu] = useState(null)
   const { 

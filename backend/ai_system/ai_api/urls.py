@@ -9,8 +9,8 @@ urlpatterns = [
     path('estimate-duration/', views.estimate_duration, name='estimate_duration'),
     
     # Advanced endpoints (TEMPORARILY COMMENTED OUT)
-    # path('comprehensive-analysis/', views.comprehensive_analysis, name='comprehensive_analysis'),
-    # path('validate-feasibility/', views.validate_feasibility, name='validate_feasibility'),
+    path('comprehensive-analysis/', views.comprehensive_analysis, name='comprehensive_analysis'),
+    path('validate-feasibility/', views.validate_feasibility, name='validate_feasibility'),
     
     # Health check
     

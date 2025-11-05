@@ -17,7 +17,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Profile_Setup from "./pages/Profile_Setup";
 import TeamInvite from "./pages/TeamInvite";
 
-
+import AIProjectAnalyzer from './components/AIProjectAnalyzer';
 
 import Profile from './components/profile';
 import PopupChatWindow from './components/inbox'
@@ -55,6 +55,7 @@ function App() {
           <Route path="/Documentation" element = {<Documentation/>}/>
           <Route path="/inbox" element ={<PopupChatWindow/>}/>
           <Route path="/tools" element ={<ExploreTemplates/>}/>
+          <Route path="/aianalyzer" element={<AIProjectAnalyzer/>}/>
           </Routes>
         </UserProvider>
         </WorkspaceProvider>

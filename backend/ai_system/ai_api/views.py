@@ -1,85 +1,100 @@
-#views.py
+# views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
+from ai_system.services.project_service import ProjectService
+from ai_system.services.ollama_service import OllamaService
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Initialize services
+project_service = ProjectService()
+ollama_service = OllamaService()
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def ai_health(request):
-    """Simple health check - publicly accessible"""
-    return Response({
-        "status": "healthy", 
-        "service": "ai_system",
-        "message": "AI system is running"
-    })
+    """Comprehensive AI health check"""
+    health_status = project_service.get_system_health()
+    return Response(health_status)
 
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def health_check(request):
-    """Health check endpoint"""
+    """Simple health check"""
     return JsonResponse({"status": "AI system healthy"})
-
-# 🔥 FIXED: Added missing decorators
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def analyze_project(request):
-    """Project analysis endpoint - publicly accessible for testing"""
+    """Project analysis endpoint that uses AI only"""
     try:
+        logger.info(f"📥 Django analyze_project called with data: {request.data}")
+        
         data = request.data
         description = data.get('description', '').strip()
-        project_type = data.get('project_type', 'web')  # Added project_type
+        project_type = data.get('project_type', 'web')  # ✅ Fixed parameter name
+        
+        logger.info(f"📝 Processing: '{description[:50]}...' (type: {project_type})")
         
         if not description:
+            logger.warning("❌ No description provided")
             return Response({"error": "Project description is required"}, status=400)
         
-        # Mock response that matches what your PowerShell script expects
-        return Response({
-            "tasks": [
-                {
-                    "name": "Setup project structure",
-                    "description": "Initialize Django project and apps",
-                    "priority": "High",
-                    "estimated_hours": 8
-                },
-                {
-                    "name": "User authentication system",
-                    "description": "Implement login, register, and user management",
-                    "priority": "High", 
-                    "estimated_hours": 16
-                },
-                {
-                    "name": "Task management core features",
-                    "description": "Create task models, views, and APIs",
-                    "priority": "Medium",
-                    "estimated_hours": 12
-                }
-            ],
-            "tech_stack": ["Python", "Django", "Django REST Framework", "React", "SQLite"],
-            "timeline_weeks": 3
-        })
+        # Check if AI service is healthy first
+        if not project_service.project_analyzer.is_healthy():
+            logger.error("❌ AI service unhealthy")
+            return Response({
+                "error": "AI service is currently unavailable",
+                "details": "Please ensure Ollama is running with 'ollama serve' command"
+            }, status=503)
+        
+        logger.info("🤖 Calling AI service...")
+        # Use the actual AI service
+        analysis_result = project_service.project_analyzer.analyze_project(description, project_type)
+        logger.info(f"✅ AI service returned: {str(analysis_result)[:200]}...")
+        
+        # Return whatever the AI returns
+        return Response(analysis_result)
         
     except Exception as e:
+        logger.error(f"💥 Project analysis failed: {e}", exc_info=True)
         return Response({"error": f"Analysis failed: {str(e)}"}, status=500)
-
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def breakdown_task(request):
-    """Task breakdown endpoint - publicly accessible for testing"""
-    return Response({
-        "message": "Task breakdown would happen here",
-        "status": "working"
-    })
+    """Task breakdown endpoint using AI only"""
+    try:
+        data = request.data
+        task_description = data.get('task', '').strip()
+        
+        if not task_description:
+            return Response({"error": "Task description is required"}, status=400)
+        
+        # Use AI for task breakdown
+        subtasks = project_service.task_analyzer.break_down_task(task_description)
+        
+        # Return pure AI response
+        return Response({
+            "subtasks": subtasks,
+            "status": "success"
+        })
+        
+    except Exception as e:
+        logger.error(f"Task breakdown failed: {e}")
+        return Response({"error": f"Task breakdown failed: {str(e)}"}, status=500)
 
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def estimate_duration(request):
-    """Duration estimation endpoint - publicly accessible for testing"""
+    """Duration estimation using AI only"""
     try:
         data = request.data
         task = data.get('task', '').strip()
@@ -88,31 +103,21 @@ def estimate_duration(request):
         if not task:
             return Response({"error": "Task description is required"}, status=400)
         
-        # Mock response for testing
-        return Response({
-            "task_description": task,
-            "developer_level": developer_level,
-            "time_breakdown": {
-                "analysis_design": 2,
-                "implementation": 8,
-                "testing": 3,
-                "debugging": 2,
-                "documentation": 1
-            },
-            "total_hours": 16,
-            "confidence_level": "Medium",
-            "complexity_factors": ["Basic implementation"],
-            "recommendations": "Standard development approach"
-        })
+        # Use AI for duration estimation
+        estimation = project_service.task_analyzer.estimate_task_duration(task, developer_level)
+        
+        # Return pure AI response
+        return Response(estimation)
         
     except Exception as e:
+        logger.error(f"Duration estimation failed: {e}")
         return Response({"error": f"Duration estimation failed: {str(e)}"}, status=500)
 
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def comprehensive_analysis(request):
-    """Comprehensive analysis endpoint - publicly accessible for testing"""
+    """Comprehensive analysis using AI only"""
     try:
         data = request.data
         description = data.get('description', '').strip()
@@ -121,34 +126,21 @@ def comprehensive_analysis(request):
         if not description:
             return Response({"error": "Project description is required"}, status=400)
         
-        # Mock response for comprehensive analysis
-        return Response({
-            "project_title": f"Comprehensive Analysis: {description[:20]}...",
-            "estimated_timeline": "3-5 weeks",
-            "complexity_level": "Medium",
-            "total_estimated_hours": 180,
-            "detailed_tasks": [
-                {
-                    "main_task": "Project Setup",
-                    "subtasks": [
-                        {"name": "Environment setup", "hours": 4},
-                        {"name": "Database design", "hours": 6}
-                    ]
-                }
-            ],
-            "risk_assessment": "Medium risk project",
-            "resource_requirements": ["Backend developer", "Frontend developer"],
-            "success_metrics": ["User authentication working", "Basic CRUD operations"]
-        })
+        # Use comprehensive AI analysis
+        analysis = project_service.comprehensive_project_analysis(description, project_type)
+        
+        # Return pure AI response
+        return Response(analysis)
         
     except Exception as e:
+        logger.error(f"Comprehensive analysis failed: {e}")
         return Response({"error": f"Comprehensive analysis failed: {str(e)}"}, status=500)
 
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
 def validate_feasibility(request):
-    """Feasibility validation endpoint - publicly accessible for testing"""
+    """Feasibility validation using AI only"""
     try:
         data = request.data
         description = data.get('description', '').strip()
@@ -157,16 +149,12 @@ def validate_feasibility(request):
         if not description:
             return Response({"error": "Project description is required"}, status=400)
         
-        # Mock response for feasibility check
-        return Response({
-            "feasibility_score": 0.8,
-            "required_skills": ["Python", "Django", "React", "Database"],
-            "available_skills": available_skills,
-            "missing_skills": ["React"] if "React" not in available_skills else [],
-            "complexity_assessment": "Moderate",
-            "recommendations": "Consider adding frontend developer to team",
-            "timeline_confidence": "High"
-        })
+        # Use AI for feasibility validation
+        feasibility = project_service.validate_project_feasibility(description, available_skills)
+        
+        # Return pure AI response
+        return Response(feasibility)
         
     except Exception as e:
+        logger.error(f"Feasibility validation failed: {e}")
         return Response({"error": f"Feasibility validation failed: {str(e)}"}, status=500)
