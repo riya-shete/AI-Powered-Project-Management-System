@@ -26,9 +26,11 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # path('ai_api/ai/', include('ai_system.ai_api.urls')),
+    path('api/ai/', include('ai_system.ai_api.urls')),
     path('api/', include('api.urls')), # This includes your OTP auth URLs
     path('api-auth/', include('rest_framework.urls')), # Provides browsable API login
-    path('ai_api/ai/', include('ai_system.ai_api.urls')),
+    
     # Remove or comment out JWT URLs
     # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

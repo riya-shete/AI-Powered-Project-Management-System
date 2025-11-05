@@ -1,7 +1,9 @@
+#views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -16,34 +18,48 @@ def ai_health(request):
 @api_view(['POST'])
 @csrf_exempt
 @permission_classes([AllowAny])
+def health_check(request):
+    """Health check endpoint"""
+    return JsonResponse({"status": "AI system healthy"})
+
+# 🔥 FIXED: Added missing decorators
+@api_view(['POST'])
+@csrf_exempt
+@permission_classes([AllowAny])
 def analyze_project(request):
     """Project analysis endpoint - publicly accessible for testing"""
     try:
         data = request.data
         description = data.get('description', '').strip()
+        project_type = data.get('project_type', 'web')  # Added project_type
         
         if not description:
             return Response({"error": "Project description is required"}, status=400)
         
-        # For now, return a mock response
+        # Mock response that matches what your PowerShell script expects
         return Response({
-            "project_title": "Test Project",
-            "estimated_timeline": "2-4 weeks",
-            "complexity_level": "Medium",
-            "total_estimated_hours": 120,
             "tasks": [
                 {
-                    "task_name": "Setup project structure",
+                    "name": "Setup project structure",
                     "description": "Initialize Django project and apps",
-                    "estimated_hours": 8,
-                    "dependencies": [],
                     "priority": "High",
-                    "skill_requirements": ["Python", "Django"]
+                    "estimated_hours": 8
+                },
+                {
+                    "name": "User authentication system",
+                    "description": "Implement login, register, and user management",
+                    "priority": "High", 
+                    "estimated_hours": 16
+                },
+                {
+                    "name": "Task management core features",
+                    "description": "Create task models, views, and APIs",
+                    "priority": "Medium",
+                    "estimated_hours": 12
                 }
             ],
-            "required_skills": ["Python", "Django", "React"],
-            "potential_risks": "Basic setup risks",
-            "success_criteria": "Project setup completed"
+            "tech_stack": ["Python", "Django", "Django REST Framework", "React", "SQLite"],
+            "timeline_weeks": 3
         })
         
     except Exception as e:
@@ -91,8 +107,6 @@ def estimate_duration(request):
         
     except Exception as e:
         return Response({"error": f"Duration estimation failed: {str(e)}"}, status=500)
-
-# ADD THESE TWO MISSING FUNCTIONS:
 
 @api_view(['POST'])
 @csrf_exempt

@@ -1,3 +1,4 @@
+#backend\ai_system\models\project_analyzer.py
 import ollama
 import json
 import logging
@@ -72,7 +73,7 @@ class ProjectAnalyzer:
         """
         
         try:
-            logger.info(f"🤖 Analyzing project: {project_description[:100]}...")
+            logger.info(f"Analyzing project: {project_description[:100]}...")
             
             response = self.client.generate(
                 model=self.model_name,

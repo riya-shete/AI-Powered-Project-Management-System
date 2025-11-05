@@ -8,6 +8,34 @@ from .views import (
 )
 from . import views
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+
+# Add this API root view function
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_root(request):
+    return Response({
+        "message": "PMS API is running",
+        "version": "1.0", 
+        "endpoints": {
+            "auth": {
+                "register": "/api/register/",
+                "request_otp": "/api/auth/request-otp/",
+                "verify_otp": "/api/auth/verify-otp/"
+            },
+            "users": "/api/users/",
+            "workspaces": "/api/workspaces/",
+            "projects": "/api/projects/",
+            "tasks": "/api/tasks/",
+            "sprints": "/api/sprints/",
+            "bugs": "/api/bugs/",
+            "retrospectives": "/api/retrospectives/",
+            "notifications": "/api/notifications/",
+            "ai_services": "/api/ai/"
+        }
+    })
 
 class CustomRouter(DefaultRouter):
     routes = [
@@ -80,6 +108,7 @@ notification_patterns = [
 ]
 
 urlpatterns = [
+    path('', api_root, name='api-root'),  # Add this line for /api/
     path('', include(router.urls)),
     path('register/', csrf_exempt(views.register_user), name='register'),
     path('auth/request-otp/', views.request_otp, name='request_otp'),

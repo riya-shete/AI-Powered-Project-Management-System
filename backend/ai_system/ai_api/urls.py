@@ -1,3 +1,4 @@
+#backend\ai_system\ai_api\urls.py
 from django.urls import path
 from . import views
 
@@ -12,5 +13,6 @@ urlpatterns = [
     # path('validate-feasibility/', views.validate_feasibility, name='validate_feasibility'),
     
     # Health check
+    
     path('health/', views.ai_health, name='ai_health'),
 ]
