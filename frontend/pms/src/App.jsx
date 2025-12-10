@@ -17,10 +17,9 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Profile_Setup from "./pages/Profile_Setup";
 import TeamInvite from "./pages/TeamInvite";
 
-
-
 import Profile from './components/profile';
-import PopupChatWindow from './components/inbox'
+// import PopupChatWindow from './components/inbox'
+import WorkspaceChat from "./components/WorkspaceChat";
 
 import ExploreTemplates from "./components/tools"
 import { UserProvider } from "./contexts/UserContext";
@@ -53,7 +52,8 @@ function App() {
           <Route path="/WorkspaceName" element = {<WorkspaceName/>}/>
           <Route path="/Help" element = {<Help/>}/>
           <Route path="/Documentation" element = {<Documentation/>}/>
-          <Route path="/inbox" element ={<PopupChatWindow/>}/>
+          {/* <Route path="/inbox" element ={<PopupChatWindow/>}/> */}
+          <Route path="/inbox" element ={<WorkspaceChat/>}/>
           <Route path="/tools" element ={<ExploreTemplates/>}/>
           </Routes>
         </UserProvider>
