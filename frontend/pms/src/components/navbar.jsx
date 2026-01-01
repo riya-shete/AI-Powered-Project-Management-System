@@ -4,7 +4,8 @@ import NotificationsDemo from "./notitication";
 import ProfileSidebar from './ProfileSidebar';
 import PopupChatWindow from "./inbox";
 import Invite from './invite'; 
-import { UserPlus } from 'lucide-react';
+import AIMailAssistant from "./AIMailAssistant"; // NEW IMPORT
+import { UserPlus, MessageSquare, Mail, Sparkles } from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -14,6 +15,7 @@ const Navbar = () => {
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
   const [isInviteOpen, setInviteOpen] = useState(false);
+  const [isAIMailOpen, setAIMailOpen] = useState(false); // State for AI Mail
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState(null);
@@ -50,7 +52,7 @@ const Navbar = () => {
 
   const handleNotificationClick = () => {
     setNotificationOpen(true);
-    fetchUnreadCount(); // Refresh count when notifications are opened
+    fetchUnreadCount();
   };
 
   const closeNotificationPopup = () => {
@@ -69,6 +71,11 @@ const Navbar = () => {
     setChatOpen(!isChatOpen);
   };
 
+  // Updated AI Mail Click Handler
+  const handleAIMailClick = () => {
+    setAIMailOpen(true);
+  };
+
   const handleInviteClick = () => {
     setInviteOpen(true);
   };
@@ -78,11 +85,8 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    // Initial fetch
     fetchUnreadCount();
-
-    // Set up polling to refresh count periodically
-    const interval = setInterval(fetchUnreadCount, 60000); // Refresh every minute
+    const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -109,12 +113,12 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center space-x-5">
-          {/* Notifications Button */}
+          {/* Notifications Button - BELL ICON */}
           <button 
             className="text-white hover:text-blue-100 transition-colors duration-200 relative group"
             onClick={handleNotificationClick}
+            aria-label="Notifications"
           >
-            <span className="sr-only">Notifications</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path 
                 strokeLinecap="round" 
@@ -142,28 +146,44 @@ const Navbar = () => {
             )}
           </button>
           
-          {/* Inbox Button toggles the chat popup */}
+          {/* Chat Button - CHAT ICON */}
           <button 
-            className="text-white hover:text-blue-100 transition-colors duration-200"
+            className="text-white hover:text-blue-100 transition-colors duration-200 relative group"
             onClick={toggleChat}
+            aria-label="Chat"
           >
-            <span className="sr-only">Inbox / Chat</span>
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
-              />
-            </svg>
+            <MessageSquare className="w-6 h-6" />
+          </button>
+          
+          {/* AI Mail Button - UPDATED WITH BETTER VISUAL */}
+          <button 
+            className="text-white hover:text-blue-100 transition-colors duration-200 relative group flex items-center"
+            onClick={handleAIMailClick}
+            aria-label="AI Mail Assistant"
+            title="AI Email Assistant - Generate & Send Emails"
+          >
+            <div className="relative">
+              <Mail className="w-6 h-6" />
+              {/* AI Indicator - Subtle sparkle */}
+              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gradient-to-br from-yellow-300 to-pink-400 rounded-full flex items-center justify-center shadow-sm">
+                <Sparkles className="w-2 h-2 text-white" />
+              </div>
+            </div>
+            
+            {/* Optional: Show unread count for drafts */}
+            {/* {draftCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                {draftCount}
+              </span>
+            )} */}
           </button>
           
           {/* Search Button */}
           <button 
             className="text-white hover:text-blue-100 transition-colors duration-200"
             onClick={() => handleNavigation('/search')}
+            aria-label="Search"
           >
-            <span className="sr-only">Search</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path 
                 strokeLinecap="round" 
@@ -178,8 +198,8 @@ const Navbar = () => {
           <button 
             className="text-white hover:text-blue-100 transition-colors duration-200"
             onClick={() => handleNavigation('/help')}
+            aria-label="Help"
           >
-            <span className="sr-only">Help</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path 
                 strokeLinecap="round" 
@@ -205,6 +225,7 @@ const Navbar = () => {
           <button 
             className="flex items-center space-x-2 p-1 rounded-full hover:bg-blue-400 transition-colors duration-200"
             onClick={toggleProfileSidebar}
+            aria-label="Profile"
           >
             <img 
               src="https://t4.ftcdn.net/jpg/09/61/69/71/240_F_961697155_J7ZlI6T87DqEtLIRZoXkdMAMs87VyfAu.jpg" 
@@ -230,6 +251,7 @@ const Navbar = () => {
         refreshCount={fetchUnreadCount}
       />
 
+      {/* Profile Sidebar */}
       <ProfileSidebar 
         isOpen={isProfileSidebarOpen} 
         onClose={() => setIsProfileSidebarOpen(false)}
@@ -237,8 +259,20 @@ const Navbar = () => {
         openTeamChat={() => setChatOpen(true)}
       />
       
+      {/* Chat Popup */}
       {isChatOpen && <PopupChatWindow onClose={() => setChatOpen(false)} />}
+      
+      {/* Invite Modal */}
       <Invite isOpen={isInviteOpen} onClose={closeInviteModal} />
+      
+      {/* AI Mail Assistant Modal */}
+      {isAIMailOpen && (
+        <AIMailAssistant 
+          isOpen={isAIMailOpen} 
+          onClose={() => setAIMailOpen(false)}
+          baseUrl="http://localhost:8000"
+        />
+      )}
     </>
   );
 };
