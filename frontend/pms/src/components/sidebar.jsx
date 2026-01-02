@@ -431,25 +431,32 @@ const [isResizing, setIsResizing] = useState(false)
     }
   }, [pinnedWorkspaces])
 
-  // Track active workspace based on current path
-  useEffect(() => {
-  const currentPath = location.pathname
-  const isWorkspacePath = contextWorkspaces.some((workspace) =>
-    (workspace.pages || []).some((page) => page.path === currentPath),
-  )
+  // Track active workspace based on current path - previous slow logic removed
+ // Created a custom hook for workspace navigation
+const useWorkspaceNavigation = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { workspaces, setCurrentWorkspace } = useWorkspace();
 
-  if (isWorkspacePath) {
-    contextWorkspaces.find((workspace) => {
-      if ((workspace.pages || []).some((page) => page.path === currentPath)) {
-        setCurrentWorkspace(workspace) // This will update the context
-        setExpandedSections((prev) => ({
-          ...prev,
-          [workspace.name]: true,
-        }))
-      }
-    })
-  }
-}, [location.pathname, contextWorkspaces, setCurrentWorkspace])
+  const handleWorkspaceNavigation = useCallback((workspaceId, defaultPage = null) => {
+    const workspace = workspaces.find(w => w.id === workspaceId);
+    if (!workspace) return;
+
+    setCurrentWorkspace(workspace);
+    
+    // Store in localStorage for persistence
+    localStorage.setItem('currentWorkspaceId', workspaceId.toString());
+    
+    // Navigate to default page or first available page
+    if (defaultPage) {
+      navigate(defaultPage);
+    } else if (workspace.pages?.length > 0) {
+      navigate(workspace.pages[0].path);
+    }
+  }, [workspaces, setCurrentWorkspace, navigate]);
+
+  return { handleWorkspaceNavigation };
+};
 
   // Search functionality
   useEffect(() => {
