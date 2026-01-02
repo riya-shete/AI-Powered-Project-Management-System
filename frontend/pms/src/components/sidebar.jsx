@@ -1,7 +1,7 @@
 "use client"
 
 import axios from "axios"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useWorkspace } from "../contexts/WorkspaceContexts"
 import {
@@ -96,6 +96,16 @@ const Sidebar = () => {
   }
 
   const token = localStorage.getItem("token")
+
+  //update: state declarations for resizable sidebar
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+  const saved = localStorage.getItem("sidebarWidth")
+  return saved ? parseInt(saved) : 256 // 256px = w-64 default
+})
+
+const [isResizing, setIsResizing] = useState(false)
+
+
 
   //needs to be delted as we are already building this in workspace context.jsx
   // FIXED: Workspace CRUD API functions with better error handling
@@ -821,6 +831,47 @@ const Sidebar = () => {
     setActiveProject(project)
     setIsDeleteProjectDialogOpen(true)
   }
+  // upddate : functions for sidebar resizable  sidebar
+  const startResizing = useCallback((e) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const resize = useCallback(
+    (e) => {
+      if (isResizing) {
+        const newWidth = e.clientX
+        if (newWidth >= 200 && newWidth <= 480) {
+          setSidebarWidth(newWidth)
+          localStorage.setItem("sidebarWidth", newWidth.toString())
+        }
+      }
+    },
+    [isResizing]
+  )
+
+  // Resize effect - Add this useEffect here
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", resize)
+      document.addEventListener("mouseup", stopResizing)
+      document.body.style.userSelect = "none"
+    } else {
+      document.removeEventListener("mousemove", resize)
+      document.removeEventListener("mouseup", stopResizing)
+      document.body.style.userSelect = "auto"
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", resize)
+      document.removeEventListener("mouseup", stopResizing)
+      document.body.style.userSelect = "auto"
+    }
+  }, [isResizing, resize, stopResizing])
 
   //>>const { setCurrentWorkspace } = useWorkspace()
 
@@ -1223,12 +1274,15 @@ const Sidebar = () => {
       </div>
     )
   }
+  
   //Filter out pinned workspaces from the main workspaces list
   // const unpinnedWorkspaces = contextWorkspaces.filter((workspace) => !isPinned(workspace.id))
   //NEW:
   const unpinnedWorkspaces = contextWorkspaces.filter((workspace) => !isPinned(workspace.id))
   return (
-    <div className="w-64 h-full bg-white border-r border-gray-200 flex flex-col shadow-sm max-w-full">
+    //update: css only resizable sidebar
+    <div className="h-full bg-white border-r border-gray-200 flex flex-col shadow-sm relative"
+      style={{ width: `${sidebarWidth}px`, minWidth: '200px', maxWidth: '480px' }}>
       <div className="p-4 space-y-1">
         <div
           className={`flex items-center p-2.5 rounded-lg hover:bg-gray-100 transition-all duration-200 cursor-pointer group ${location.pathname === "/dashboard" ? "bg-gray-100 text-blue-600" : ""}`}
@@ -1801,6 +1855,14 @@ const Sidebar = () => {
           </div>
         </div>
       )}
+      {/* sidebar resize handle */}
+      <div
+      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 hover:w-1.5 transition-all group"
+      onMouseDown={startResizing}
+    >
+      <div className="absolute inset-y-0 right-0 w-1 bg-transparent group-hover:bg-blue-400 opacity-0 group-hover:opacity-50 transition-opacity" />
+    </div>
+ 
     </div>
   )
 }
